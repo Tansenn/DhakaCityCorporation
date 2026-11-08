@@ -1,0 +1,60 @@
+{% extends 'accounts/auth_base.html' %}
+{% load gzp %}
+{% block title %}Register{% endblock %}
+{% block auth_content %}
+  <h2>{% t "Register" %}</h2>
+  <div class="sub">Citizen / applicant account. Email and mobile are verified with a one-time code.</div>
+
+  <form method="post" action="/register/" novalidate>
+    {% csrf_token %}
+    <div class="row g-2">
+      <div class="col-6">
+        <div class="mb-2">
+          <label class="form-label required" for="first_name">First name</label>
+          <input class="form-control" id="first_name" name="first_name" value="{{ values.first_name }}" required>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="mb-2">
+          <label class="form-label required" for="last_name">Last name</label>
+          <input class="form-control" id="last_name" name="last_name" value="{{ values.last_name }}" required>
+        </div>
+      </div>
+    </div>
+    <div class="mb-2">
+      <label class="form-label required" for="username">Username</label>
+      <input class="form-control" id="username" name="username" value="{{ values.username }}" autocomplete="username" required>
+    </div>
+    <div class="mb-2">
+      <label class="form-label required" for="email">{% t "Email" %}</label>
+      <input class="form-control" id="email" name="email" type="email" value="{{ values.email }}" required>
+    </div>
+    <div class="mb-2">
+      <label class="form-label required" for="phone">{% t "Phone" %}</label>
+      <input class="form-control" id="phone" name="phone" value="{{ values.phone }}" placeholder="01XXXXXXXXX" required>
+      <div class="form-text">Use a sample number only. SMS delivery is simulated in the demo.</div>
+    </div>
+    <div class="row g-2">
+      <div class="col-6">
+        <div class="mb-2">
+          <label class="form-label required" for="password1">{% t "Password" %}</label>
+          <input class="form-control" id="password1" name="password1" type="password" required>
+        </div>
+      </div>
+      <div class="col-6">
+        <div class="mb-2">
+          <label class="form-label required" for="password2">Confirm password</label>
+          <input class="form-control" id="password2" name="password2" type="password" required>
+        </div>
+      </div>
+    </div>
+    <div class="help-box mb-3">
+      Password must be at least 8 characters. For the demo, <span class="mono">Demo@12345</span> works.
+    </div>
+    <button class="btn btn-primary w-100" type="submit">{% t "Register" %}</button>
+  </form>
+  <div class="d-flex justify-content-between mt-3" style="font-size:.8rem">
+    <span class="text-muted">Already registered?</span>
+    <a href="/login/">{% t "Sign in" %}</a>
+  </div>
+{% endblock %}

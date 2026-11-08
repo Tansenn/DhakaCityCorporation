@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Meetings{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Meetings" %}</h1>
+    <div class="sub">Meeting schedule, agendas, minutes and action follow-up.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/meetings/actions/"><i class="bi bi-list-check me-1"></i>Action follow-up</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Scheduled</div><div class="value">{{ page_obj.paginator.count }}</div><div class="hint">Matching the filter</div><div class="ic"><i class="bi bi-calendar-event"></i></div></div>
+  <div class="stat"><div class="label">Today</div><div class="value">{{ today|date:"d M" }}</div><div class="hint">{{ today|date:"l" }}</div><div class="ic"><i class="bi bi-clock"></i></div></div>
+  <div class="stat accent"><div class="label">Open actions</div><div class="value">{{ open_actions }}</div><div class="hint">Across all meetings</div><div class="ic"><i class="bi bi-list-check"></i></div></div>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f"><label>Status</label>
+    <select class="form-select" name="status">
+      <option value="">All</option>
+      {% for code, label in statuses %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-primary" type="submit">Filter</button>
+  <a class="btn btn-outline-secondary" href="/app/meetings/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Date</th><th>Meeting</th><th>Venue</th><th>Chair</th><th>Status</th><th class="num">Actions</th><th></th></tr></thead>
+      <tbody>
+      {% for meeting in page_obj %}
+        <tr>
+          <td>{{ meeting.date|d }}<div class="note-inline">{{ meeting.start_time|time:"H:i"|default:"-" }}</div></td>
+          <td><a href="/app/meetings/{{ meeting.pk }}/">{{ meeting.title }}</a>
+            <div class="note-inline">{{ meeting.agenda|truncatechars:60 }}</div></td>
+          <td>{{ meeting.venue|default:"-" }}</td>
+          <td>{{ meeting.chair.display_name|default:"-" }}</td>
+          <td><span class="chip chip-{{ meeting.status|chip }}">{{ meeting.get_status_display }}</span></td>
+          <td class="num">{{ meeting.open_actions }}</td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/meetings/{{ meeting.pk }}/">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty"><i class="bi bi-calendar-event"></i>No meetings scheduled.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+
+{% if "meetings.manage"|can:user %}
+  <div class="card mt-3">
+    <div class="card-header"><strong>Schedule a meeting</strong></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="filter-bar" style="margin:0 0 1rem">
+          <div class="f f-grow"><label>Title</label><input class="form-control" name="title" required></div>
+          <div class="f"><label>Date</label><input class="form-control" type="date" name="date" required></div>
+          <div class="f f-grow"><label>Venue</label><input class="form-control" name="venue"></div>
+          <div class="f"><label>Chair</label>
+            <select class="form-select" name="chair"><option value="">-</option>
+              {% for u in users %}<option value="{{ u.pk }}">{{ u.display_name }} ({{ u.role_name }})</option>{% endfor %}
+            </select></div>
+        </div>
+        <div class="mb-3"><label class="form-label">Agenda</label><textarea class="form-control" name="agenda" rows="3"></textarea></div>
+        <button class="btn btn-primary" type="submit">Schedule meeting</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

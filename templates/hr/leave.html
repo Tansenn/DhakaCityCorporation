@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Leave{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Leave" %}</h1>
+    <div class="sub">{% if can_see_all %}All leave applications with workflow status.{% else %}Your leave applications and their approval status.{% endif %}</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/tasks/"><i class="bi bi-inbox me-1"></i>Approval tasks</a>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <div class="card-header"><strong>{% if can_see_all %}Leave register{% else %}My applications{% endif %}</strong></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr>
+          {% if can_see_all %}<th>Employee</th>{% endif %}
+          <th>Type</th><th>Dates</th><th>Days</th><th>Status</th><th>Tracking</th>
+        </tr></thead>
+        <tbody>
+        {% for row in page_obj %}
+          <tr>
+            {% if can_see_all %}<td>{{ row.employee.name }}<div class="note-inline">{{ row.employee.department.name|default:"-" }}</div></td>{% endif %}
+            <td>{{ row.get_leave_type_display }}</td>
+            <td>{{ row.start_date|d }} - {{ row.end_date|d }}</td>
+            <td>{{ row.days }}</td>
+            <td><span class="chip chip-{{ row.status|chip }}">{{ row.get_status_display }}</span>
+              {% if row.decision_note %}<div class="note-inline">{{ row.decision_note }}</div>{% endif %}</td>
+            <td class="mono small">{{ row.workflow_instance.tracking_id|default:"-" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6"><div class="table-empty"><i class="bi bi-calendar-x"></i>No leave applications.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Apply for leave</strong></div>
+    <div class="card-body">
+      {% if employee %}
+        <div class="alert alert-info small">
+          Applying starts the leave workflow. Supervisor and HR decisions appear in My Tasks and update this status.
+          Your employee record: <b>{{ employee.name }}</b> ({{ employee.employee_no }}).
+        </div>
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3"><label class="form-label">Leave type</label>
+            <select class="form-select" name="leave_type">
+              {% for code, label in leave_types %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+            </select></div>
+          <div class="mb-3"><label class="form-label">Start date</label>
+            <input class="form-control" type="date" name="start_date" required></div>
+          <div class="mb-3"><label class="form-label">End date</label>
+            <input class="form-control" type="date" name="end_date"></div>
+          <div class="mb-3"><label class="form-label">Reason</label>
+            <textarea class="form-control" name="reason" rows="3" required></textarea></div>
+          <button class="btn btn-primary" type="submit">Submit application</button>
+        </form>
+      {% else %}
+        <div class="alert alert-warning mb-0">
+          Your account is not linked to an employee record. Ask HR to link your account before applying for leave.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

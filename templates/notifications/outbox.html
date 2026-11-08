@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Demo outbox{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Demo outbox" %}</h1>
+    <div class="sub">Every email and SMS the platform would send. Nothing leaves this machine; entries are labelled
+      simulated.</div>
+  </div>
+  <div class="spacer"></div>
+  {% if "notifications.manage"|can:user %}
+    <a class="btn btn-sm btn-outline-primary" href="/app/outbox/templates/"><i class="bi bi-pencil-square me-1"></i>Templates</a>
+  {% endif %}
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f"><label>Channel</label>
+    <select class="form-select" name="channel">
+      <option value="">All</option>
+      <option value="email" {% if channel == 'email' %}selected{% endif %}>Email</option>
+      <option value="sms" {% if channel == 'sms' %}selected{% endif %}>SMS</option>
+    </select></div>
+  <div class="f f-grow"><label>Search</label><input class="form-control" name="q" value="{{ q }}" placeholder="Recipient or body"></div>
+  <button class="btn btn-primary" type="submit">Filter</button>
+  <a class="btn btn-outline-secondary" href="/app/outbox/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>When</th><th>Channel</th><th>Recipient</th><th>Subject</th><th>Body</th><th>Template</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="small">{{ row.created_at|dt }}</td>
+          <td><span class="chip chip-{% if row.channel == 'email' %}info{% else %}warning{% endif %}">{{ row.get_channel_display }}</span>
+            <div class="note-inline">Simulated</div></td>
+          <td class="mono small">{{ row.recipient }}</td>
+          <td>{{ row.subject|default:"-" }}</td>
+          <td class="small">{{ row.body|truncatechars:120 }}</td>
+          <td class="mono small">{{ row.template_code|default:"-" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty"><i class="bi bi-envelope-open"></i>No messages yet. Run a booking or workflow action.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header"><strong>Notification templates in use</strong></div>
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Code</th><th>Name</th><th>Channel</th><th>Description</th></tr></thead>
+      <tbody>
+      {% for tpl in templates %}
+        <tr><td class="mono">{{ tpl.code }}</td><td>{{ tpl.name }}</td>
+          <td>{{ tpl.get_channel_display }}</td><td class="small">{{ tpl.description }}</td></tr>
+      {% empty %}
+        <tr><td colspan="4"><div class="table-empty">No templates seeded.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

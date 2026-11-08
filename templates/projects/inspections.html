@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Inspections{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Inspections" %}</h1>
+    <div class="sub">Field inspection records with findings, rating and follow-up date.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/projects/">Projects</a>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f f-grow"><label>Project</label>
+    <select class="form-select" name="project">
+      <option value="">All projects</option>
+      {% for project in projects %}<option value="{{ project.pk }}" {% if project_id == project.pk|stringformat:"s" %}selected{% endif %}>{{ project.code }} - {{ project.name }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/projects/inspections/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Date</th><th>Project</th><th>Location</th><th>Rating</th><th>Finding</th><th>Inspector</th><th>Follow-up</th></tr></thead>
+      <tbody>
+      {% for row in page_obj %}
+        <tr>
+          <td>{{ row.date|d }}</td>
+          <td><a href="/app/projects/{{ row.project.pk }}/">{{ row.project.code }}</a>
+            <div class="note-inline">{{ row.project.name|truncatechars:36 }}</div></td>
+          <td>{{ row.location|default:"-" }}</td>
+          <td><span class="chip chip-{% if row.rating == 'pass' %}success{% elif row.rating == 'fail' %}danger{% else %}warning{% endif %}">{{ row.get_rating_display }}</span></td>
+          <td class="small">{{ row.finding|truncatechars:90 }}</td>
+          <td>{{ row.inspector.display_name|default:"-" }}</td>
+          <td>{{ row.follow_up_date|d }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty"><i class="bi bi-geo-alt"></i>No inspections recorded.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+
+{% if "projects.inspect"|can:user %}
+  <div class="card mt-3">
+    <div class="card-header"><strong>Record inspection</strong></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="filter-bar" style="margin:0 0 1rem">
+          <div class="f f-grow"><label>Project</label>
+            <select class="form-select" name="project" required>
+              {% for project in projects %}<option value="{{ project.pk }}">{{ project.code }} - {{ project.name }}</option>{% endfor %}
+            </select></div>
+          <div class="f"><label>Date</label><input class="form-control" type="date" name="date"></div>
+          <div class="f f-grow"><label>Location</label><input class="form-control" name="location"></div>
+          <div class="f"><label>Rating</label>
+            <select class="form-select" name="rating">
+              {% for code, label in ratings %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+            </select></div>
+          <div class="f"><label>Follow-up</label><input class="form-control" type="date" name="follow_up_date"></div>
+        </div>
+        <div class="mb-3"><label class="form-label">Findings</label><textarea class="form-control" name="finding" rows="3" required></textarea></div>
+        <button class="btn btn-primary" type="submit">Save inspection</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

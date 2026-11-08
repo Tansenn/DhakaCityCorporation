@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Booking and revenue report{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Booking and revenue report" %}</h1>
+    <div class="sub">{{ count }} booking(s) in this view. Values come from stored bookings and verified payments.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/mis/reports/export/?report=bookings&format=csv&{{ request.GET.urlencode }}">
+    <i class="bi bi-filetype-csv me-1"></i>CSV</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/mis/reports/export/?report=bookings&format=pdf&{{ request.GET.urlencode }}">
+    <i class="bi bi-filetype-pdf me-1"></i>PDF</a>
+  <a class="btn btn-sm btn-outline-secondary" href="/app/mis/reports/">Reports</a>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f"><label>Check-in from</label><input class="form-control" type="date" name="from" value="{{ request.GET.from }}"></div>
+  <div class="f"><label>Check-out to</label><input class="form-control" type="date" name="to" value="{{ request.GET.to }}"></div>
+  <div class="f"><label>Facility</label>
+    <select class="form-select" name="facility">
+      <option value="">All</option>
+      {% for facility in facilities %}<option value="{{ facility.code }}" {% if request.GET.facility == facility.code %}selected{% endif %}>{{ facility.name }}</option>{% endfor %}
+    </select></div>
+  <div class="f"><label>Status</label>
+    <select class="form-select" name="status">
+      <option value="">All</option>
+      {% for code, label in statuses %}<option value="{{ code }}" {% if request.GET.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/mis/bookings/">Reset</a>
+</form>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Bookings</div><div class="value">{{ count }}</div>
+    <div class="hint">Matching the filters</div><div class="ic"><i class="bi bi-calendar-check"></i></div></div>
+  <div class="stat"><div class="label">Total charged</div><div class="value" style="font-size:1.3rem">{{ totals.total|money }}</div>
+    <div class="hint">Room charges, deposit and gateway</div><div class="ic"><i class="bi bi-receipt"></i></div></div>
+  <div class="stat"><div class="label">Security deposits</div><div class="value" style="font-size:1.3rem">{{ totals.deposit|money }}</div>
+    <div class="hint">Held against the stay</div><div class="ic"><i class="bi bi-shield-check"></i></div></div>
+  <div class="stat"><div class="label">Gateway charges</div><div class="value" style="font-size:1.3rem">{{ totals.gateway|money }}</div>
+    <div class="hint">Sample charge where enabled</div><div class="ic"><i class="bi bi-credit-card"></i></div></div>
+</div>
+
+<div class="two-col mb-3">
+  <div class="card">
+    <div class="card-header"><strong>By status</strong></div>
+    <div class="card-body">
+      {% for code, label in statuses %}
+        <div class="d-flex justify-content-between small mb-1">
+          <span>{{ label }}</span><span>{{ status_counts|get_item:code }}</span>
+        </div>
+        <div class="progress-thin mb-2"><span style="width:{% widthratio status_counts|get_item:code count 100 %}%"></span></div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header"><strong>By facility</strong></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Facility</th><th class="num">Bookings</th><th class="num">Revenue</th></tr></thead>
+        <tbody>
+        {% for row in by_facility %}
+          <tr><td>{{ row.facility__name }}</td><td class="num">{{ row.n }}</td><td class="num">{{ row.revenue|money }}</td></tr>
+        {% empty %}
+          <tr><td colspan="3"><div class="table-empty">No data.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Reference</th><th>Applicant</th><th>Facility / unit</th><th>Dates</th><th>Status</th><th class="num">Total</th></tr></thead>
+      <tbody>
+      {% for booking in page_obj %}
+        <tr>
+          <td class="mono">{{ booking.reference }}</td>
+          <td>{{ booking.applicant_name }}<div class="note-inline">{{ booking.get_category_display }}</div></td>
+          <td>{{ booking.facility.name }}<div class="note-inline">{{ booking.unit.name }}</div></td>
+          <td>{{ booking.check_in|d }} - {{ booking.check_out|d }}</td>
+          <td><span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label }}</span></td>
+          <td class="num">{{ booking.total|money }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty">No bookings match.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{{ project.code }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ project.name }}</h1>
+    <div class="sub mono">{{ project.code }} · {{ project.department.name|default:"No department" }} · {{ project.location }}</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip chip-{{ project.status|chip }}">{{ project.get_status_display }}</span>
+  <a class="btn btn-sm btn-outline-primary" href="/app/projects/">Projects</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Progress</div><div class="value">{{ project.progress }}%</div>
+    <div class="progress-thin mt-2"><span style="width:{{ project.progress }}%"></span></div>
+    <div class="ic"><i class="bi bi-bar-chart"></i></div></div>
+  <div class="stat"><div class="label">Budget</div><div class="value" style="font-size:1.3rem">{{ project.budget|money }}</div>
+    <div class="hint">Approved allocation</div><div class="ic"><i class="bi bi-wallet2"></i></div></div>
+  <div class="stat"><div class="label">Spent</div><div class="value" style="font-size:1.3rem">{{ project.spent|money }}</div>
+    <div class="hint">{{ project.utilisation }}% utilised</div><div class="ic"><i class="bi bi-cash"></i></div></div>
+  <div class="stat {% if project.is_overdue %}accent{% endif %}"><div class="label">Timeline</div>
+    <div class="value" style="font-size:1rem">{{ project.start_date|d }}<br>{{ project.end_date|d }}</div>
+    <div class="hint">{% if project.is_overdue %}Past the end date{% else %}{{ project.inspections_count }} inspection(s){% endif %}</div>
+    <div class="ic"><i class="bi bi-calendar3"></i></div></div>
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="card">
+      <div class="card-header"><strong>Scope</strong></div>
+      <div class="card-body">
+        <p class="small">{{ project.description|default:"No description recorded." }}</p>
+        <div class="detail-grid">
+          <div><div class="k">Manager</div><div class="v">{{ project.manager.display_name|default:"-" }}</div></div>
+          <div><div class="k">Created</div><div class="v">{{ project.created_at|dt }}</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><strong>Milestones</strong></div>
+      <div class="table-wrap">
+        <table class="table-gzp">
+          <thead><tr><th>Milestone</th><th>Due</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+          {% for milestone in milestones %}
+            <tr>
+              <td>{{ milestone.title }}{% if milestone.note %}<div class="note-inline">{{ milestone.note }}</div>{% endif %}</td>
+              <td>{{ milestone.due_date|d }}</td>
+              <td><span class="chip chip-{{ milestone.status|chip }}">{{ milestone.get_status_display }}</span>
+                {% if milestone.completed_on %}<div class="note-inline">{{ milestone.completed_on|d }}</div>{% endif %}</td>
+              <td class="text-end">
+                {% if milestone.status != 'done' and "projects.manage"|can:user %}
+                  <form method="post" class="d-inline">{% csrf_token %}
+                    <input type="hidden" name="action" value="milestone_done">
+                    <input type="hidden" name="milestone" value="{{ milestone.pk }}">
+                    <button class="btn btn-sm btn-outline-primary" type="submit">Done</button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4"><div class="table-empty">No milestones.</div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if "projects.manage"|can:user %}
+        <div class="card-body border-top">
+          <form method="post" class="filter-bar" style="margin:0">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="milestone">
+            <div class="f f-grow"><label>New milestone</label><input class="form-control" name="title" required></div>
+            <div class="f"><label>Due</label><input class="form-control" type="date" name="due_date"></div>
+            <div class="f d-flex align-items-end"><button class="btn btn-primary" type="submit">Add</button></div>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    {% if "projects.update"|can:user or "projects.manage"|can:user %}
+      <div class="card">
+        <div class="card-header"><strong>Post progress update</strong></div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="progress">
+            <div class="mb-3"><label class="form-label">Progress (%)</label>
+              <input class="form-control" type="number" min="0" max="100" name="progress" value="{{ project.progress }}"></div>
+            <div class="mb-3"><label class="form-label">Spent to date</label>
+              <input class="form-control" name="spent" value="{{ project.spent }}"></div>
+            <div class="mb-3"><label class="form-label">Status</label>
+              <select class="form-select" name="status">
+                {% for code, label in statuses %}<option value="{{ code }}" {% if project.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select></div>
+            <button class="btn btn-primary" type="submit">Save update</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="card mt-3">
+      <div class="card-header"><strong>Recent inspections</strong><a class="note-inline" href="/app/projects/inspections/">All</a></div>
+      <div class="list-clean">
+        {% for inspection in inspections %}
+          <div class="list-row">
+            <div>
+              <b>{{ inspection.date|d }}</b> · <span class="chip chip-{{ inspection.rating|chip }}">{{ inspection.get_rating_display }}</span>
+              <div class="small mt-1">{{ inspection.finding|truncatechars:110 }}</div>
+              <div class="note-inline">{{ inspection.inspector.display_name|default:"-" }}</div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="table-empty">No inspections recorded.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Payments and reconciliation{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Payments and reconciliation</h1>
+    <div class="sub">Demand versus collection, gateway references, failed and duplicate callbacks and refunds.</div>
+  </div>
+  <div class="spacer"></div>
+  <form method="post" action="/app/payments/release-holds/">
+    {% csrf_token %}<input type="hidden" name="next" value="/app/payments/">
+    <button class="btn btn-sm btn-outline-primary" type="submit">
+      <i class="bi bi-arrow-clockwise me-1"></i>Release expired holds &amp; payment windows
+    </button>
+  </form>
+  <a class="btn btn-sm btn-outline-primary" href="/app/payments/export.csv"><i class="bi bi-download me-1"></i>Export CSV</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Demand (approved bookings)</div><div class="value" style="font-size:1.15rem">{{ demand|money }}</div>
+    <div class="hint">Sample approved demand</div><div class="ic"><i class="bi bi-file-earmark-text"></i></div></div>
+  <div class="stat"><div class="label">Collected (verified)</div><div class="value" style="font-size:1.15rem">{{ collected|money }}</div>
+    <div class="hint">Only signed callbacks count</div><div class="ic"><i class="bi bi-check2-circle"></i></div></div>
+  <div class="stat"><div class="label">Outstanding</div><div class="value" style="font-size:1.15rem">{{ outstanding|money }}</div>
+    <div class="hint">Demand less collected</div><div class="ic"><i class="bi bi-hourglass-split"></i></div></div>
+  <div class="stat accent"><div class="label">Refunded</div><div class="value" style="font-size:1.15rem">{{ refunded|money }}</div>
+    <div class="hint">Processed refunds</div><div class="ic"><i class="bi bi-arrow-counterclockwise"></i></div></div>
+</div>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3"><div class="mini-kpi"><div class="v">{{ callbacks.confirmed }}</div><div class="l">Confirmed callbacks</div></div></div>
+  <div class="col-md-3"><div class="mini-kpi"><div class="v">{{ callbacks.duplicate }}</div><div class="l">Duplicate callbacks ignored</div></div></div>
+  <div class="col-md-3"><div class="mini-kpi"><div class="v">{{ callbacks.invalid }}</div><div class="l">Forged signatures rejected</div></div></div>
+  <div class="col-md-3"><div class="mini-kpi"><div class="v">{{ callbacks.mismatch }}</div><div class="l">Amount / reference mismatches</div></div></div>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f f-grow"><label>Search</label>
+    <input class="form-control" name="q" value="{{ q }}" placeholder="Transaction, booking reference or receipt"></div>
+  <div class="f"><label>Payment status</label>
+    <select class="form-select" name="status">
+      <option value="">All</option>
+      {% for code, label in statuses %}
+        <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select></div>
+  <div class="f"><label>Exception</label>
+    <select class="form-select" name="result">
+      <option value="">None</option>
+      <option value="duplicate" {% if result == 'duplicate' %}selected{% endif %}>Duplicate callbacks</option>
+      <option value="mismatch" {% if result == 'mismatch' %}selected{% endif %}>Mismatch / forged</option>
+      <option value="failed" {% if result == 'failed' %}selected{% endif %}>Failed / cancelled</option>
+    </select></div>
+  <div class="f"><label>From</label><input class="form-control" type="date" name="from" value="{{ request.GET.from }}"></div>
+  <div class="f"><label>To</label><input class="form-control" type="date" name="to" value="{{ request.GET.to }}"></div>
+  <div class="f d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Apply</button></div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Transaction</th><th>Booking</th><th>Applicant</th><th class="num">Amount</th>
+          <th>Status</th><th>Receipt</th><th>Initiated</th><th>Verified</th><th>Callbacks</th><th></th></tr></thead>
+        <tbody>
+        {% for payment in page_obj %}
+          <tr>
+            <td class="mono">{{ payment.txn_id }}</td>
+            <td><span class="ref">{{ payment.booking.reference }}</span></td>
+            <td>{{ payment.booking.applicant_name }}</td>
+            <td class="num">{{ payment.amount|money }}</td>
+            <td><span class="chip chip-{{ payment.status|chip }}">{{ payment.get_status_display }}</span></td>
+            <td>{{ payment.receipt_no|default:"-" }}</td>
+            <td>{{ payment.initiated_at|dt }}</td>
+            <td>{{ payment.verified_at|dt }}</td>
+            <td>
+              {% for callback in payment.callbacks.all|slice:":3" %}
+                <span class="chip chip-{{ callback.result|chip }}">{{ callback.result }}</span>
+              {% empty %}<span class="note-inline">-</span>{% endfor %}
+            </td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/pay/{{ payment.txn_id }}/">Open</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="10"><div class="table-empty"><i class="bi bi-credit-card-2-front"></i><p>No transactions match the filters.</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

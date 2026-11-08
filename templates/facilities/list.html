@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block title %}Facilities and availability{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Facilities and availability</h1>
+    <div class="sub">Four sample Dakbungalows, room and hall inventory, tariffs and blackout dates.</div>
+  </div>
+  <div class="spacer"></div>
+  <form method="post" action="/app/facilities/release-holds/">
+    {% csrf_token %}
+    <button class="btn btn-sm btn-outline-primary" type="submit">
+      <i class="bi bi-arrow-clockwise me-1"></i>Release expired holds ({{ expired_holds }})
+    </button>
+  </form>
+  {% if "facilities.manage"|can:user %}
+    <a class="btn btn-sm btn-outline-secondary" href="/app/settings/">Booking rules</a>
+  {% endif %}
+</div>
+
+<div class="d-grid gap-3">
+{% for card in cards %}
+  <div class="card">
+    <div class="card-header">
+      <i class="bi bi-building me-1"></i> {{ card.facility.name }}
+      <span class="badge-soft ms-2">{{ card.units|length }} unit(s)</span>
+      <div class="spacer"></div>
+      <span class="note-inline me-2">{{ card.facility.location }}</span>
+      <a class="btn btn-sm btn-outline-primary" href="/app/facilities/{{ card.facility.pk }}/">Manage</a>
+      <a class="btn btn-sm btn-outline-secondary" href="/facilities/{{ card.facility.code }}/">Public page</a>
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-lg-5">
+          <div class="calendar-grid">
+            <div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div>
+            <div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div><div class="dow">Sun</div>
+            {% for day in card.calendar %}
+              <div class="cal-day {% if day.is_blackout %}blackout{% elif day.is_past %}past{% endif %}">
+                <div class="n">{{ day.date|date:"j" }}</div>
+                {% if day.is_blackout %}<div class="free none">Closed</div>
+                {% elif day.free %}<div class="free">{{ day.free }} free</div>
+                {% else %}<div class="free none">Full</div>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+          <div class="note-inline mt-1">Next 14 days · room inventory</div>
+        </div>
+        <div class="col-lg-7">
+          <div class="table-wrap">
+            <table class="table-gzp">
+              <thead><tr><th>Unit</th><th>Kind</th><th>Capacity</th><th>Citizen rate</th><th>Next 7 days</th></tr></thead>
+              <tbody>
+              {% for unit in card.units %}
+                <tr>
+                  <td><b>{{ unit.name }}</b><br><span class="note-inline">{{ unit.code }}</span></td>
+                  <td><span class="chip {% if unit.is_hall %}chip-teal{% elif unit.is_suite %}chip-primary{% else %}chip-muted{% endif %}">{{ unit.get_kind_display }}</span></td>
+                  <td>{{ unit.capacity }}</td>
+                  <td class="num">
+                    {% for tariff in unit.tariffs.all %}{% if tariff.category == 'citizen' %}৳{{ tariff.amount|floatformat:0 }}{% endif %}{% endfor %}
+                  </td>
+                  <td>
+                    <div class="d-flex gap-1">
+                      {% for day in unit.next_days %}
+                        <span class="chip {% if day.free %}chip-success{% else %}chip-danger{% endif %}"
+                              title="{{ day.date|date:'d M Y' }}">{{ day.date|date:"d" }}</span>
+                      {% endfor %}
+                    </div>
+                  </td>
+                </tr>
+              {% empty %}
+                <tr><td colspan="5" class="text-muted small">No units configured.</td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="note-inline">Green = free, red = held or booked. Holds expire automatically after the
+            configured hold period.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,94 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Employees{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Employees" %}</h1>
+    <div class="sub">Employee register with department, designation and employment type.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/hr/">HR overview</a>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f f-grow"><label>Search</label>
+    <input class="form-control" name="q" value="{{ q }}" placeholder="Name, employee no. or designation"></div>
+  <div class="f"><label>Department</label>
+    <select class="form-select" name="department">
+      <option value="">All</option>
+      {% for dept in departments %}
+        <option value="{{ dept.code }}" {% if department == dept.code %}selected{% endif %}>{{ dept.name }}</option>
+      {% endfor %}
+    </select></div>
+  <div class="f"><label>Status</label>
+    <select class="form-select" name="status">
+      <option value="">All</option>
+      <option value="active" {% if status == 'active' %}selected{% endif %}>Active</option>
+      <option value="leave" {% if status == 'leave' %}selected{% endif %}>On leave</option>
+      <option value="inactive" {% if status == 'inactive' %}selected{% endif %}>Inactive</option>
+    </select></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/hr/employees/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Employee no.</th><th>Name</th><th>Department</th><th>Designation</th><th>Type</th><th>Service</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for employee in page_obj %}
+        <tr>
+          <td class="mono">{{ employee.employee_no }}</td>
+          <td><b>{{ employee.name }}</b><div class="note-inline">{{ employee.phone }}</div></td>
+          <td>{{ employee.department.name|default:"-" }}</td>
+          <td>{{ employee.designation.name|default:"-" }}</td>
+          <td>{{ employee.get_employment_type_display }}</td>
+          <td>{{ employee.service_years }} yr</td>
+          <td><span class="chip chip-{{ employee.status|chip }}">{{ employee.get_status_display }}</span></td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/hr/employees/{{ employee.pk }}/">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8"><div class="table-empty"><i class="bi bi-people"></i>No employees match.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if "hr.manage"|can:user %}
+  <div class="card mt-3">
+    <div class="card-header"><strong>Add employee</strong><span class="note-inline">Name and employee number are required</span></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="filter-bar" style="margin:0 0 1rem">
+          <div class="f"><label>Employee no.</label><input class="form-control" name="employee_no" required placeholder="GZP-EMP-031"></div>
+          <div class="f f-grow"><label>Full name</label><input class="form-control" name="name" required></div>
+          <div class="f"><label>Department</label>
+            <select class="form-select" name="department">
+              <option value="">-</option>
+              {% for dept in departments %}<option value="{{ dept.pk }}">{{ dept.name }}</option>{% endfor %}
+            </select></div>
+          <div class="f"><label>Designation</label>
+            <select class="form-select" name="designation">
+              <option value="">-</option>
+              {% for d in designations %}<option value="{{ d.pk }}">{{ d.name }}{% if d.department %} ({{ d.department.name }}){% endif %}</option>{% endfor %}
+            </select></div>
+        </div>
+        <div class="filter-bar" style="margin:0">
+          <div class="f"><label>Joining date</label><input class="form-control" type="date" name="joining_date"></div>
+          <div class="f"><label>Employment type</label>
+            <select class="form-select" name="employment_type">
+              <option value="permanent">Permanent</option><option value="contract">Contract</option>
+              <option value="deputation">Deputation</option><option value="daily">Daily wage</option>
+            </select></div>
+          <div class="f"><label>Phone</label><input class="form-control" name="phone" placeholder="01700-000000"></div>
+          <div class="f f-grow"><label>Email</label><input class="form-control" type="email" name="email"></div>
+          <div class="f d-flex align-items-end"><button class="btn btn-primary" type="submit">Add employee</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

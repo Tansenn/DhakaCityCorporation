@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Track application{% endblock %}
+{% block content %}
+<div class="hero-mini">
+  <h1>Track an application</h1>
+  <p>Enter the booking reference printed on your acknowledgement or permit. Public tracking
+    shows status only; documents and personal details require sign-in.</p>
+  <form class="hero-search" method="get" action="/track/">
+    <div style="grid-column:span 2">
+      <label for="reference">Booking reference</label>
+      <input class="form-control" id="reference" name="reference" value="{{ reference }}"
+             placeholder="e.g. GZP-DB-2026-000123" autocomplete="off">
+    </div>
+    <div class="d-flex align-items-end">
+      <button class="btn btn-accent w-100" type="submit"><i class="bi bi-search me-1"></i>Track</button>
+    </div>
+  </form>
+</div>
+
+{% if searched %}
+  {% if booking %}
+    <div class="card mt-3">
+      <div class="card-header">
+        <strong>{{ booking.reference }}</strong>
+        <span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label }}</span>
+      </div>
+      <div class="card-body">
+        <div class="detail-grid">
+          <div><div class="k">Applicant</div><div class="v">{{ booking.applicant_name }}</div></div>
+          <div><div class="k">Facility</div><div class="v">{{ booking.facility.name }} - {{ booking.unit.name }}</div></div>
+          <div><div class="k">Dates</div><div class="v">{{ booking.check_in|date:"d M Y" }} to {{ booking.check_out|date:"d M Y" }}</div></div>
+          <div><div class="k">Guests</div><div class="v">{{ booking.guests }}</div></div>
+          <div><div class="k">Total</div><div class="v">{{ booking.total|money }}</div></div>
+          <div><div class="k">Submitted</div><div class="v">{{ booking.created_at|dt }}</div></div>
+        </div>
+
+        <div class="section-title mt-3">Progress</div>
+        <div class="timeline">
+          {% for item in booking.timeline %}
+            <div class="tl-item">
+              <div class="dot"></div>
+              <div>
+                <div class="t">{{ item.label }}</div>
+                <div class="note-inline">{{ item.at|dt }}{% if item.comment %} · {{ item.comment }}{% endif %}</div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="alert alert-info mt-3 mb-0 d-flex gap-2 align-items-start">
+          <i class="bi bi-info-circle"></i>
+          <div>
+            {% if booking.status == 'awaiting_payment' %}
+              Payment is pending. Sign in and open your application to complete the simulated gateway payment before
+              {{ booking.payment_deadline|dt }}.
+            {% elif booking.status == 'clarification' %}
+              The booking desk has requested clarification. Sign in to respond with the missing information.
+            {% elif booking.status == 'paid' %}
+              Payment is verified and the permit is issued. Open the application to download the receipt and permit.
+            {% else %}
+              Keep this reference for future tracking. You will be notified at each status change.
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-warning mt-3">
+      <i class="bi bi-search me-1"></i>No booking found for <b>{{ reference }}</b>. Check the reference and try again.
+    </div>
+  {% endif %}
+{% endif %}
+{% endblock %}

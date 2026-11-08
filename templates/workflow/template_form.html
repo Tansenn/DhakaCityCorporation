@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Workflow template{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if template %}Edit workflow template{% else %}New workflow template{% endif %}</h1>
+    <div class="sub">Templates group the steps used for one request category.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-outline-secondary btn-sm" href="/app/workflow/"><i class="bi bi-arrow-left me-1"></i> Back</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label {% if field.field.required %}required{% endif %}" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {{ field.errors }}
+          </div>
+        {% endfor %}
+        <button class="btn btn-primary" type="submit">{% t "Save" %}</button>
+        {% if template %}
+          <a class="btn btn-outline-primary" href="/app/workflow/{{ template.pk }}/step/new/">Add a step</a>
+        {% endif %}
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card"><div class="card-body small text-muted">
+      <p><strong>Sample route for bookings:</strong> Booking Desk → Technical Reviewer
+      (suite/hall only) → Executive Officer → CEO/Chairman (4+ nights or organization).</p>
+      <p class="mb-0">The exact sequence is data. Change the steps or conditions and the
+      next application follows the new route. Authority to approve is separately
+      controlled by the authority matrix.</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

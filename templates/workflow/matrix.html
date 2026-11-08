@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Authority matrix{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Authority matrix</h1>
+    <div class="sub">Who may give final approval, in which request category and up to what amount. Approvals outside this matrix are refused by the server.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-outline-primary btn-sm" href="/app/workflow/"><i class="bi bi-diagram-3 me-1"></i> Workflow designer</a>
+</div>
+
+<div class="alert alert-lime">
+  <i class="bi bi-shield-check me-1"></i>
+  Sample values for the demo. The Parishad supplies and approves the real matrix. Leave
+  the amount blank for unlimited authority within the category.
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-table"></i> Configured authority</div>
+      <div class="table-wrap">
+        <table class="table-gzp">
+          <thead><tr><th>Category</th><th>Role</th><th>Can approve</th><th class="num">Max amount</th><th>Note</th><th></th></tr></thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>{{ row.get_category_display }}</td>
+                <td>{{ row.role.name }}<div class="note-inline mono">{{ row.role.code }}</div></td>
+                <td>{% if row.can_approve %}<span class="chip chip-success">Yes</span>{% else %}<span class="chip chip-muted">No</span>{% endif %}</td>
+                <td class="num">{% if row.max_amount %}৳{{ row.max_amount|floatformat:2 }}{% else %}Unlimited{% endif %}</td>
+                <td class="small">{{ row.note|default:"-" }}</td>
+                <td class="text-end">
+                  <form method="post" action="/app/workflow/matrix/{{ row.pk }}/delete/">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-outline-secondary" type="submit"><i class="bi bi-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6"><div class="table-empty"><i class="bi bi-shield-slash"></i>No authority rows configured. Approvals will be refused.</div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-plus-circle"></i> Add or update a row</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label required">Role</label>
+            <select class="form-select" name="role" required>
+              {% for role in roles %}<option value="{{ role.code }}">{{ role.name }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label required">Category</label>
+            <select class="form-select" name="category" required>
+              {% for code, label in categories %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="row g-2">
+            <div class="col-6">
+              <label class="form-label">Max amount (৳)</label>
+              <input class="form-control" name="max_amount" inputmode="decimal" placeholder="Blank = unlimited">
+            </div>
+            <div class="col-6">
+              <label class="form-label d-block">Can approve</label>
+              <div class="form-check form-switch mt-1">
+                <input class="form-check-input" type="checkbox" name="can_approve" id="canApprove" checked>
+                <label class="form-check-label" for="canApprove">Allow final approval</label>
+              </div>
+            </div>
+          </div>
+          <div class="mb-3 mt-2">
+            <label class="form-label">Note</label>
+            <input class="form-control" name="note" placeholder="Office order reference or note">
+          </div>
+          <button class="btn btn-primary" type="submit">{% t "Save" %}</button>
+        </form>
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-body small text-muted">
+        Saving a row for the same role and category updates the existing row. Approval
+        checks compare the request amount (for bookings, the total payable) with the max
+        amount.
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

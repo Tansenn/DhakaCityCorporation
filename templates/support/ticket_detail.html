@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{{ ticket.number }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="mono">{{ ticket.number }}</h1>
+    <div class="sub">{{ ticket.subject }} · {{ ticket.get_category_display }}</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip chip-{{ ticket.status|chip }}">{{ ticket.get_status_display }}</span>
+  <a class="btn btn-sm btn-outline-primary" href="/app/support/">Tickets</a>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <div class="card-header"><strong>Description</strong></div>
+    <div class="card-body">
+      <p class="small">{{ ticket.description|linebreaksbr }}</p>
+      <div class="detail-grid">
+        <div><div class="k">Priority</div><div class="v">{{ ticket.get_priority_display }}</div></div>
+        <div><div class="k">Requester</div><div class="v">{{ ticket.requester.display_name|default:"-" }}</div></div>
+        <div><div class="k">Logged</div><div class="v">{{ ticket.created_at|dt }}</div></div>
+        <div><div class="k">Response due</div><div class="v">{{ ticket.response_due_at|dt }}
+          {% if ticket.is_overdue %}<span class="chip chip-danger">Past target</span>{% endif %}</div></div>
+        <div><div class="k">Assignee</div><div class="v">{{ ticket.assignee.display_name|default:"Unassigned" }}</div></div>
+        <div><div class="k">Resolved</div><div class="v">{{ ticket.resolved_at|dt }}</div></div>
+      </div>
+      {% if ticket.resolution %}
+        <div class="section-title mt-3">Resolution</div>
+        <p class="small mb-0">{{ ticket.resolution|linebreaksbr }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Update ticket</strong></div>
+    <div class="card-body">
+      {% if "support.manage"|can:user %}
+        <form method="post">
+          {% csrf_token %}
+          <div class="mb-3"><label class="form-label">Status</label>
+            <select class="form-select" name="status">
+              {% for code, label in statuses %}<option value="{{ code }}" {% if ticket.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+            </select></div>
+          <div class="mb-3"><label class="form-label">Assignee</label>
+            <select class="form-select" name="assignee"><option value="">Unassigned</option>
+              {% for u in users %}<option value="{{ u.pk }}" {% if ticket.assignee_id == u.pk %}selected{% endif %}>{{ u.display_name }} ({{ u.role_name }})</option>{% endfor %}
+            </select></div>
+          <div class="mb-3"><label class="form-label">Resolution / note</label>
+            <textarea class="form-control" name="resolution" rows="4">{{ ticket.resolution }}</textarea></div>
+          <button class="btn btn-primary" type="submit">Save ticket</button>
+        </form>
+      {% else %}
+        <p class="note-inline mb-0">Only support managers can change the ticket. The requester is notified as the
+          status changes in the real deployment.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

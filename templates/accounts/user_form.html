@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ page_title }}</h1>
+    <div class="sub">Accounts are created with a role; every role permission is enforced on the server.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-outline-secondary btn-sm" href="/app/users/"><i class="bi bi-arrow-left me-1"></i> Back to accounts</a>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-body">
+        <form method="post" novalidate>
+          {% csrf_token %}
+          {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+          {% endif %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label required" for="{{ form.username.id_for_label }}">Username</label>
+              {{ form.username }}
+              {{ form.username.errors }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.phone.id_for_label }}">Phone</label>
+              {{ form.phone }}
+              {{ form.phone.errors }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.first_name.id_for_label }}">First name</label>
+              {{ form.first_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.last_name.id_for_label }}">Last name</label>
+              {{ form.last_name }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+              {{ form.email }}
+              {{ form.email.errors }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label required" for="{{ form.role.id_for_label }}">Role</label>
+              {{ form.role }}
+              {{ form.role.errors }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.department.id_for_label }}">Department</label>
+              {{ form.department }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.designation.id_for_label }}">Designation</label>
+              {{ form.designation }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.facility.id_for_label }}">Assigned facility (reception)</label>
+              {{ form.facility }}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="{{ form.password.id_for_label }}">Password</label>
+              {{ form.password }}
+              <div class="form-text">{{ form.password.help_text }}</div>
+            </div>
+            <div class="col-12">
+              <div class="form-check form-switch">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">Account active</label>
+              </div>
+              <div class="form-check form-switch">
+                {{ form.email_verified }}
+                <label class="form-check-label" for="{{ form.email_verified.id_for_label }}">Email and mobile verified</label>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit">{% t "Save" %}</button>
+            <a class="btn btn-outline-secondary" href="/app/users/">{% t "Cancel" %}</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><i class="bi bi-info-circle"></i> Least privilege</div>
+      <div class="card-body small text-muted">
+        <p>Permissions come from the account's role. A System Administrator manages
+        roles, master data, settings and audit access, but has no implicit booking
+        approval power.</p>
+        <p class="mb-0">Management / Auditor accounts are read-only: write requests are
+        blocked by middleware, not just hidden from the menu.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

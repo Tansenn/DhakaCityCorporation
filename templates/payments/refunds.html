@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Refunds{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Refunds</h1>
+    <div class="sub">Cancellation refund requests under the published sample policy. The gateway refund is simulated.</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="badge-soft">Pending value: {{ pending_total|money }}</span>
+</div>
+
+<div class="stat-grid mb-3">
+  {% for code, label in refund_statuses %}
+    <div class="stat"><div class="label">{{ label }}</div><div class="value">{{ totals|get_item:code }}</div>
+      <div class="hint">Refund requests</div><div class="ic"><i class="bi bi-arrow-counterclockwise"></i></div></div>
+  {% endfor %}
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f"><label>Status</label>
+    <select class="form-select" name="status">
+      <option value="">All</option>
+      <option value="requested" {% if status == 'requested' %}selected{% endif %}>Requested</option>
+      <option value="processed" {% if status == 'processed' %}selected{% endif %}>Processed</option>
+      <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>Rejected</option>
+    </select></div>
+  <div class="f d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Apply</button></div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Requested</th><th>Booking</th><th>Applicant</th><th class="num">Paid</th>
+          <th>Policy</th><th class="num">Refund</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+        {% for refund in page_obj %}
+          <tr>
+            <td>{{ refund.created_at|dt }}<br><span class="note-inline">by {{ refund.requested_by.display_name|default:"Applicant" }}</span></td>
+            <td><a class="ref" href="/app/bookings/{{ refund.booking.pk }}/">{{ refund.booking.reference }}</a><br>
+              <span class="note-inline">{{ refund.reason|truncatechars:50 }}</span></td>
+            <td>{{ refund.booking.applicant_name }}</td>
+            <td class="num">{{ refund.booking.total|money }}</td>
+            <td>{{ refund.percent }}% <span class="note-inline">of total</span></td>
+            <td class="num"><b>{{ refund.amount|money }}</b></td>
+            <td><span class="chip chip-{{ refund.status|chip }}">{{ refund.get_status_display }}</span>
+              {% if refund.gateway_ref %}<br><span class="note-inline mono">{{ refund.gateway_ref }}</span>{% endif %}</td>
+            <td class="text-end">
+              {% if refund.status == 'requested' %}
+                <form method="post" action="/app/refunds/{{ refund.pk }}/action/" class="d-inline">
+                  {% csrf_token %}<input type="hidden" name="action" value="process">
+                  <button class="btn btn-sm btn-accent" type="submit">Process refund</button>
+                </form>
+                <form method="post" action="/app/refunds/{{ refund.pk }}/action/" class="d-inline">
+                  {% csrf_token %}<input type="hidden" name="action" value="reject">
+                  <button class="btn btn-sm btn-outline-danger" type="submit">Reject</button>
+                </form>
+              {% else %}
+                <span class="note-inline">{{ refund.processed_at|dt }}</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8"><div class="table-empty"><i class="bi bi-cash-coin"></i><p>No refund requests match the filter.</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+
+<div class="card">
+  <div class="card-header"><i class="bi bi-info-circle me-1"></i> Sample refund policy</div>
+  <div class="card-body small text-muted">
+    100% if cancelled 7 or more days before check-in; 50% at 3-6 days; 25% at 1-2 days; 0% on the
+    check-in day. The policy is editable in Settings. Refunds are computed on the total paid and are
+    processed in the demo gateway only; no real money moves.
+  </div>
+</div>
+{% endblock %}

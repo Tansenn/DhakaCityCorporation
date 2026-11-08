@@ -1,0 +1,309 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{{ booking.reference }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <a class="note-inline" href="{% if is_staff_view %}/app/bookings/{% else %}/citizen/{% endif %}">
+      <i class="bi bi-arrow-left"></i> {% if is_staff_view %}Booking management{% else %}My applications{% endif %}
+    </a>
+    <h1 class="mt-1"><span class="mono">{{ booking.reference }}</span></h1>
+    <div class="sub">{{ booking.applicant_name }} · {{ booking.facility.name }} / {{ booking.unit.name }}</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip chip-{{ booking.status|chip }}" style="font-size:.78rem;padding:6px 12px">{{ booking.status_label }}</span>
+  <a class="btn btn-sm btn-outline-primary" href="/bookings/{{ booking.pk }}/application.pdf">
+    <i class="bi bi-file-earmark-pdf me-1"></i>Application PDF</a>
+  {% if booking.permit_issued_at %}
+    <a class="btn btn-sm btn-accent" href="/bookings/{{ booking.pk }}/permit.pdf">
+      <i class="bi bi-qr-code me-1"></i>Permit</a>
+  {% endif %}
+  {% if payment %}
+    <a class="btn btn-sm btn-outline-primary" href="/bookings/{{ booking.pk }}/receipt.pdf">
+      <i class="bi bi-receipt me-1"></i>Receipt</a>
+  {% endif %}
+</div>
+
+{% if booking.status == 'clarification' %}
+  <div class="alert alert-warning">
+    <b><i class="bi bi-exclamation-circle me-1"></i>Correction or clarification requested.</b>
+    Read the latest message in the thread below, attach any evidence and reply. Your application is
+    paused until you respond.
+  </div>
+{% endif %}
+{% if booking.status == 'rejected' %}
+  <div class="alert alert-danger"><b>Application rejected.</b> {{ booking.rejection_reason|default:"See the approval history for the reason." }}</div>
+{% endif %}
+{% if booking.status == 'expired' %}
+  <div class="alert alert-warning"><b>Payment window expired.</b> The hold was released. You may apply again for the facility.</div>
+{% endif %}
+
+{% if booking.can_pay %}
+  <div class="pay-card mb-3">
+    <div class="pay-head">
+      <i class="bi bi-credit-card-2-front" style="font-size:1.2rem"></i>
+      <div class="grow">Approved - payment required</div>
+      <span class="badge">Demo gateway</span>
+    </div>
+    <div class="card-body d-flex flex-wrap gap-3 align-items-center">
+      <div>
+        <div class="note-inline">Amount payable</div>
+        <div class="gateway-total">{{ booking.total|money }}</div>
+        <div class="gateway-note">Pay before {{ booking.payment_deadline|dt }}. The hold is released if the window closes.</div>
+      </div>
+      <div class="ms-auto d-flex gap-2">
+        <form method="post" action="/bookings/{{ booking.pk }}/pay/">{% csrf_token %}
+          <button class="btn btn-accent" type="submit"><i class="bi bi-shield-lock me-1"></i>Pay on the demo gateway</button>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endif %}
+
+<div class="detail-grid">
+  <div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clock-history me-1"></i> Application timeline</div>
+      <div class="card-body">
+        <div class="timeline">
+          {% for step in booking.timeline %}
+            <div class="tl-item {% if forloop.last %}now{% else %}done{% endif %}">
+              <div class="when">{{ step.at|dt }} · {{ step.actor }}</div>
+              <div class="what">{{ step.label }}</div>
+              {% if step.comment %}<div class="note">{{ step.comment }}</div>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {% if workflow %}
+    <div class="card">
+      <div class="card-header"><i class="bi bi-diagram-3 me-1"></i> Approval route and decisions
+        <div class="spacer"></div>
+        <span class="badge-soft">{{ workflow.tracking_id }}</span>
+        {% if is_staff_view %}<a class="btn btn-sm btn-outline-secondary ms-2" href="/app/workflow/instances/{{ workflow.pk }}/">Workflow detail</a>{% endif %}
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-2 mb-3">
+          {% for record in records %}
+            {% if record.step %}
+              <span class="chip chip-{{ record.decision|chip }}" title="{{ record.comments }}">
+                {{ record.step.name }}: {{ record.get_decision_display }}
+              </span>
+            {% endif %}
+          {% endfor %}
+          {% if workflow.current_step %}
+            <span class="chip chip-info">Now at: {{ workflow.current_step.name }}</span>
+          {% endif %}
+        </div>
+        <div class="table-wrap">
+          <table class="table-gzp">
+            <thead><tr><th>Step</th><th>Actor</th><th>Decision</th><th>When</th><th>Comments</th></tr></thead>
+            <tbody>
+            {% for record in records %}
+              <tr>
+                <td>{{ record.step.name|default:"Submitted" }}</td>
+                <td>{{ record.actor.display_name|default:"Applicant" }}<br><span class="note-inline">{{ record.actor_role }}</span></td>
+                <td><span class="chip chip-{{ record.decision|chip }}">{{ record.get_decision_display }}</span></td>
+                <td>{{ record.created_at|dt }}</td>
+                <td class="small">{{ record.comments|default:"-" }}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if workflow.status == 'returned' and not is_staff_view %}
+          <div class="alert-inline warn mt-2">Respond in the message thread to resume the route.</div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-chat-dots me-1"></i> Messages and clarification</div>
+      <div class="card-body">
+        <div class="thread mb-3">
+          {% for message in messages_list %}
+            <div class="msg {% if message.author_id == user.pk %}mine{% endif %} {% if 'clarification' in message.body|lower and is_staff_view %}clarification{% endif %}">
+              <div class="who">{{ message.author.display_name|default:"System" }}
+                {% if message.is_internal %}· internal note{% endif %} · {{ message.created_at|dt }}</div>
+              <div class="small">{{ message.body|linebreaksbr }}</div>
+            </div>
+          {% empty %}
+            <div class="text-muted small">No messages yet. The booking desk will contact you here if
+              anything needs clarification.</div>
+          {% endfor %}
+        </div>
+        {% if not user.is_read_only and booking.status not in 'rejected,cancelled,expired,completed' %}
+          <form method="post" action="/bookings/{{ booking.pk }}/message/">
+            {% csrf_token %}
+            <label class="form-label" for="body">{% if is_staff_view %}Message to the applicant{% else %}Your reply{% endif %}</label>
+            <textarea class="form-control" id="body" name="body" rows="3" required
+                      placeholder="{% if booking.status == 'clarification' %}Provide the requested clarification or information{% else %}Write a message{% endif %}"></textarea>
+            {% if is_staff_view %}
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" id="internal" name="internal" value="1">
+                <label class="form-check-label small" for="internal">Internal note (not emailed to the applicant)</label>
+              </div>
+            {% endif %}
+            <button class="btn btn-primary btn-sm mt-2" type="submit"><i class="bi bi-send me-1"></i>Send message</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-paperclip me-1"></i> Documents</div>
+      <div class="card-body">
+        <table class="table-gzp">
+          <thead><tr><th>Document</th><th>Type</th><th>Uploaded</th><th></th></tr></thead>
+          <tbody>
+          {% for document in documents %}
+            <tr>
+              <td>{{ document.label }}</td>
+              <td><span class="chip chip-muted">{{ document.get_kind_display }}</span></td>
+              <td>{{ document.uploaded_at|dt }}<br><span class="note-inline">{{ document.uploaded_by.display_name|default:"-" }}</span></td>
+              <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ document.file.url }}" target="_blank">Open</a></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="text-muted small">No documents attached.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% if not user.is_read_only and booking.applicant_id == user.pk %}
+          <form method="post" action="/bookings/{{ booking.pk }}/upload/" enctype="multipart/form-data" class="row g-2 mt-2">
+            {% csrf_token %}
+            <div class="col-md-5"><input class="form-control form-control-sm" name="label" placeholder="Label (e.g. service ID)"></div>
+            <div class="col-md-5"><input class="form-control form-control-sm" type="file" name="file" required></div>
+            <div class="col-md-2"><button class="btn btn-sm btn-primary w-100" type="submit">Upload</button></div>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-building me-1"></i> Booking details</div>
+      <div class="card-body">
+        <div class="kv">
+          <dt>Applicant</dt><dd>{{ booking.applicant_name }}</dd>
+          <dt>Category</dt><dd>{{ booking.get_category_display }}</dd>
+          <dt>Facility</dt><dd>{{ booking.facility.name }}</dd>
+          <dt>Room / hall</dt><dd>{{ booking.unit.name }}</dd>
+          <dt>Dates</dt><dd>{{ booking.check_in|date:"d M Y" }} → {{ booking.check_out|date:"d M Y" }}</dd>
+          {% if booking.slot %}<dt>Slot</dt><dd>{{ booking.get_slot_display }}</dd>{% endif %}
+          <dt>Guests</dt><dd>{{ booking.guests }}</dd>
+          <dt>Purpose</dt><dd>{{ booking.purpose }}</dd>
+          <dt>Submitted</dt><dd>{{ booking.created_at|dt }}</dd>
+          {% if booking.contact_phone %}<dt>Contact</dt><dd>{{ booking.contact_phone }}</dd>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-cash-stack me-1"></i> Price breakdown</div>
+      <div class="card-body">
+        <div class="summary-box">
+          {% for line in booking.price_breakdown %}
+            <div class="summary-row"><span>{{ line.label }}</span><span>{{ line.amount|money }}</span></div>
+          {% empty %}
+            <div class="summary-row"><span>Charges</span><span>{{ booking.amount|money }}</span></div>
+          {% endfor %}
+          <div class="summary-row"><span>Charges</span><span>{{ booking.amount|money }}</span></div>
+          <div class="summary-row"><span>Security deposit</span><span>{{ booking.deposit|money }}</span></div>
+          {% if booking.gateway_charge %}
+            <div class="summary-row"><span>Gateway charge</span><span>{{ booking.gateway_charge|money }}</span></div>
+          {% endif %}
+          <div class="summary-row total"><span>Total</span><span>{{ booking.total|money }}</span></div>
+        </div>
+        {% if payment %}
+          <div class="mt-3 small">
+            <div><b>Payment:</b> <span class="chip chip-{{ payment.status|chip }}">{{ payment.get_status_display }}</span></div>
+            <div class="note-inline mt-1">Transaction {{ payment.txn_id }}</div>
+            {% if payment.receipt_no %}<div class="note-inline">Receipt {{ payment.receipt_no }}</div>{% endif %}
+            {% if payment.verified_at %}<div class="note-inline">Verified {{ payment.verified_at|dt }}</div>{% endif %}
+          </div>
+        {% endif %}
+        {% if booking.refund_status != 'none' %}
+          <div class="alert-inline info mt-3">
+            <b>Refund:</b> {{ booking.refund_status|title }} · {{ booking.refund_amount|money }}
+            ({{ booking.refund_percent }}%) under the sample policy.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if booking.permit_issued_at %}
+      <div class="card">
+        <div class="card-header"><i class="bi bi-qr-code me-1"></i> Permit and verification</div>
+        <div class="card-body text-center">
+          <div class="chip chip-success mb-2">Permit {{ booking.permit_no }}</div>
+          <div class="qr-box mb-2">
+            <img src="/bookings/{{ booking.pk }}/qr.png" alt="Permit QR code" width="140" height="140">
+          </div>
+          <div class="d-grid gap-2">
+            <a class="btn btn-accent" href="/bookings/{{ booking.pk }}/permit.pdf">Download permit PDF</a>
+            <a class="btn btn-outline-primary btn-sm" href="/verify/{{ booking.permit_token }}/">Public verification page</a>
+          </div>
+          <div class="note-inline mt-2">Present this at reception. The QR opens the verification page.</div>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if is_staff_view %}
+      <div class="card">
+        <div class="card-header"><i class="bi bi-tools me-1"></i> Staff actions</div>
+        <div class="card-body">
+          {% if booking.checked_in_at %}
+            <div class="alert-inline info mb-2">Checked in {{ booking.checked_in_at|dt }}</div>
+          {% endif %}
+          {% if booking.checked_out_at %}
+            <div class="alert-inline info mb-2">Checked out {{ booking.checked_out_at|dt }}</div>
+          {% endif %}
+          {% if "bookings.reception"|can:user and booking.status == 'paid' %}
+            <div class="d-grid gap-2 mb-2">
+              <form method="post" action="/app/reception/{{ booking.pk }}/checkin/">{% csrf_token %}
+                <button class="btn btn-sm btn-primary w-100" type="submit">Record check-in</button>
+              </form>
+              <form method="post" action="/app/reception/{{ booking.pk }}/checkout/">{% csrf_token %}
+                <button class="btn btn-sm btn-outline-primary w-100" type="submit">Record check-out</button>
+              </form>
+            </div>
+          {% endif %}
+          {% if "bookings.cancel"|can:user and booking.status != 'cancelled' and booking.status != 'completed' %}
+            <form method="post" action="/app/bookings/{{ booking.pk }}/cancel/">
+              {% csrf_token %}
+              <label class="form-label small">Cancel with reason</label>
+              <input class="form-control form-control-sm mb-2" name="reason" required
+                     placeholder="Reason recorded in the audit log">
+              <button class="btn btn-sm btn-outline-danger w-100" type="submit"
+                      onclick="return confirm('Cancel this booking? A paid booking creates a refund request.')">Cancel booking</button>
+            </form>
+          {% endif %}
+          <div class="note-inline mt-3">Approval decisions are taken in <a href="/app/tasks/">My Tasks</a>
+            and are recorded against the authority matrix.</div>
+        </div>
+      </div>
+    {% else %}
+      {% if booking.status != 'cancelled' and booking.status != 'rejected' and booking.status != 'expired' and booking.status != 'completed' %}
+        {% if booking.days_until_checkin >= 0 %}
+          <div class="card">
+            <div class="card-header"><i class="bi bi-x-circle me-1"></i> Need to cancel?</div>
+            <div class="card-body">
+              <p class="small text-muted">Refund under the sample policy: {{ refund_policy }}.</p>
+              <form method="post" action="/bookings/{{ booking.pk }}/cancel/">
+                {% csrf_token %}
+                <input class="form-control form-control-sm mb-2" name="reason" required placeholder="Reason for cancellation">
+                <button class="btn btn-sm btn-outline-danger w-100" type="submit"
+                        onclick="return confirm('Request cancellation of this booking?')">Request cancellation</button>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

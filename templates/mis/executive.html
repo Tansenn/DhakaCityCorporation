@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block title %}Executive dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Executive dashboard" %}</h1>
+    <div class="sub">Cross-module view for management. Read-only: this role cannot approve or change records.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/mis/reports/"><i class="bi bi-file-earmark-bar-graph me-1"></i>Report library</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/mis/department/">Department view</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Bookings</div><div class="value">{{ stats.bookings }}</div>
+    <div class="hint">{{ stats.confirmed }} paid or completed</div><div class="ic"><i class="bi bi-calendar-check"></i></div></div>
+  <div class="stat"><div class="label">Verified collection</div><div class="value" style="font-size:1.4rem">{{ stats.collection|money }}</div>
+    <div class="hint">{{ stats.refunded|money }} refunded · net {{ stats.net|money }}</div><div class="ic"><i class="bi bi-cash-coin"></i></div></div>
+  <div class="stat"><div class="label">Employees</div><div class="value">{{ stats.employees }}</div>
+    <div class="hint">Active records</div><div class="ic"><i class="bi bi-people"></i></div></div>
+  <div class="stat {% if stats.overdue_tasks %}accent{% endif %}"><div class="label">Overdue tasks</div><div class="value">{{ stats.overdue_tasks }}</div>
+    <div class="hint">{{ stats.tickets }} open support ticket(s)</div><div class="ic"><i class="bi bi-alarm"></i></div></div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <div class="card-header"><strong>Collection trend</strong><span class="note-inline">Verified bookings, last 6 months</span></div>
+    <div class="card-body"><canvas id="revenueChart" height="150"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><strong>Booking status mix</strong></div>
+    <div class="card-body">
+      {% for code, count in status_counts.items %}
+        <div class="d-flex justify-content-between small mb-1"><span>{{ status_labels|get_item:code }}</span><span>{{ count }}</span></div>
+        <div class="progress-thin mb-2"><span style="width:{% widthratio count stats.bookings 100 %}%"></span></div>
+      {% empty %}
+        <div class="note-inline">No bookings.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="two-col mt-3">
+  <div class="card">
+    <div class="card-header"><strong>Facilities performance</strong></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Facility</th><th class="num">Confirmed</th><th class="num">Total</th><th class="num">Revenue</th></tr></thead>
+        <tbody>
+        {% for facility in facilities %}
+          <tr>
+            <td>{{ facility.name }}<div class="note-inline">{{ facility.code|upper }}</div></td>
+            <td class="num">{{ facility.confirmed }}</td>
+            <td class="num">{{ facility.total }}</td>
+            <td class="num">{{ facility.revenue|money }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="table-empty">No facilities.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Capital projects</strong><a class="note-inline" href="/app/projects/">All projects</a></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Project</th><th>Progress</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for project in projects %}
+          <tr>
+            <td>{{ project.name }}<div class="note-inline">{{ project.code }} · {{ project.budget|money }}</div></td>
+            <td style="min-width:120px"><div class="progress-thin"><span style="width:{{ project.progress }}%"></span></div>
+              <div class="note-inline">{{ project.progress }}%</div></td>
+            <td><span class="chip chip-{{ project.status|chip }}">{{ project.get_status_display }}</span></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3"><div class="table-empty">No projects.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{{ series|json_script:"revenue-data" }}
+{% endblock %}
+{% block extra_js %}
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+<script>
+  (function () {
+    const data = JSON.parse(document.getElementById('revenue-data').textContent);
+    const canvas = document.getElementById('revenueChart');
+    if (!canvas || !window.Chart) return;
+    new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: data.map(d => d.label),
+        datasets: [{
+          label: 'Collection (BDT)',
+          data: data.map(d => d.value),
+          backgroundColor: '#B9FF29',
+          borderColor: '#1A1B41',
+          borderWidth: 1,
+          borderRadius: 4,
+        }],
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { beginAtZero: true, ticks: { callback: v => '৳' + v.toLocaleString() } },
+          x: { grid: { display: false } },
+        },
+      },
+    });
+  }());
+</script>
+{% endblock %}

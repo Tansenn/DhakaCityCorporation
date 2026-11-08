@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Training and expiry{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Training and expiry" %}</h1>
+    <div class="sub">Certifications and training with expiry tracking. Expired records are flagged for HR follow-up.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/hr/">HR overview</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Employee</th><th>Training</th><th>Provider</th><th>Completed</th><th>Expires</th><th>Status</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td>{{ row.employee.name }}<div class="note-inline mono">{{ row.employee.employee_no }}</div></td>
+          <td>{{ row.title }}{% if row.note %}<div class="note-inline">{{ row.note }}</div>{% endif %}</td>
+          <td>{{ row.provider|default:"-" }}</td>
+          <td>{{ row.completed_on|d }}</td>
+          <td>{{ row.expires_on|d }}</td>
+          <td>
+            {% if row.is_expired %}<span class="chip chip-danger">Expired</span>
+            {% elif row.expires_on %}<span class="chip chip-warning">{{ row.days_left }} day(s)</span>
+            {% else %}<span class="chip chip-success">No expiry</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty"><i class="bi bi-mortarboard"></i>No training records.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header"><strong>Add training record</strong></div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="filter-bar" style="margin:0 0 1rem">
+        <div class="f f-grow"><label>Employee</label>
+          <select class="form-select" name="employee" required>
+            {% for employee in employees %}<option value="{{ employee.pk }}">{{ employee.name }}</option>{% endfor %}
+          </select></div>
+        <div class="f f-grow"><label>Training title</label><input class="form-control" name="title" required></div>
+        <div class="f f-grow"><label>Provider</label><input class="form-control" name="provider"></div>
+      </div>
+      <div class="filter-bar" style="margin:0">
+        <div class="f"><label>Completed on</label><input class="form-control" type="date" name="completed_on"></div>
+        <div class="f"><label>Expires on</label><input class="form-control" type="date" name="expires_on"></div>
+        <div class="f f-grow"><label>Note</label><input class="form-control" name="note"></div>
+        <div class="f d-flex align-items-end"><button class="btn btn-primary" type="submit">Add record</button></div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

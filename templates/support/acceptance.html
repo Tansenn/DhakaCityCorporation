@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}45-day plan{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "45-day plan" %}</h1>
+    <div class="sub">Discovery, data, configuration, UAT and go-live. The plan is editable by the support manager;
+      dates are sample values confirmed during mobilisation.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/acceptance/checklists/"><i class="bi bi-clipboard-check me-1"></i>Deliverables &amp; UAT</a>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-1">
+      <strong>Plan progress</strong><span>{{ done }} of {{ total }} phases complete</span>
+    </div>
+    <div class="progress-thin"><span style="width:{{ percent }}%"></span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Window</th><th>Phase</th><th>Deliverable</th><th>Owner</th><th>Status</th><th style="min-width:300px">Update</th></tr></thead>
+      <tbody>
+      {% for phase in phases %}
+        <tr>
+          <td class="mono small">{{ phase.window }}</td>
+          <td><b>{{ phase.phase }}</b>{% if phase.notes %}<div class="note-inline">{{ phase.notes }}</div>{% endif %}</td>
+          <td class="small">{{ phase.deliverable }}</td>
+          <td class="small">{{ phase.owner|default:"-" }}</td>
+          <td><span class="chip chip-{{ phase.status|chip }}">{{ phase.get_status_display }}</span></td>
+          <td>
+            {% if "support.manage"|can:user %}
+              <form method="post" class="d-flex gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="phase" value="{{ phase.pk }}">
+                <select class="form-select form-select-sm" name="status">
+                  {% for code, label in statuses %}<option value="{{ code }}" {% if phase.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <input class="form-control form-control-sm" name="notes" value="{{ phase.notes }}" placeholder="Note">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+              </form>
+            {% else %}<span class="note-inline">View only</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty">No phases configured. Run the demo seed.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

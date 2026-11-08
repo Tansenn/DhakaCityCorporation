@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Change requests{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Change requests" %}</h1>
+    <div class="sub">Scope changes after sign-off. Each request records impact and the decision, with an audit trail.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/support/">Support tickets</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Reference</th><th>Title</th><th>Impact</th><th>Requested by</th><th>Status</th><th>Decision note</th><th style="min-width:280px">Decide</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="mono">{{ row.reference }}</td>
+          <td><b>{{ row.title }}</b><div class="note-inline">{{ row.description|truncatechars:100 }}</div></td>
+          <td><span class="chip chip-{% if row.impact == 'high' %}danger{% elif row.impact == 'medium' %}warning{% else %}muted{% endif %}">{{ row.get_impact_display }}</span></td>
+          <td>{{ row.requested_by.display_name|default:"-" }}<div class="note-inline">{{ row.created_at|dt }}</div></td>
+          <td><span class="chip chip-{{ row.status|chip }}">{{ row.get_status_display }}</span></td>
+          <td class="small">{{ row.decision_note|default:"-" }}</td>
+          <td>
+            {% if "support.manage"|can:user %}
+              <form method="post" class="d-flex gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="decide">
+                <input type="hidden" name="id" value="{{ row.pk }}">
+                <select class="form-select form-select-sm" name="status">
+                  {% for code, label in statuses %}<option value="{{ code }}" {% if row.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <input class="form-control form-control-sm" name="decision_note" placeholder="Decision note">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+              </form>
+            {% else %}<span class="note-inline">View only</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty">No change requests.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if "support.change"|can:user %}
+  <div class="card mt-3">
+    <div class="card-header"><strong>Submit a change request</strong></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="create">
+        <div class="filter-bar" style="margin:0 0 1rem">
+          <div class="f f-grow"><label>Title</label><input class="form-control" name="title" required></div>
+          <div class="f"><label>Impact</label>
+            <select class="form-select" name="impact">{% for code, label in impacts %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3" required></textarea></div>
+        <button class="btn btn-primary" type="submit">Submit request</button>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

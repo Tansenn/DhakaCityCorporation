@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1A1B41"/><stop offset="1" stop-color="#303273"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#g)"/>
+  <circle cx="690" cy="80" r="150" fill="none" stroke="#B9FF29" stroke-opacity=".16" stroke-width="30"/>
+  <g fill="#B9FF29" opacity=".85">
+    <rect x="290" y="205" width="220" height="150" rx="6"/>
+  </g>
+  <g fill="#1A1B41">
+    <rect x="312" y="232" width="34" height="34" rx="3"/>
+    <rect x="362" y="232" width="34" height="34" rx="3"/>
+    <rect x="412" y="232" width="34" height="34" rx="3"/>
+    <rect x="462" y="232" width="26" height="34" rx="3"/>
+    <rect x="378" y="296" width="44" height="59" rx="3"/>
+  </g>
+  <rect x="250" y="355" width="300" height="14" rx="7" fill="#B9FF29" opacity=".5"/>
+  <text x="400" y="420" font-family="Arial, sans-serif" font-size="20" fill="#c3c7e4" text-anchor="middle">Sample Dakbungalow photo placeholder</text>
+</svg>

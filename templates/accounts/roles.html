@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Roles & permissions{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Roles, display names & permission matrix</h1>
+    <div class="sub">Edit role display names and tick the permissions each role receives. Changes apply immediately and are audited.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-outline-secondary btn-sm" href="/app/users/"><i class="bi bi-arrow-left me-1"></i> Accounts</a>
+</div>
+
+<div class="alert alert-warning d-flex gap-2 align-items-start">
+  <i class="bi bi-shield-exclamation mt-1"></i>
+  <div>
+    The System Administrator role never holds booking approval permissions, and the
+    Management / Auditor role is always read-only. These two rules are enforced when
+    this form is saved.
+  </div>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  <div class="card mb-3">
+    <div class="card-header"><i class="bi bi-tag"></i> Role display names</div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Code</th><th>Display name</th><th>Description</th><th>Read-only</th></tr></thead>
+        <tbody>
+          {% for role in roles %}
+            <tr>
+              <td><span class="ref">{{ role.code }}</span></td>
+              <td style="min-width:240px"><input class="form-control form-control-sm" name="name_{{ role.code }}" value="{{ role.name }}"></td>
+              <td style="min-width:280px"><input class="form-control form-control-sm" name="desc_{{ role.code }}" value="{{ role.description }}"></td>
+              <td>
+                <input class="form-check-input" type="checkbox" name="readonly_{{ role.code }}" {% if role.is_read_only %}checked{% endif %}
+                       {% if role.code == 'management' %}disabled checked{% endif %}>
+                {% if role.code == 'management' %}<input type="hidden" name="readonly_management" value="1">{% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <i class="bi bi-grid-3x3-gap"></i> Permission matrix
+      <span class="spacer"></span>
+      <span class="note-inline">Scroll horizontally for all {{ roles|length }} roles</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table-gzp matrix-table">
+        <thead>
+          <tr>
+            <th style="min-width:270px;position:sticky;left:0;background:#f8f9fc;z-index:2">Permission</th>
+            {% for role in roles %}
+              <th class="role-col">{{ role.code }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for perm in permissions %}
+            {% ifchanged perm.module %}
+              <tr>
+                <td colspan="{{ roles|length|add:1 }}" style="background:#f1f3f9;font-size:.68rem;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;font-weight:700;position:sticky;left:0">
+                  {{ perm.module }}
+                </td>
+              </tr>
+            {% endifchanged %}
+            <tr>
+              <td style="position:sticky;left:0;background:#fff;z-index:2">
+                <div class="perm-label">{{ perm.label }}</div>
+                <div class="perm-code">{{ perm.code }}</div>
+              </td>
+              {% for role in roles %}
+                <td class="center">
+                  {% if role.code == 'admin' and perm.code == 'bookings.approve_eo' or role.code == 'admin' and perm.code == 'bookings.approve_ceo' %}
+                    <i class="bi bi-lock text-muted" title="System Administrator cannot hold approval power"></i>
+                  {% else %}
+                    <input class="form-check-input" type="checkbox"
+                           name="p_{{ role.code }}_{{ perm.code }}"
+                           {% if perm.code in assigned|get_item:role.code %}checked{% endif %}
+                           aria-label="{{ role.code }} {{ perm.code }}">
+                  {% endif %}
+                </td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-body d-flex gap-2">
+      <button class="btn btn-primary" type="submit">{% t "Save changes" %}</button>
+      <a class="btn btn-outline-secondary" href="/app/roles/">Reset</a>
+      <span class="note-inline ms-auto">Every change is recorded in the audit log.</span>
+    </div>
+  </div>
+</form>
+{% endblock %}

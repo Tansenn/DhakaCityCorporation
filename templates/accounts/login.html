@@ -1,0 +1,43 @@
+{% extends 'accounts/auth_base.html' %}
+{% load gzp %}
+{% block title %}Sign in{% endblock %}
+{% block auth_content %}
+  <h2>{% t "Sign in" %}</h2>
+  <div class="sub">Staff and citizen access to the integrated platform.</div>
+
+  <form method="post" action="/login/" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="mb-3">
+      <label class="form-label required" for="username">Username</label>
+      <input class="form-control" id="username" name="username" value="{{ username }}" autocomplete="username" autofocus required>
+    </div>
+    <div class="mb-3">
+      <label class="form-label required" for="password">{% t "Password" %}</label>
+      <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn btn-primary w-100" type="submit">{% t "Sign in" %}</button>
+  </form>
+
+  <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:.8rem">
+    <span class="text-muted">New citizen applicant?</span>
+    <a href="/register/">{% t "Register" %}</a>
+  </div>
+
+  {% if DEMO_MODE %}
+    <div class="demo-panel">
+      <div class="dp-title">Demo quick sign-in — password <span class="demo-pass">Demo@12345</span></div>
+      <div class="demo-accounts">
+        {% for account in demo_accounts %}
+          <form method="post" action="/demo/switch/">
+            {% csrf_token %}
+            <input type="hidden" name="username" value="{{ account.username }}">
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit" title="{{ account.label }}">{{ account.username }}</button>
+          </form>
+        {% endfor %}
+      </div>
+      <div class="note-inline mt-2">All demo accounts share the same password. Roles are enforced on the server, not only in the menu.</div>
+    </div>
+  {% endif %}
+{% endblock %}

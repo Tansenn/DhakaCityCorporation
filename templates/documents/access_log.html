@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Document access log{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Document access log" %}</h1>
+    <div class="sub">Every movement and access action on the register. Read-only roles can view this log.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/documents/">Register</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>When</th><th>File</th><th>Action</th><th>From</th><th>To</th><th>Note</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="small">{{ row.created_at|dt }}</td>
+          <td><a class="mono" href="/app/documents/{{ row.file.pk }}/">{{ row.file.file_no }}</a>
+            <div class="note-inline">{{ row.file.subject|truncatechars:40 }}</div></td>
+          <td><span class="chip chip-info">{{ row.get_action_display }}</span></td>
+          <td>{{ row.from_user.display_name|default:"System" }}</td>
+          <td>{{ row.to_user.display_name|default:"-" }}</td>
+          <td class="small">{{ row.note|default:"-" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty">No movements yet.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

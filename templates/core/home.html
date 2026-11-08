@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block title %}Dakbungalow booking · Gazipur Zila Parishad{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-inner">
+    <span class="ribbon-inline"><i class="bi bi-cone-striped"></i> Demo version - sample data</span>
+    <h1>Book a Gazipur Zila Parishad Dakbungalow</h1>
+    <p>Four Parishad Dakbungalows with rooms, VIP suites and conference halls. Check live
+      availability, apply online, track approval and pay securely. Tariffs and rules shown
+      here are sample values confirmed during the requirements phase.</p>
+    <form class="hero-search" method="get" action="/">
+      <div>
+        <label for="facility">Facility</label>
+        <select class="form-select" id="facility" name="facility">
+          <option value="">All four facilities</option>
+          {% for f in facilities %}
+            <option value="{{ f.code }}" {% if facility_code == f.code %}selected{% endif %}>{{ f.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="check_in">Check-in</label>
+        <input class="form-control" type="date" id="check_in" name="check_in" value="{{ check_in|date:'Y-m-d' }}">
+      </div>
+      <div>
+        <label for="check_out">Check-out</label>
+        <input class="form-control" type="date" id="check_out" name="check_out" value="{{ check_out|date:'Y-m-d' }}">
+      </div>
+      <div class="d-flex align-items-end">
+        <button class="btn btn-accent w-100" type="submit"><i class="bi bi-search me-1"></i> Check availability</button>
+      </div>
+    </form>
+    <div class="hero-strip">
+      <div class="mini-kpi"><div class="v">{{ facilities|length }}</div><div class="l">Approved Dakbungalows</div></div>
+      <div class="mini-kpi"><div class="v">Online</div><div class="l">Application and approval tracking</div></div>
+      <div class="mini-kpi"><div class="v">Verified</div><div class="l">Signed payment confirmation</div></div>
+    </div>
+  </div>
+</section>
+
+<div class="page-head mt-4" id="facilities">
+  <div>
+    <h1 style="font-size:1.05rem">Available facilities</h1>
+    <div class="sub">Availability for {{ check_in|date:'d M' }} to {{ check_out|date:'d M Y' }}.
+      Showing sample inventory of rooms and halls.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/track/">Track an application</a>
+</div>
+
+<div class="facility-grid">
+  {% for facility in visible_facilities %}
+    <a class="facility-card" href="/facilities/{{ facility.code }}/" style="text-decoration:none;color:inherit">
+      <div class="photo">
+        {% if facility.photo %}
+          <img src="{{ facility.photo.url }}" alt="{{ facility.name }}">
+        {% else %}
+          <img src="{% static 'img/facility-placeholder.svg' %}" alt="{{ facility.name }}">
+        {% endif %}
+        <span class="tag">{{ facility.units.count }} room(s) / hall(s)</span>
+      </div>
+      <div class="body">
+        <h3>{{ facility.name }}</h3>
+        <div class="loc"><i class="bi bi-geo-alt"></i>{{ facility.location }}</div>
+        <div class="desc">{{ facility.description|truncatechars:110 }}</div>
+        <div class="foot">
+          <div class="price">
+            {% if facility.lowest_tariff %}From ৳{{ facility.lowest_tariff|floatformat:0 }}<small> / night</small>{% else %}Tariff on request{% endif %}
+          </div>
+          <span class="chip {% if facility.available_count %}chip-success{% else %}chip-danger{% endif %}">
+            {{ facility.available_count }} free
+          </span>
+        </div>
+      </div>
+    </a>
+  {% empty %}
+    <div class="card"><div class="card-body table-empty">
+      <i class="bi bi-buildings"></i>
+      <p>No facilities are published yet.</p>
+    </div></div>
+  {% endfor %}
+</div>
+
+<div class="feature-strip mt-4">
+  <div class="feature">
+    <span class="ic"><i class="bi bi-1-circle"></i></span>
+    <div><b>Browse and choose</b><span>See facilities, rooms, photos, tariffs, blackout dates and live availability.</span></div>
+  </div>
+  <div class="feature">
+    <span class="ic"><i class="bi bi-2-circle"></i></span>
+    <div><b>Apply with documents</b><span>Register with email/OTP, choose dates and attach the documents for your category.</span></div>
+  </div>
+  <div class="feature">
+    <span class="ic"><i class="bi bi-3-circle"></i></span>
+    <div><b>Track approval</b><span>Follow every step from the booking desk to the authorised approver.</span></div>
+  </div>
+  <div class="feature">
+    <span class="ic"><i class="bi bi-4-circle"></i></span>
+    <div><b>Pay and get the permit</b><span>Pay through the gateway and download the permit with a verification QR code.</span></div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header"><i class="bi bi-info-circle me-1"></i> Before you apply</div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <b class="small">Documents by category</b>
+        <ul class="small text-muted mt-2 mb-0">
+          <li>Government official: service ID or office order.</li>
+          <li>Public citizen: national ID and a contact number.</li>
+          <li>Organization: request letter on letterhead.</li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <b class="small">Sample rules</b>
+        <ul class="small text-muted mt-2 mb-0">
+          <li>Friday and Saturday nights use the holiday tariff.</li>
+          <li>A security deposit may apply and is shown before payment.</li>
+          <li>Technical review for conference halls and VIP suites.</li>
+        </ul>
+      </div>
+      <div class="col-md-4">
+        <b class="small">Not a statutory platform</b>
+        <p class="small text-muted mt-2 mb-0">This portal complements D-Nothi/e-Nothi, e-GP and statutory
+          approvals. It does not replace or bypass them.</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

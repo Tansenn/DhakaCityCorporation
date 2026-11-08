@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Support tickets{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Support tickets" %}</h1>
+    <div class="sub">Incidents and service requests with the sample support targets:
+      Critical {{ targets.Critical }}h, High {{ targets.High }}h, Medium {{ targets.Medium }}h, Low {{ targets.Low }}h
+      (business hours).</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/acceptance/"><i class="bi bi-calendar3-range me-1"></i>45-day plan</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Open</div><div class="value">{{ stats.open }}</div><div class="hint">Not resolved or closed</div><div class="ic"><i class="bi bi-life-preserver"></i></div></div>
+  <div class="stat accent"><div class="label">Critical open</div><div class="value">{{ stats.critical }}</div><div class="hint">2 business-hour target</div><div class="ic"><i class="bi bi-exclamation-octagon"></i></div></div>
+  <div class="stat"><div class="label">Past target</div><div class="value">{{ stats.overdue }}</div><div class="hint">Response target exceeded</div><div class="ic"><i class="bi bi-alarm"></i></div></div>
+  <div class="stat"><div class="label">Resolved</div><div class="value">{{ stats.resolved }}</div><div class="hint">All time</div><div class="ic"><i class="bi bi-check2-circle"></i></div></div>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f"><label>Status</label>
+    <select class="form-select" name="status">
+      <option value="">All</option>
+      <option value="open" {% if status == 'open' %}selected{% endif %}>Open (not resolved)</option>
+      {% for code, label in statuses %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <div class="f"><label>Priority</label>
+    <select class="form-select" name="priority">
+      <option value="">All</option>
+      {% for code, label in priorities %}<option value="{{ code }}" {% if priority == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/support/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Ticket</th><th>Subject</th><th>Priority</th><th>Requester</th><th>Response due</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for ticket in page_obj %}
+        <tr>
+          <td class="mono">{{ ticket.number }}</td>
+          <td><a href="/app/support/{{ ticket.pk }}/">{{ ticket.subject }}</a>
+            <div class="note-inline">{{ ticket.get_category_display }}</div></td>
+          <td><span class="chip chip-{% if ticket.priority == 'critical' %}danger{% elif ticket.priority == 'high' %}amber{% elif ticket.priority == 'medium' %}warning{% else %}muted{% endif %}">{{ ticket.get_priority_display }}</span></td>
+          <td>{{ ticket.requester.display_name|default:"-" }}</td>
+          <td class="small">{{ ticket.response_due_at|dt }}
+            {% if ticket.is_overdue %}<div><span class="chip chip-danger">Past target</span></div>{% endif %}</td>
+          <td><span class="chip chip-{{ ticket.status|chip }}">{{ ticket.get_status_display }}</span></td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/support/{{ ticket.pk }}/">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty"><i class="bi bi-life-preserver"></i>No tickets.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header"><strong>Log a ticket</strong></div>
+  <div class="card-body">
+    <form method="post">
+      {% csrf_token %}
+      <div class="filter-bar" style="margin:0 0 1rem">
+        <div class="f f-grow"><label>Subject</label><input class="form-control" name="subject" required></div>
+        <div class="f"><label>Category</label>
+          <select class="form-select" name="category">{% for code, label in categories %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+        <div class="f"><label>Priority</label>
+          <select class="form-select" name="priority">{% for code, label in priorities %}<option value="{{ code }}" {% if code == 'medium' %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+      </div>
+      <div class="mb-3"><label class="form-label">Description</label><textarea class="form-control" name="description" rows="3" required></textarea></div>
+      <button class="btn btn-primary" type="submit">Log ticket</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

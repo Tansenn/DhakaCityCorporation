@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Duty roster{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Duty roster" %}</h1>
+    <div class="sub">Week of {{ days.0|d }} to {{ days.6|d }}. One shift per employee per day.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/hr/roster/?start={{ start|date:'Y-m-d' }}">This week</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/hr/roster/?start={{ days.6|date:'Y-m-d' }}">Next week</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          {% for day in days %}<th>{{ day|date:"D d M" }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+      {% for employee in employees %}
+        <tr>
+          <td><b>{{ employee.name }}</b><div class="note-inline">{{ employee.department.name|default:"-" }}</div></td>
+          {% for day in days %}
+            {% with row=grid|get_item:employee.pk %}
+              {% with entry=row|get_item:day %}
+                <td>
+                  {% if entry %}
+                    <span class="chip chip-{% if entry.shift == 'off' %}muted{% elif entry.shift == 'night' %}primary{% elif entry.shift == 'evening' %}warning{% else %}info{% endif %}">{{ entry.shift|title }}</span>
+                  {% else %}<span class="note-inline">-</span>{% endif %}
+                </td>
+              {% endwith %}
+            {% endwith %}
+          {% endfor %}
+        </tr>
+      {% empty %}
+        <tr><td colspan="8"><div class="table-empty">No active employees.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header"><strong>Assign a shift</strong><span class="note-inline">Saving the same employee and date replaces the existing shift</span></div>
+  <div class="card-body">
+    <form method="post" class="filter-bar" style="margin:0">
+      {% csrf_token %}
+      <div class="f f-grow"><label>Employee</label>
+        <select class="form-select" name="employee" required>
+          {% for employee in employees %}<option value="{{ employee.pk }}">{{ employee.name }} ({{ employee.employee_no }})</option>{% endfor %}
+        </select></div>
+      <div class="f"><label>Date</label><input class="form-control" type="date" name="date" required></div>
+      <div class="f"><label>Shift</label>
+        <select class="form-select" name="shift">
+          {% for code, label in shifts %}<option value="{{ code }}">{{ label }}</option>{% endfor %}
+        </select></div>
+      <div class="f f-grow"><label>Note</label><input class="form-control" name="note"></div>
+      <div class="f d-flex align-items-end"><button class="btn btn-primary" type="submit">Save shift</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}

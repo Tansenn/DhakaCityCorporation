@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{{ doc.file_no }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="mono">{{ doc.file_no }}</h1>
+    <div class="sub">{{ doc.subject }}</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip chip-{{ doc.status|chip }}">{{ doc.get_status_display }}</span>
+  {% if doc.confidentiality == 'confidential' %}<span class="chip chip-danger">Confidential</span>{% endif %}
+  <a class="btn btn-sm btn-outline-primary" href="/app/documents/">Register</a>
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="card">
+      <div class="card-body detail-grid">
+        <div><div class="k">Category</div><div class="v">{{ doc.get_category_display }}</div></div>
+        <div><div class="k">Department</div><div class="v">{{ doc.department.name|default:"-" }}</div></div>
+        <div><div class="k">Priority</div><div class="v">{{ doc.get_priority_display }}</div></div>
+        <div><div class="k">Received from</div><div class="v">{{ doc.received_from|default:"-" }}</div></div>
+        <div><div class="k">Assigned to</div><div class="v">{{ doc.assigned_to.display_name|default:"Unassigned" }}</div></div>
+        <div><div class="k">Registered by</div><div class="v">{{ doc.created_by.display_name|default:"-" }}</div></div>
+        <div><div class="k">Due date</div><div class="v">{% if doc.is_overdue %}<span class="chip chip-danger">{{ doc.due_date|d }}</span>{% else %}{{ doc.due_date|d }}{% endif %}</div></div>
+        <div><div class="k">Updated</div><div class="v">{{ doc.updated_at|dt }}</div></div>
+        {% if doc.workflow_instance %}
+          <div><div class="k">Workflow</div><div class="v mono">{{ doc.workflow_instance.tracking_id }}</div></div>
+        {% endif %}
+      </div>
+      {% if doc.notes %}<div class="card-body"><div class="section-title">Notes</div><p class="small mb-0">{{ doc.notes }}</p></div>{% endif %}
+      {% if doc.attachment %}
+        <div class="card-body border-top">
+          <a class="btn btn-sm btn-outline-primary" href="{{ doc.attachment.url }}" target="_blank" rel="noopener">
+            <i class="bi bi-paperclip me-1"></i>Open attachment
+          </a>
+          <span class="note-inline ms-2">{{ doc.attachment.name }}</span>
+        </div>
+      {% endif %}
+    </div>
+
+    {% if "documents.move"|can:user and doc.status != 'closed' and doc.status != 'archived' %}
+      <div class="card mt-3">
+        <div class="card-header"><strong>Record a movement</strong></div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <div class="filter-bar" style="margin:0">
+              <div class="f"><label>Action</label>
+                <select class="form-select" name="action">
+                  <option value="forward">Forward</option>
+                  <option value="receive">Receive</option>
+                  <option value="return">Return to creator</option>
+                  <option value="close">Close file</option>
+                  <option value="note">Add note</option>
+                </select></div>
+              <div class="f f-grow"><label>To officer (forward)</label>
+                <select class="form-select" name="to_user"><option value="">-</option>
+                  {% for u in users %}<option value="{{ u.pk }}">{{ u.display_name }} ({{ u.role_name }})</option>{% endfor %}
+                </select></div>
+              <div class="f f-grow"><label>Note</label><input class="form-control" name="note"></div>
+              <div class="f d-flex align-items-end"><button class="btn btn-primary" type="submit">Save movement</button></div>
+            </div>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Movement history</strong></div>
+    <div class="card-body">
+      <div class="timeline">
+        {% for move in movements %}
+          <div class="tl-item">
+            <div class="dot"></div>
+            <div>
+              <div class="t">{{ move.get_action_display }}</div>
+              <div class="note-inline">{{ move.created_at|dt }} · {{ move.from_user.display_name|default:"System" }}
+                {% if move.to_user %}→ {{ move.to_user.display_name }}{% endif %}</div>
+              {% if move.note %}<div class="small">{{ move.note }}</div>{% endif %}
+            </div>
+          </div>
+        {% empty %}
+          <div class="note-inline">No movements recorded.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

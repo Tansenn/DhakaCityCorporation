@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Permit verification{% endblock %}
+{% block content %}
+<div class="verify-card mt-4">
+  {% if valid %}
+    <div class="verify-ok"><i class="bi bi-patch-check-fill"></i></div>
+    <h1>Permit valid</h1>
+    <p class="sub">This permit was issued by the platform and the payment is verified by the server.</p>
+  {% else %}
+    <div class="verify-bad"><i class="bi bi-x-octagon-fill"></i></div>
+    <h1>Permit not valid</h1>
+    <p class="sub">
+      {% if booking %}
+        This permit exists but is not in a confirmed state (status: {{ booking.status_label }}).
+      {% else %}
+        No permit matches this QR code or token.
+      {% endif %}
+    </p>
+  {% endif %}
+
+  {% if booking %}
+    <div class="detail-grid">
+      <div><div class="k">Permit no.</div><div class="v">{{ booking.permit_no|default:"-" }}</div></div>
+      <div><div class="k">Booking reference</div><div class="v">{{ booking.reference }}</div></div>
+      <div><div class="k">Applicant</div><div class="v">{{ booking.applicant_name }}</div></div>
+      <div><div class="k">Facility</div><div class="v">{{ booking.facility.name }}</div></div>
+      <div><div class="k">Room / hall</div><div class="v">{{ booking.unit.name }}</div></div>
+      <div><div class="k">Stay</div><div class="v">{{ booking.check_in|date:"d M Y" }} to {{ booking.check_out|date:"d M Y" }}</div></div>
+      <div><div class="k">Guests</div><div class="v">{{ booking.guests }}</div></div>
+      <div><div class="k">Payment</div><div class="v">{{ booking.payment_txn_id|default:"-" }}</div></div>
+      <div><div class="k">Issued</div><div class="v">{{ booking.permit_issued_at|dt }}</div></div>
+      <div><div class="k">Checked in</div><div class="v">{{ booking.checked_in_at|dt }}</div></div>
+    </div>
+  {% endif %}
+
+  <div class="alert alert-info mt-3 mb-0">
+    <i class="bi bi-shield-check me-1"></i>
+    Verification is read-only and available to anyone holding the QR code. It shows no contact details.
+    Checked at {{ now|dt }}.
+  </div>
+
+  <div class="mt-3">
+    <a class="btn btn-outline-primary btn-sm" href="/">Back to the booking portal</a>
+  </div>
+</div>
+{% endblock %}

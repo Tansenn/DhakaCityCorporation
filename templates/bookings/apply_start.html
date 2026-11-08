@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Apply - {{ facility.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Apply for {{ facility.name }}</h1>
+    <div class="sub">Step 1 of 3 - choose a room or hall and your dates.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-secondary" href="/facilities/{{ facility.code }}/">Facility details</a>
+</div>
+
+<div class="steps">
+  <div class="step on"><span class="n">1</span> Choose room and dates</div>
+  <div class="step"><span class="n">2</span> Review price and documents</div>
+  <div class="step"><span class="n">3</span> Submit and track</div>
+</div>
+
+{% if form.errors %}
+  <div class="alert alert-danger">
+    <b>Please correct the following:</b>
+    <ul class="mb-0 mt-1">
+      {% for field in form %}{% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+      {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<form method="post" class="detail-grid">
+  {% csrf_token %}
+  <input type="hidden" name="facility" value="{{ facility.pk }}">
+  <div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-door-open me-1"></i> Choose a room or facility</div>
+      <div class="card-body">
+        {% if form.unit.errors %}<div class="alert alert-danger py-2 small">{{ form.unit.errors|join:" " }}</div>{% endif %}
+        <div class="d-grid gap-2">
+          {% for unit in units %}
+            <label class="unit-card" data-kind="{{ unit.kind }}" style="cursor:pointer">
+              <input type="radio" name="unit" value="{{ unit.pk }}" class="form-check-input mt-1"
+                     {% if form.unit.value|stringformat:"s" == unit.pk|stringformat:"s" %}checked{% endif %}>
+              <span class="u-ic"><i class="bi {% if unit.is_hall %}bi-easel{% elif unit.is_suite %}bi-gem{% else %}bi-bed{% endif %}"></i></span>
+              <span>
+                <b>{{ unit.name }}</b> <span class="chip {% if unit.is_hall %}chip-teal{% elif unit.is_suite %}chip-primary{% else %}chip-muted{% endif %}">{{ unit.get_kind_display }}</span><br>
+                <span class="sub">{{ unit.description }} · up to {{ unit.capacity }} guests</span>
+              </span>
+              <span class="price">
+                {% for tariff in unit.tariffs.all %}{% if tariff.category == 'citizen' %}
+                  ৳{{ tariff.amount|floatformat:0 }}<small class="text-muted"> / night</small>
+                {% endif %}{% endfor %}
+              </span>
+            </label>
+          {% empty %}
+            <div class="table-empty"><p>No units are published for this facility.</p></div>
+          {% endfor %}
+        </div>
+        <div class="note-inline mt-2">Tariffs differ by applicant category. The exact breakdown, holiday
+          rate and deposit are shown at the next step before you submit.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-calendar-range me-1"></i> Dates and applicant category</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label" for="check_in">Check-in / event date</label>
+            <input class="form-control" type="date" id="check_in" name="check_in"
+                   value="{{ form.check_in.value|default:'' }}" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="check_out">Check-out (rooms)</label>
+            <input class="form-control" type="date" id="check_out" name="check_out"
+                   value="{{ form.check_out.value|default:'' }}" required>
+            <div class="form-text">For a conference hall choose the day after the event.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="category">Applicant category</label>
+            <select class="form-select" id="category" name="category">
+              <option value="government" {% if form.category.value == 'government' %}selected{% endif %}>Government official</option>
+              <option value="citizen" {% if form.category.value == 'citizen' or not form.category.value %}selected{% endif %}>Public citizen</option>
+              <option value="organization" {% if form.category.value == 'organization' %}selected{% endif %}>Organization</option>
+            </select>
+          </div>
+          <div class="col-md-6" id="slot-wrap">
+            <label class="form-label" for="slot">Hall slot</label>
+            <select class="form-select" id="slot" name="slot">
+              {% for code, label in slot_choices %}
+                <option value="{{ code }}" {% if form.slot.value == code %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Required for conference halls only.</div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="guests">Guests</label>
+            <input class="form-control" type="number" min="1" id="guests" name="guests"
+                   value="{{ form.guests.value|default:1 }}">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-calendar3 me-1"></i> Live availability</div>
+      <div class="card-body">
+        <div class="calendar-grid">
+          <div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div>
+          <div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div><div class="dow">Sun</div>
+          {% for _ in calendar_leading %}<div class="cal-day blank"></div>{% endfor %}
+          {% for day in calendar %}
+            <div class="cal-day {% if day.is_blackout %}blackout{% elif day.is_past %}past{% endif %}">
+              <div class="n">{{ day.date|date:"j" }}</div>
+              {% if day.is_blackout %}<div class="free none">Closed</div>
+              {% elif day.free %}<div class="free">{{ day.free }} free</div>
+              {% else %}<div class="free none">Full</div>{% endif %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-shield-check me-1"></i> How this works</div>
+      <div class="card-body">
+        <ul class="list-clean">
+          <li><i class="bi bi-1-circle"></i><span>Choose a room and dates. A temporary hold protects the inventory while your application is reviewed.</span></li>
+          <li><i class="bi bi-2-circle"></i><span>The route and approvers come from the Parishad authority matrix, not from hard-coded rules.</span></li>
+          <li><i class="bi bi-3-circle"></i><span>After approval you pay on the demo gateway. Payment is confirmed only by a verified signed callback.</span></li>
+          <li><i class="bi bi-4-circle"></i><span>A permit with a QR verification code is issued once approvals and payment are complete.</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  function syncSlots() {
+    var checked = document.querySelector('input[name="unit"]:checked');
+    var hall = checked && checked.closest('.unit-card').dataset.kind === 'hall';
+    document.getElementById('slot-wrap').style.display = hall ? '' : 'none';
+  }
+  document.querySelectorAll('input[name="unit"]').forEach(function (el) {
+    el.addEventListener('change', syncSlots);
+  });
+  syncSlots();
+})();
+</script>
+{% endblock %}

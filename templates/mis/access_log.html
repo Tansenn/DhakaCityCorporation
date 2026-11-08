@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Report access log{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Report access log" %}</h1>
+    <div class="sub">Who viewed or exported which report, with parameters and IP address.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/mis/reports/">Reports</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>When</th><th>User</th><th>Report</th><th>Parameters</th><th>IP</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="small">{{ row.created_at|dt }}</td>
+          <td>{{ row.user.display_name|default:"-" }}<div class="note-inline">{{ row.user.role_name|default:"" }}</div></td>
+          <td>{{ row.report }}</td>
+          <td class="small">{{ row.parameters|default:"-" }}</td>
+          <td class="mono small">{{ row.ip }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5"><div class="table-empty">No report access recorded.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

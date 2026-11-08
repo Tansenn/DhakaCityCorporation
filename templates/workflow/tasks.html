@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}My tasks{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "My Tasks" %}</h1>
+    <div class="sub">Pending, overdue and completed tasks for your role. Filters by date, priority and status.</div>
+  </div>
+  <div class="spacer"></div>
+  {% if "workflow.run_reminders"|can:user or "workflow.manage"|can:user %}
+    <form method="post" action="/app/workflow/reminders/run/">
+      {% csrf_token %}
+      <button class="btn btn-outline-primary btn-sm" type="submit">
+        <i class="bi bi-alarm me-1"></i>{% t "Run reminders now" %}
+      </button>
+    </form>
+  {% endif %}
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat">
+    <div class="label">Open tasks</div>
+    <div class="value">{{ counts.open }}</div>
+    <div class="hint">Assigned to {{ user.role_name }}</div>
+    <div class="ic"><i class="bi bi-inbox"></i></div>
+  </div>
+  <div class="stat">
+    <div class="label">Overdue</div>
+    <div class="value">{{ counts.overdue }}</div>
+    <div class="hint">Escalated after the configured hours</div>
+    <div class="ic"><i class="bi bi-exclamation-octagon"></i></div>
+  </div>
+  <div class="stat">
+    <div class="label">Completed</div>
+    <div class="value">{{ counts.completed }}</div>
+    <div class="hint">Decisions recorded by your role</div>
+    <div class="ic"><i class="bi bi-check2-circle"></i></div>
+  </div>
+  <div class="stat accent">
+    <div class="label">Turnaround</div>
+    <div class="value">SLA</div>
+    <div class="hint">Due time comes from the workflow step</div>
+    <div class="ic"><i class="bi bi-stopwatch"></i></div>
+  </div>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f f-grow">
+    <label>Search</label>
+    <input class="form-control" name="q" value="{{ q }}" placeholder="Reference, subject or step">
+  </div>
+  <div class="f">
+    <label>Status</label>
+    <select class="form-select" name="status">
+      <option value="open" {% if status == 'open' %}selected{% endif %}>Open</option>
+      <option value="overdue" {% if status == 'overdue' %}selected{% endif %}>Overdue</option>
+      <option value="completed" {% if status == 'completed' %}selected{% endif %}>Completed</option>
+      <option value="returned" {% if status == 'returned' %}selected{% endif %}>Returned</option>
+      <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+    </select>
+  </div>
+  <div class="f">
+    <label>Priority</label>
+    <select class="form-select" name="priority">
+      <option value="">All</option>
+      <option value="urgent" {% if priority == 'urgent' %}selected{% endif %}>Urgent</option>
+      <option value="high" {% if priority == 'high' %}selected{% endif %}>High</option>
+      <option value="normal" {% if priority == 'normal' %}selected{% endif %}>Normal</option>
+      <option value="low" {% if priority == 'low' %}selected{% endif %}>Low</option>
+    </select>
+  </div>
+  <div class="f">
+    <label>From</label>
+    <input class="form-control" type="date" name="from" value="{{ request.GET.from }}">
+  </div>
+  <div class="f">
+    <label>To</label>
+    <input class="form-control" type="date" name="to" value="{{ request.GET.to }}">
+  </div>
+  <button class="btn btn-primary" type="submit">{% t "Filter" %}</button>
+  <a class="btn btn-outline-secondary" href="/app/tasks/">{% t "Reset" %}</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead>
+        <tr>
+          <th>Reference</th><th>Subject</th><th>Step</th><th>Requester</th>
+          <th>Priority</th><th>Due</th><th>Status</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in page_obj %}
+          <tr>
+            <td><span class="ref">{{ task.instance.tracking_id }}</span></td>
+            <td>
+              {{ task.instance.subject }}
+              <div class="note-inline">{{ task.instance.template.name }}</div>
+            </td>
+            <td>{{ task.step.name }}</td>
+            <td>{{ task.instance.requester.display_name|default:"-" }}</td>
+            <td><span class="chip chip-{% if task.priority == 'urgent' %}danger{% elif task.priority == 'high' %}amber{% else %}muted{% endif %}">{{ task.get_priority_display }}</span></td>
+            <td class="small">
+              {{ task.due_at|dt:"d M, H:i" }}
+              {% if task.is_overdue %}<div class="note-inline" style="color:#b3261e">Overdue</div>{% endif %}
+            </td>
+            <td>
+              {% if task.status == 'pending' and task.is_overdue %}
+                <span class="chip chip-danger">Overdue</span>
+              {% else %}
+                <span class="chip chip-{{ task.status|chip }}">{{ task.get_status_display }}</span>
+              {% endif %}
+              {% if task.escalated_at %}<span class="chip chip-warning">Escalated</span>{% endif %}
+            </td>
+            <td class="text-end">
+              <a class="btn btn-sm btn-outline-primary" href="/app/tasks/{{ task.pk }}/">{% t "Open" %}</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8"><div class="table-empty"><i class="bi bi-check2-all"></i>No tasks in this view.</div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

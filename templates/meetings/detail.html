@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{{ meeting.title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ meeting.title }}</h1>
+    <div class="sub">{{ meeting.date|d }} {{ meeting.start_time|time:"H:i"|default:"" }} · {{ meeting.venue|default:"Venue not set" }}</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip chip-{{ meeting.status|chip }}">{{ meeting.get_status_display }}</span>
+  <a class="btn btn-sm btn-outline-primary" href="/app/meetings/">Meetings</a>
+</div>
+
+<div class="detail-grid card mb-3">
+  <div class="card-body detail-grid">
+    <div><div class="k">Chair</div><div class="v">{{ meeting.chair.display_name|default:"-" }}</div></div>
+    <div><div class="k">Secretary</div><div class="v">{{ meeting.secretary.display_name|default:"-" }}</div></div>
+    <div><div class="k">Attendees</div><div class="v">{{ attendees|length }}</div></div>
+    <div><div class="k">Open actions</div><div class="v">{{ meeting.open_actions }}</div></div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="card">
+      <div class="card-header"><strong>Agenda</strong></div>
+      <div class="card-body"><p class="small mb-0">{{ meeting.agenda|default:"No agenda recorded."|linebreaksbr }}</p></div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><strong>Minutes and decisions</strong></div>
+      <div class="card-body">
+        {% if "meetings.minutes"|can:user %}
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="minutes">
+            <div class="mb-3"><textarea class="form-control" name="minutes" rows="6">{{ meeting.minutes }}</textarea></div>
+            <div class="d-flex gap-2">
+              <select class="form-select" name="status" style="max-width:200px">
+                {% for code, label in statuses %}<option value="{{ code }}" {% if meeting.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+              </select>
+              <button class="btn btn-primary" type="submit">Save minutes</button>
+            </div>
+          </form>
+        {% else %}
+          <p class="small mb-0">{{ meeting.minutes|default:"No minutes recorded."|linebreaksbr }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><strong>Action items</strong></div>
+      <div class="table-wrap">
+        <table class="table-gzp">
+          <thead><tr><th>Action</th><th>Owner</th><th>Due</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for action in actions %}
+            <tr>
+              <td>{{ action.description }}{% if action.note %}<div class="note-inline">{{ action.note }}</div>{% endif %}</td>
+              <td>{{ action.owner.display_name|default:action.owner_label|default:"-" }}</td>
+              <td class="small">{{ action.due_date|d }}{% if action.is_overdue %}<div><span class="chip chip-danger">Overdue</span></div>{% endif %}</td>
+              <td><span class="chip chip-{{ action.status|chip }}">{{ action.get_status_display }}</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4"><div class="table-empty">No actions assigned.</div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% if "meetings.minutes"|can:user or "meetings.manage"|can:user %}
+        <div class="card-body border-top">
+          <form method="post" class="filter-bar" style="margin:0">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="action">
+            <div class="f f-grow"><label>New action</label><input class="form-control" name="description" required></div>
+            <div class="f"><label>Owner</label>
+              <select class="form-select" name="owner"><option value="">-</option>
+                {% for u in users %}<option value="{{ u.pk }}">{{ u.display_name }}</option>{% endfor %}
+              </select></div>
+            <div class="f"><label>Due</label><input class="form-control" type="date" name="due_date"></div>
+            <div class="f d-flex align-items-end"><button class="btn btn-primary" type="submit">Assign</button></div>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Attendance</strong></div>
+    <div class="list-clean">
+      {% for attendee in attendees %}
+        <div class="list-row">
+          <div><b>{{ attendee.name }}</b><div class="note-inline">{{ attendee.role }}</div></div>
+          <div class="d-flex gap-2 align-items-center">
+            {% if attendee.present %}<span class="chip chip-success">Present</span>{% else %}<span class="chip chip-muted">Away</span>{% endif %}
+            {% if "meetings.minutes"|can:user %}
+              <form method="post">{% csrf_token %}
+                <input type="hidden" name="action" value="presence">
+                <input type="hidden" name="attendee" value="{{ attendee.pk }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Toggle</button>
+              </form>
+            {% endif %}
+          </div>
+        </div>
+      {% empty %}
+        <div class="table-empty">No attendees recorded.</div>
+      {% endfor %}
+    </div>
+    {% if "meetings.manage"|can:user %}
+      <div class="card-body border-top">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="attendee">
+          <div class="mb-2"><label class="form-label">Add attendee</label>
+            <select class="form-select" name="user"><option value="">-</option>
+              {% for u in users %}<option value="{{ u.pk }}">{{ u.display_name }} ({{ u.role_name }})</option>{% endfor %}
+            </select></div>
+          <div class="mb-2"><input class="form-control" name="name" placeholder="Or type a name"></div>
+          <button class="btn btn-outline-primary btn-sm" type="submit">Add attendee</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

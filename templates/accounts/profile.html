@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}My profile{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "My profile" %}</h1>
+    <div class="sub">Your account details, role and verification status.</div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-person-badge"></i> Account details</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="profile">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">First name</label>
+              <input class="form-control" name="first_name" value="{{ user.first_name }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Last name</label>
+              <input class="form-control" name="last_name" value="{{ user.last_name }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Username</label>
+              <input class="form-control" value="{{ user.username }}" disabled>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% t "Email" %}</label>
+              <input class="form-control" type="email" name="email" value="{{ user.email }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">{% t "Phone" %}</label>
+              <input class="form-control" name="phone" value="{{ user.phone }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Role</label>
+              <input class="form-control" value="{{ user.role_name }}" disabled>
+            </div>
+          </div>
+          <button class="btn btn-primary mt-3" type="submit">{% t "Save changes" %}</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-shield-lock"></i> Change password</div>
+      <div class="card-body">
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="password">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Current password</label>
+              <input class="form-control" type="password" name="current_password" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">New password</label>
+              <input class="form-control" type="password" name="new_password1" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Confirm new password</label>
+              <input class="form-control" type="password" name="new_password2" required>
+            </div>
+          </div>
+          <button class="btn btn-outline-primary mt-3" type="submit">Update password</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header"><i class="bi bi-patch-check"></i> Access & verification</div>
+      <div class="card-body">
+        <div class="kv">
+          <dt>Role</dt><dd>{{ user.role_name }}</dd>
+          <dt>Read-only</dt><dd>{% if user.is_read_only %}<span class="chip chip-warning">Read-only</span>{% else %}<span class="chip chip-success">Can act within permissions</span>{% endif %}</dd>
+          <dt>Email verified</dt><dd>{% if user.email_verified %}<span class="chip chip-success">Verified</span>{% else %}<span class="chip chip-warning">Pending</span>{% endif %}</dd>
+          <dt>Department</dt><dd>{{ user.department|default:"-" }}</dd>
+          <dt>Designation</dt><dd>{{ user.designation|default:"-" }}</dd>
+          {% if user.facility %}<dt>Assigned facility</dt><dd>{{ user.facility }}</dd>{% endif %}
+          <dt>Last login</dt><dd>{{ user.last_login|dt }}</dd>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-key"></i> Verification history</div>
+      <div class="card-body">
+        {% for code in identities %}
+          <div class="list-row">
+            <div class="ic"><i class="bi bi-shield-check"></i></div>
+            <div class="grow">
+              <b>{{ code.get_purpose_display }} code</b>
+              <span>{{ code.created_at|dt }} · {{ code.attempts }} attempt{{ code.attempts|pluralize }}</span>
+            </div>
+            {% if code.used_at %}<span class="chip chip-success">Used</span>{% else %}<span class="chip chip-muted">Unused</span>{% endif %}
+          </div>
+        {% empty %}
+          <div class="table-empty"><i class="bi bi-shield"></i>No verification codes yet.</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

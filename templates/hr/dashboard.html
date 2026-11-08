@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Human resources{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Human resources" %}</h1>
+    <div class="sub">Employee register, attendance, leave, roster and training expiry. Sample records only.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/hr/attendance/"><i class="bi bi-calendar2-check me-1"></i>Attendance</a>
+  <a class="btn btn-sm btn-primary" href="/app/hr/employees/"><i class="bi bi-person-vcard me-1"></i>Employees</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Employees</div><div class="value">{{ stats.total }}</div>
+    <div class="hint">{{ stats.active }} active</div><div class="ic"><i class="bi bi-people"></i></div></div>
+  <div class="stat"><div class="label">On leave</div><div class="value">{{ stats.on_leave }}</div>
+    <div class="hint">Approved leave currently active</div><div class="ic"><i class="bi bi-calendar-x"></i></div></div>
+  <div class="stat"><div class="label">Departments</div><div class="value">{{ stats.departments }}</div>
+    <div class="hint">Sample organogram</div><div class="ic"><i class="bi bi-diagram-2"></i></div></div>
+  <div class="stat accent"><div class="label">Expiring training</div><div class="value">{{ expiring|length }}</div>
+    <div class="hint">Within the next 60 days</div><div class="ic"><i class="bi bi-mortarboard"></i></div></div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <div class="card-header"><strong>Employee snapshot</strong><a class="note-inline" href="/app/hr/employees/">All employees</a></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>No.</th><th>Name</th><th>Department</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for employee in employees %}
+          <tr>
+            <td class="mono">{{ employee.employee_no }}</td>
+            <td><a href="/app/hr/employees/{{ employee.pk }}/">{{ employee.name }}</a>
+              <div class="note-inline">{{ employee.designation.name|default:"-" }}</div></td>
+            <td>{{ employee.department.name|default:"-" }}</td>
+            <td><span class="chip chip-{{ employee.status|chip }}">{{ employee.get_status_display }}</span></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="table-empty">No employees seeded yet.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Upcoming approved leave</strong></div>
+    <div class="list-clean">
+      {% for leave in upcoming_leave %}
+        <div class="list-row">
+          <div>
+            <b>{{ leave.employee.name }}</b>
+            <div class="note-inline">{{ leave.get_leave_type_display }} · {{ leave.start_date|date:"d M" }} to {{ leave.end_date|date:"d M Y" }}</div>
+          </div>
+          <span class="chip chip-{{ leave.status|chip }}">{{ leave.get_status_display }}</span>
+        </div>
+      {% empty %}
+        <div class="table-empty">No upcoming leave.</div>
+      {% endfor %}
+    </div>
+    <div class="card-header border-top"><strong>Training expiry</strong></div>
+    <div class="list-clean">
+      {% for record in expiring %}
+        <div class="list-row">
+          <div><b>{{ record.title }}</b><div class="note-inline">{{ record.employee.name }}</div></div>
+          <span class="chip {% if record.is_expired %}chip-danger{% else %}chip-warning{% endif %}">
+            {% if record.is_expired %}Expired{% else %}{{ record.days_left }} day(s){% endif %}
+          </span>
+        </div>
+      {% empty %}
+        <div class="table-empty">No expiring training records.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

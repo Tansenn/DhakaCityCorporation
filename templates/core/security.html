@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Security and backup{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Security and backup" %}</h1>
+    <div class="sub">What is enforced in code, what is a deployment commitment, and what is simulated in this
+      offline demo. Labelled honestly.</div>
+  </div>
+  <div class="spacer"></div>
+  <form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="backup">
+    <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-database-add me-1"></i>Create backup now</button>
+  </form>
+</div>
+
+<div class="status-cards mb-3">
+  {% for control in controls %}
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex align-items-start gap-2">
+          <div class="ic" style="font-size:1.3rem"><i class="bi bi-{{ control.icon }}"></i></div>
+          <div>
+            <strong>{{ control.title }}</strong><br>
+            <span class="chip {% if control.kind == 'Real' or control.kind == 'Real logic' or control.kind == 'Real counters' %}chip-success{% elif control.kind == 'Simulated' %}chip-warning{% else %}chip-info{% endif %}">{{ control.kind }}</span>
+            <div class="note-inline mt-1">{{ control.status }}</div>
+          </div>
+        </div>
+        <div class="small mt-2">{{ control.detail }}</div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <strong>Backups and restore tests</strong>
+    <span class="note-inline">SQLite online backup, stored under the project backups/ folder</span>
+  </div>
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>File</th><th>Size</th><th>Created</th><th>By</th><th>Verified</th><th>Note</th><th></th></tr></thead>
+      <tbody>
+      {% for record in backups %}
+        <tr>
+          <td class="mono">{{ record.filename }}</td>
+          <td>{{ record.size_bytes|filesizeformat }}</td>
+          <td>{{ record.created_at|dt }}</td>
+          <td>{{ record.created_by.display_name|default:"System" }}</td>
+          <td>
+            {% if record.verified %}
+              <span class="chip chip-success">Passed</span>
+            {% else %}
+              <span class="chip chip-muted">Not tested</span>
+            {% endif %}
+          </td>
+          <td class="small">{{ record.note|default:"-" }}</td>
+          <td class="text-end">
+            <form method="post" class="d-inline">
+              {% csrf_token %}
+              <input type="hidden" name="action" value="verify">
+              <input type="hidden" name="record" value="{{ record.pk }}">
+              <button class="btn btn-sm btn-outline-primary" type="submit">Run restore test</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty"><i class="bi bi-database"></i>No backups yet. Create one above.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="alert alert-info mt-3">
+  <i class="bi bi-info-circle me-1"></i>
+  The restore test opens the backup file, runs <span class="mono">PRAGMA integrity_check</span> and reads the table
+  count. It does not overwrite the live database. A production deployment would restore into a rehearsal
+  environment first, then promote.
+</div>
+{% endblock %}

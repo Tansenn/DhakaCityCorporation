@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Projects" %}</h1>
+    <div class="sub">Project register with budget, progress and field inspection follow-up.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/projects/inspections/"><i class="bi bi-geo-alt me-1"></i>Inspections</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Projects</div><div class="value">{{ stats.total }}</div><div class="hint">All registers</div><div class="ic"><i class="bi bi-kanban"></i></div></div>
+  <div class="stat"><div class="label">Ongoing</div><div class="value">{{ stats.ongoing }}</div><div class="hint">Active implementation</div><div class="ic"><i class="bi bi-hammer"></i></div></div>
+  <div class="stat accent"><div class="label">Delayed</div><div class="value">{{ stats.delayed }}</div><div class="hint">Needs management attention</div><div class="ic"><i class="bi bi-exclamation-triangle"></i></div></div>
+  <div class="stat"><div class="label">Budget / spent</div><div class="value" style="font-size:1.2rem">{{ stats.spent|money }}</div><div class="hint">of {{ stats.budget|money }}</div><div class="ic"><i class="bi bi-cash-stack"></i></div></div>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f f-grow"><label>Search</label><input class="form-control" name="q" value="{{ q }}" placeholder="Name, code or location"></div>
+  <div class="f"><label>Status</label>
+    <select class="form-select" name="status">
+      <option value="">All</option>
+      {% for code, label in statuses %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/projects/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Code</th><th>Project</th><th>Department</th><th>Timeline</th><th class="num">Budget</th><th>Progress</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for project in page_obj %}
+        <tr>
+          <td class="mono">{{ project.code }}</td>
+          <td><a href="/app/projects/{{ project.pk }}/">{{ project.name }}</a>
+            <div class="note-inline">{{ project.location }}</div></td>
+          <td>{{ project.department.name|default:"-" }}</td>
+          <td class="small">{{ project.start_date|d }}<br>{{ project.end_date|d }}{% if project.is_overdue %}<div><span class="chip chip-danger">Overdue</span></div>{% endif %}</td>
+          <td class="num">{{ project.budget|money }}<div class="note-inline">{{ project.utilisation }}% spent</div></td>
+          <td style="min-width:130px">
+            <div class="progress-thin"><span style="width:{{ project.progress }}%"></span></div>
+            <div class="note-inline">{{ project.progress }}%</div>
+          </td>
+          <td><span class="chip chip-{{ project.status|chip }}">{{ project.get_status_display }}</span></td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/projects/{{ project.pk }}/">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8"><div class="table-empty"><i class="bi bi-kanban"></i>No projects match.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+
+{% if "projects.manage"|can:user %}
+  <div class="card mt-3">
+    <div class="card-header"><strong>New project</strong></div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="filter-bar" style="margin:0 0 1rem">
+          <div class="f f-grow"><label>Project name</label><input class="form-control" name="name" required></div>
+          <div class="f"><label>Department</label>
+            <select class="form-select" name="department"><option value="">-</option>
+              {% for dept in departments %}<option value="{{ dept.pk }}">{{ dept.name }}</option>{% endfor %}</select></div>
+          <div class="f f-grow"><label>Location</label><input class="form-control" name="location"></div>
+          <div class="f"><label>Budget</label><input class="form-control" name="budget" placeholder="0.00"></div>
+        </div>
+        <div class="filter-bar" style="margin:0 0 1rem">
+          <div class="f"><label>Start</label><input class="form-control" type="date" name="start_date"></div>
+          <div class="f"><label>End</label><input class="form-control" type="date" name="end_date"></div>
+          <div class="f f-grow"><label>Description</label><input class="form-control" name="description"></div>
+          <div class="f d-flex align-items-end"><button class="btn btn-primary" type="submit">Create project</button></div>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

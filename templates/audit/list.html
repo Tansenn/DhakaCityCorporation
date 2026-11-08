@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Audit log{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Audit log" %}</h1>
+    <div class="sub">{{ total }} matching entr{{ total|pluralize:"y,ies" }}. Logins, decisions, settings changes,
+      payments, exports and backups are recorded.</div>
+  </div>
+  <div class="spacer"></div>
+  {% if "audit.export"|can:user %}
+    <a class="btn btn-sm btn-outline-primary" href="/app/audit/export/?{{ request.GET.urlencode }}">
+      <i class="bi bi-download me-1"></i>Export CSV</a>
+  {% endif %}
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f f-grow"><label>Search</label>
+    <input class="form-control" name="q" value="{{ q }}" placeholder="Actor, object, change or IP"></div>
+  <div class="f"><label>Action</label>
+    <select class="form-select" name="action">
+      <option value="">All</option>
+      {% for code, label in actions %}<option value="{{ code }}" {% if selected_action == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <div class="f"><label>Module</label>
+    <select class="form-select" name="module">
+      <option value="">All</option>
+      {% for module in modules %}<option value="{{ module }}" {% if selected_module == module %}selected{% endif %}>{{ module }}</option>{% endfor %}
+    </select></div>
+  <div class="f"><label>From</label><input class="form-control" type="date" name="from" value="{{ request.GET.from }}"></div>
+  <div class="f"><label>To</label><input class="form-control" type="date" name="to" value="{{ request.GET.to }}"></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/audit/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Module</th><th>Object</th><th>Change</th><th>IP</th></tr></thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td class="small">{{ row.created_at|dt:"d M Y H:i:s" }}</td>
+          <td>{{ row.actor_label }}</td>
+          <td><span class="chip chip-{% if row.action == 'delete' or row.action == 'reject' %}danger{% elif row.action == 'decision' or row.action == 'payment' %}success{% elif row.action == 'settings' or row.action == 'backup' %}warning{% else %}info{% endif %}">{{ row.get_action_display }}</span></td>
+          <td class="mono small">{{ row.module|default:"-" }}</td>
+          <td class="small">{{ row.object_repr|default:"-" }}
+            <div class="note-inline">{{ row.model }}{% if row.object_id %} #{{ row.object_id }}{% endif %}</div></td>
+          <td class="small">{{ row.changes|truncatechars:120 }}</td>
+          <td class="mono small">{{ row.ip|default:"-" }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty"><i class="bi bi-shield-lock"></i>No audit entries match.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

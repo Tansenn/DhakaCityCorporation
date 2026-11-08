@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Reception desk{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Reception desk</h1>
+    <div class="sub">{% if facility %}{{ facility.name }}{% else %}All facilities{% endif %} ·
+      verify booking codes and record check-in / check-out.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/bookings/?queue=reception">Booking list</a>
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-qr-code-scan me-1"></i> Verify a booking</div>
+      <div class="card-body">
+        <form method="get" class="d-flex gap-2 mb-3">
+          <input class="form-control" name="reference" value="{{ reference }}"
+                 placeholder="Type the reference, e.g. GZP-DB-2026-000123" required>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-search me-1"></i>Verify</button>
+        </form>
+        <div class="alert-inline info">
+          QR scanning is simulated in this demo: point the phone camera at the permit, then type the
+          reference shown under the QR code. The public verification page is available at
+          <span class="mono">/verify/&lt;token&gt;</span>.
+        </div>
+
+        {% if found %}
+          <div class="summary-box mt-3">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="bi bi-check-circle-fill" style="color:#1f9d55;font-size:1.3rem"></i>
+              <b>Valid booking {{ found.reference }}</b>
+              <span class="chip chip-{{ found.status|chip }} ms-auto">{{ found.status_label }}</span>
+            </div>
+            <div class="kv">
+              <dt>Applicant</dt><dd>{{ found.applicant_name }}</dd>
+              <dt>Facility</dt><dd>{{ found.facility.name }} / {{ found.unit.name }}</dd>
+              <dt>Dates</dt><dd>{{ found.check_in|date:"d M Y" }} → {{ found.check_out|date:"d M Y" }}</dd>
+              <dt>Guests</dt><dd>{{ found.guests }}</dd>
+              <dt>Payment</dt><dd>{{ found.payment_txn_id|default:"-" }}</dd>
+              <dt>Check-in</dt><dd>{{ found.checked_in_at|dt }}</dd>
+              <dt>Check-out</dt><dd>{{ found.checked_out_at|dt }}</dd>
+            </div>
+            {% if found.status == 'paid' %}
+              <div class="d-flex gap-2 mt-3">
+                {% if not found.checked_in_at %}
+                  <form method="post" action="/app/reception/{{ found.pk }}/checkin/">{% csrf_token %}
+                    <button class="btn btn-sm btn-primary" type="submit">Check in</button>
+                  </form>
+                {% endif %}
+                <form method="post" action="/app/reception/{{ found.pk }}/checkout/">{% csrf_token %}
+                  <button class="btn btn-sm btn-outline-primary" type="submit">Check out</button>
+                </form>
+                <a class="btn btn-sm btn-outline-secondary" href="/app/bookings/{{ found.pk }}/">Open booking</a>
+              </div>
+            {% else %}
+              <div class="alert-inline warn mt-3">This booking is {{ found.status_label|lower }} and cannot
+                be checked in. Ask the applicant to complete payment.</div>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-calendar-check me-1"></i> Arrivals in the next 3 days</div>
+      <div class="card-body p-0">
+        <div class="table-wrap">
+          <table class="table-gzp">
+            <thead><tr><th>Reference</th><th>Applicant</th><th>Unit</th><th>Check-in</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for booking in bookings %}
+              <tr>
+                <td><span class="ref">{{ booking.reference }}</span></td>
+                <td>{{ booking.applicant_name }}</td>
+                <td>{{ booking.unit.name }}</td>
+                <td>{{ booking.check_in|date:"d M Y" }}{% if booking.check_in == today %}<span class="chip chip-lime ms-1">Today</span>{% endif %}</td>
+                <td><span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label }}</span></td>
+                <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/bookings/{{ booking.pk }}/">Open</a></td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6"><div class="table-empty"><i class="bi bi-calendar2-check"></i><p>No arrivals for this facility.</p></div></td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-info-circle me-1"></i> Reception rules</div>
+      <div class="card-body">
+        <ul class="list-clean">
+          <li><i class="bi bi-check2"></i><span>Only paid and confirmed bookings can be checked in.</span></li>
+          <li><i class="bi bi-check2"></i><span>Check-in opens one day before the booking date.</span></li>
+          <li><i class="bi bi-check2"></i><span>Reception can only see bookings for the assigned facility.</span></li>
+          <li><i class="bi bi-check2"></i><span>Check-out marks the booking completed and records the time.</span></li>
+          <li><i class="bi bi-check2"></i><span>Every verification and check-in/out is written to the audit log.</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-badge me-1"></i> Operator</div>
+      <div class="card-body">
+        <div class="kv">
+          <dt>Name</dt><dd>{{ user.display_name }}</dd>
+          <dt>Role</dt><dd>{{ user.role_name }}</dd>
+          <dt>Facility</dt><dd>{{ facility.name|default:"All facilities" }}</dd>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

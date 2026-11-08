@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Action follow-up{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Action follow-up" %}</h1>
+    <div class="sub">Meeting decisions and their assigned actions. Overdue items are highlighted.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/meetings/">Meetings</a>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f"><label>Status</label>
+    <select class="form-select" name="status">
+      <option value="open" {% if status == 'open' %}selected{% endif %}>Open (all not done)</option>
+      <option value="overdue" {% if status == 'overdue' %}selected{% endif %}>Overdue</option>
+      {% for code, label in statuses %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/meetings/actions/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Action</th><th>Meeting</th><th>Owner</th><th>Due</th><th>Status</th><th style="min-width:230px">Update</th></tr></thead>
+      <tbody>
+      {% for action in rows %}
+        <tr>
+          <td>{{ action.description }}{% if action.note %}<div class="note-inline">{{ action.note }}</div>{% endif %}</td>
+          <td><a href="/app/meetings/{{ action.meeting.pk }}/">{{ action.meeting.title|truncatechars:40 }}</a>
+            <div class="note-inline">{{ action.meeting.date|d }}</div></td>
+          <td>{{ action.owner.display_name|default:action.owner_label|default:"-" }}</td>
+          <td>{% if action.is_overdue %}<span class="chip chip-danger">{{ action.due_date|d }}</span>{% else %}{{ action.due_date|d }}{% endif %}</td>
+          <td><span class="chip chip-{{ action.status|chip }}">{{ action.get_status_display }}</span></td>
+          <td>
+            {% if "meetings.action"|can:user %}
+              <form method="post" class="d-flex gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="action_id" value="{{ action.pk }}">
+                <select class="form-select form-select-sm" name="status">
+                  {% for code, label in statuses %}<option value="{{ code }}" {% if action.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+              </form>
+            {% else %}<span class="note-inline">View only</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty"><i class="bi bi-list-check"></i>No actions in this view.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

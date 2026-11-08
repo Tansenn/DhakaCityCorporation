@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Workflow step{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% if step %}Edit step{% else %}New step{% endif %}</h1>
+    <div class="sub">{{ template.name }} · <span class="mono">{{ template.code }}</span></div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-outline-secondary btn-sm" href="/app/workflow/"><i class="bi bi-arrow-left me-1"></i> Back</a>
+</div>
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card"><div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label required" for="{{ form.order.id_for_label }}">Order</label>
+            {{ form.order }}{{ form.order.errors }}
+          </div>
+          <div class="col-md-9">
+            <label class="form-label required" for="{{ form.name.id_for_label }}">Step name</label>
+            {{ form.name }}{{ form.name.errors }}
+          </div>
+          <div class="col-md-6">
+            <label class="form-label required" for="{{ form.role.id_for_label }}">Acts as role</label>
+            {{ form.role }}{{ form.role.errors }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label" for="{{ form.sla_hours.id_for_label }}">SLA hours</label>
+            {{ form.sla_hours }}{{ form.sla_hours.errors }}
+          </div>
+          <div class="col-md-3">
+            <label class="form-label d-block">Final step</label>
+            {{ form.is_final }}
+            <div class="form-text">Approving here completes the request.</div>
+          </div>
+          <div class="col-12">
+            <label class="form-label required">Allowed decisions</label>
+            <div class="d-flex flex-wrap gap-3">
+              {% for checkbox in form.decisions %}
+                <label class="form-check-label d-flex gap-1 align-items-center">
+                  {{ checkbox.tag }} <span>{{ checkbox.choice_label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+            {{ form.decisions.errors }}
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="{{ form.condition_text.id_for_label }}">{{ form.condition_text.label }}</label>
+            <textarea class="form-control mono" name="condition_text" id="{{ form.condition_text.id_for_label }}" rows="5">{{ form.condition_text.value|default:'' }}</textarea>
+            <div class="form-text">{{ form.condition_text.help_text }}</div>
+            {{ form.condition_text.errors }}
+          </div>
+        </div>
+        <button class="btn btn-primary mt-3" type="submit">{% t "Save" %}</button>
+      </form>
+    </div></div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card"><div class="card-body small text-muted">
+      <p><strong>Conditions</strong> decide whether a step is part of the route for a
+      particular request. A step with no condition always runs.</p>
+      <ul>
+        <li><span class="mono">{"unit_kind": ["suite","hall"]}</span></li>
+        <li><span class="mono">{"min_nights": 4}</span></li>
+        <li><span class="mono">{"applicant_category": ["organization"]}</span></li>
+        <li><span class="mono">{"any": [{...}, {...}]}</span> / <span class="mono">{"all": [...]}</span></li>
+      </ul>
+      <p class="mb-0">Decision authority for approvals is checked against the
+      <a href="/app/workflow/matrix/">authority matrix</a>, not this form.</p>
+    </div></div>
+  </div>
+</div>
+{% endblock %}

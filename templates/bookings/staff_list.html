@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Booking management{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Booking management</h1>
+    <div class="sub">All Dakbungalow applications, filters, status and approval history.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/bookings/export.csv"><i class="bi bi-download me-1"></i>Export CSV</a>
+  {% if "workflow.view"|can:user %}
+    <a class="btn btn-sm btn-outline-primary" href="/app/tasks/"><i class="bi bi-inbox me-1"></i>My tasks</a>
+  {% endif %}
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Submitted</div><div class="value">{{ counts.submitted }}</div>
+    <div class="hint">Waiting for the booking desk</div><div class="ic"><i class="bi bi-inbox"></i></div></div>
+  <div class="stat"><div class="label">In review</div><div class="value">{{ counts.under_review }}</div>
+    <div class="hint">Under review / clarification</div><div class="ic"><i class="bi bi-search"></i></div></div>
+  <div class="stat"><div class="label">Awaiting payment</div><div class="value">{{ counts.awaiting_payment }}</div>
+    <div class="hint">Approved, payment window open</div><div class="ic"><i class="bi bi-credit-card"></i></div></div>
+  <div class="stat accent"><div class="label">Confirmed / completed</div><div class="value">{{ counts.paid }}</div>
+    <div class="hint">{{ counts.completed }} completed stays</div><div class="ic"><i class="bi bi-check2-circle"></i></div></div>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f f-grow">
+    <label>Search</label>
+    <input class="form-control" name="q" value="{{ q }}" placeholder="Reference, applicant, purpose">
+  </div>
+  <div class="f">
+    <label>Status</label>
+    <select class="form-select" name="status">
+      <option value="">All statuses</option>
+      {% for code, label in statuses %}
+        <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="f">
+    <label>Facility</label>
+    <select class="form-select" name="facility">
+      <option value="">All</option>
+      {% for facility in facilities %}
+        <option value="{{ facility.code }}" {% if facility.code == facility_code %}selected{% endif %}>{{ facility.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="f">
+    <label>Queue</label>
+    <select class="form-select" name="queue">
+      <option value="">All</option>
+      <option value="desk" {% if queue == 'desk' %}selected{% endif %}>Booking desk</option>
+      <option value="reviews" {% if queue == 'reviews' %}selected{% endif %}>Approvals / payment</option>
+      <option value="reception" {% if queue == 'reception' %}selected{% endif %}>Reception (next 2 days)</option>
+    </select>
+  </div>
+  <div class="f"><label>Check-in from</label><input class="form-control" type="date" name="from" value="{{ request.GET.from }}"></div>
+  <div class="f"><label>To</label><input class="form-control" type="date" name="to" value="{{ request.GET.to }}"></div>
+  <div class="f d-flex align-items-end"><button class="btn btn-primary w-100" type="submit">Apply</button></div>
+</form>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr>
+          <th>Reference</th><th>Applicant</th><th>Facility / unit</th><th>Dates</th>
+          <th class="num">Total</th><th>Status</th><th>Payment</th><th></th>
+        </tr></thead>
+        <tbody>
+        {% for booking in page_obj %}
+          <tr>
+            <td><span class="ref">{{ booking.reference }}</span><br><span class="note-inline">{{ booking.created_at|date:"d M Y" }}</span></td>
+            <td><b>{{ booking.applicant_name }}</b><br><span class="note-inline">{{ booking.get_category_display }}</span></td>
+            <td>{{ booking.facility.name }}<br><span class="note-inline">{{ booking.unit.name }}</span></td>
+            <td>{{ booking.check_in|date:"d M" }} - {{ booking.check_out|date:"d M Y" }}<br>
+              <span class="note-inline">{{ booking.nights }} night(s){% if booking.slot %} · {{ booking.get_slot_display }}{% endif %}</span></td>
+            <td class="num">{{ booking.total|money }}</td>
+            <td><span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label }}</span></td>
+            <td>{% if booking.payment %}<span class="chip chip-success">Paid</span><br><span class="note-inline">{{ booking.payment.receipt_no }}</span>
+                {% else %}<span class="note-inline">-</span>{% endif %}</td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/bookings/{{ booking.pk }}/">Open</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8"><div class="table-empty"><i class="bi bi-calendar2-x"></i><p>No bookings match the filters.</p></div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+{% endblock %}

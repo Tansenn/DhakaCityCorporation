@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Document register{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Document register" %}</h1>
+    <div class="sub">Registration, assignment, confidentiality and movement of Parishad files.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/documents/access/"><i class="bi bi-shield-lock me-1"></i>Access log</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/documents/overdue/"><i class="bi bi-exclamation-circle me-1"></i>Overdue</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Open</div><div class="value">{{ counts.open }}</div><div class="hint">Awaiting action</div><div class="ic"><i class="bi bi-folder2-open"></i></div></div>
+  <div class="stat"><div class="label">In progress</div><div class="value">{{ counts.in_progress }}</div><div class="hint">Assigned to an officer</div><div class="ic"><i class="bi bi-arrow-repeat"></i></div></div>
+  <div class="stat accent"><div class="label">Overdue</div><div class="value">{{ counts.overdue }}</div><div class="hint">Past the due date</div><div class="ic"><i class="bi bi-alarm"></i></div></div>
+  <div class="stat"><div class="label">Closed / archived</div><div class="value">{{ counts.closed }}</div><div class="hint">Completed files</div><div class="ic"><i class="bi bi-archive"></i></div></div>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f f-grow"><label>Search</label><input class="form-control" name="q" value="{{ q }}" placeholder="File no., subject or sender"></div>
+  <div class="f"><label>Category</label>
+    <select class="form-select" name="category">
+      <option value="">All</option>
+      {% for code, label in categories %}<option value="{{ code }}" {% if category == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <div class="f"><label>Status</label>
+    <select class="form-select" name="status">
+      <option value="">All</option>
+      {% for code, label in statuses %}<option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/documents/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>File no.</th><th>Subject</th><th>Category</th><th>Assigned</th><th>Due</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for doc in page_obj %}
+        <tr>
+          <td class="mono">{{ doc.file_no }}{% if doc.confidentiality == 'confidential' %}<div><span class="chip chip-danger">Confidential</span></div>{% endif %}</td>
+          <td><a href="/app/documents/{{ doc.pk }}/">{{ doc.subject }}</a>
+            <div class="note-inline">{{ doc.received_from|default:"-" }} · {{ doc.get_priority_display }}</div></td>
+          <td>{{ doc.get_category_display }}</td>
+          <td>{{ doc.assigned_to.display_name|default:"Unassigned" }}</td>
+          <td>{% if doc.is_overdue %}<span class="chip chip-danger">{{ doc.due_date|d }}</span>{% else %}{{ doc.due_date|d }}{% endif %}</td>
+          <td><span class="chip chip-{{ doc.status|chip }}">{{ doc.get_status_display }}</span></td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/documents/{{ doc.pk }}/">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty"><i class="bi bi-journal-text"></i>No files match.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'partials/pagination.html' %}
+
+{% if "documents.create"|can:user %}
+  <div class="card mt-3">
+    <div class="card-header"><strong>Register a new file</strong></div>
+    <div class="card-body">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="filter-bar" style="margin:0 0 1rem">
+          <div class="f f-grow"><label>Subject</label><input class="form-control" name="subject" required></div>
+          <div class="f"><label>Category</label>
+            <select class="form-select" name="category">{% for code, label in categories %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+          <div class="f"><label>Department</label>
+            <select class="form-select" name="department"><option value="">-</option>
+              {% for dept in departments %}<option value="{{ dept.pk }}">{{ dept.name }}</option>{% endfor %}</select></div>
+          <div class="f"><label>Priority</label>
+            <select class="form-select" name="priority">{% for code, label in priorities %}<option value="{{ code }}">{{ label }}</option>{% endfor %}</select></div>
+        </div>
+        <div class="filter-bar" style="margin:0 0 1rem">
+          <div class="f"><label>Confidentiality</label>
+            <select class="form-select" name="confidentiality"><option value="normal">Normal</option><option value="confidential">Confidential</option></select></div>
+          <div class="f f-grow"><label>Received from</label><input class="form-control" name="received_from"></div>
+          <div class="f"><label>Assign to</label>
+            <select class="form-select" name="assigned_to"><option value="">Unassigned</option>
+              {% for u in users %}<option value="{{ u.pk }}">{{ u.display_name }} ({{ u.role_name }})</option>{% endfor %}</select></div>
+          <div class="f"><label>Due date</label><input class="form-control" type="date" name="due_date"></div>
+          <div class="f f-grow"><label>Attachment</label><input class="form-control" type="file" name="attachment"></div>
+        </div>
+        <div class="mb-3"><label class="form-label">Notes</label><textarea class="form-control" name="notes" rows="2"></textarea></div>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg me-1"></i>Register file</button>
+        <span class="note-inline ms-2">Allowed: pdf, png, jpg, csv, txt up to 5 MB</span>
+      </form>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

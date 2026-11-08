@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Report library{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Report library" %}</h1>
+    <div class="sub">Operational, financial and HR reports. Exports are logged in the report access log and the
+      audit trail.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/mis/bookings/"><i class="bi bi-bar-chart me-1"></i>Booking report</a>
+  {% if "mis.audit"|can:user %}<a class="btn btn-sm btn-outline-secondary" href="/app/mis/access-log/">Access log</a>{% endif %}
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Bookings in register</div><div class="value">{{ bookings }}</div><div class="hint">All statuses</div><div class="ic"><i class="bi bi-calendar-check"></i></div></div>
+  <div class="stat"><div class="label">Verified payments</div><div class="value">{{ payments }}</div><div class="hint">Signed gateway callbacks only</div><div class="ic"><i class="bi bi-credit-card"></i></div></div>
+  <div class="stat"><div class="label">Audit entries</div><div class="value">{{ audit_entries }}</div><div class="hint">Every privileged action</div><div class="ic"><i class="bi bi-shield-lock"></i></div></div>
+  <div class="stat accent"><div class="label">Export formats</div><div class="value">CSV · PDF</div><div class="hint">{% if can_export %}Your role can export{% else %}Export permission not granted{% endif %}</div><div class="ic"><i class="bi bi-download"></i></div></div>
+</div>
+
+<div class="facility-grid">
+  {% for report in reports %}
+    <div class="card">
+      <div class="card-body">
+        <div class="d-flex gap-2 align-items-start">
+          <div style="font-size:1.5rem"><i class="bi bi-{{ report.icon }}"></i></div>
+          <div>
+            <strong>{{ report.title }}</strong>
+            <div class="note-inline">{{ report.desc }}</div>
+          </div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          {% if can_export %}
+            <a class="btn btn-sm btn-outline-primary" href="/app/mis/reports/export/?report={{ report.code }}&format=csv">
+              <i class="bi bi-filetype-csv me-1"></i>CSV</a>
+            <a class="btn btn-sm btn-outline-primary" href="/app/mis/reports/export/?report={{ report.code }}&format=pdf">
+              <i class="bi bi-filetype-pdf me-1"></i>PDF</a>
+          {% else %}
+            <span class="chip chip-muted">No export permission</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+
+{% if logs %}
+  <div class="card mt-3">
+    <div class="card-header"><strong>Recent report access</strong></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>When</th><th>User</th><th>Report</th><th>Parameters</th><th>IP</th></tr></thead>
+        <tbody>
+        {% for row in logs %}
+          <tr>
+            <td class="small">{{ row.created_at|dt }}</td>
+            <td>{{ row.user.display_name|default:"-" }}</td>
+            <td>{{ row.report }}</td>
+            <td class="small">{{ row.parameters|default:"-" }}</td>
+            <td class="mono small">{{ row.ip }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}

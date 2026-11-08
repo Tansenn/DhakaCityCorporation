@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Dashboard" %}</h1>
+    <div class="sub">{{ today|date:"l, d F Y" }} · {% t "Signed in as" %} {{ user.display_name }} ({{ user.role_name }})</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/bookings/"><i class="bi bi-calendar-check me-1"></i>{% t "Bookings" %}</a>
+  <a class="btn btn-sm btn-primary" href="/app/tasks/"><i class="bi bi-inbox me-1"></i>{% t "My tasks" %} {% if my_pending %}({{ my_pending }}){% endif %}</a>
+</div>
+
+{% for alert in alerts %}
+  <div class="alert alert-{{ alert.level }} d-flex align-items-center gap-2">
+    <i class="bi bi-{% if alert.level == 'danger' %}exclamation-octagon{% elif alert.level == 'warning' %}exclamation-triangle{% else %}info-circle{% endif %}"></i>
+    <div class="flex-grow-1">{{ alert.text }}</div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ alert.url }}">{% t "Open" %}</a>
+  </div>
+{% endfor %}
+
+<div class="stat-grid mb-3">
+  <div class="stat">
+    <div class="label">{% t "Total bookings" %}</div>
+    <div class="value">{{ total_bookings }}</div>
+    <div class="hint">{% t "All applications in the register" %}</div>
+    <div class="ic"><i class="bi bi-calendar2-week"></i></div>
+  </div>
+  <div class="stat">
+    <div class="label">{% t "Collection this month" %}</div>
+    <div class="value" style="font-size:1.5rem">{{ collection|money }}</div>
+    <div class="hint">{% t "Verified payments only" %}</div>
+    <div class="ic"><i class="bi bi-cash-coin"></i></div>
+  </div>
+  <div class="stat">
+    <div class="label">{% t "Open workflow tasks" %}</div>
+    <div class="value">{{ pending_tasks }}</div>
+    <div class="hint">{{ my_pending }} {% t "for your role" %}</div>
+    <div class="ic"><i class="bi bi-inbox"></i></div>
+  </div>
+  <div class="stat {% if overdue_tasks %}accent{% endif %}">
+    <div class="label">{% t "Overdue tasks" %}</div>
+    <div class="value">{{ overdue_tasks }}</div>
+    <div class="hint">{% t "Reminders and escalation apply" %}</div>
+    <div class="ic"><i class="bi bi-alarm"></i></div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">
+    <strong>{% t "Booking pipeline" %}</strong>
+    <span class="note-inline">{% t "Every status is driven by the workflow engine, not a fixed route." %}</span>
+  </div>
+  <div class="card-body">
+    <div class="status-cards">
+      {% for code, label, count in status_rows %}
+        <a class="status-card" href="/app/bookings/?status={{ code }}">
+          <div class="label">{{ label }}</div>
+          <div class="value">{{ count }}</div>
+          <span class="chip chip-{{ code|chip }}">{{ code }}</span>
+        </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="card">
+    <div class="card-header">
+      <strong>{% t "Upcoming confirmed stays" %}</strong>
+      <a class="note-inline" href="/app/reception/">{% t "Reception desk" %}</a>
+    </div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>{% t "Reference" %}</th><th>{% t "Facility" %}</th><th>{% t "Check-in" %}</th><th>{% t "Applicant" %}</th></tr></thead>
+        <tbody>
+        {% for booking in upcoming %}
+          <tr>
+            <td><a class="ref" href="/app/bookings/{{ booking.pk }}/">{{ booking.reference }}</a></td>
+            <td>{{ booking.facility.name }}<div class="note-inline">{{ booking.unit.name }}</div></td>
+            <td>{{ booking.check_in|date:"d M Y" }}<div class="note-inline">{{ booking.nights }} {% t "night(s)" %}</div></td>
+            <td>{{ booking.applicant_name }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="table-empty"><i class="bi bi-calendar2"></i>{% t "No confirmed stays in the next 7 days." %}</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <strong>{% t "Bookings by facility" %}</strong>
+      <span class="note-inline">{% t "Confirmed vs total" %}</span>
+    </div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>{% t "Facility" %}</th><th class="num">{% t "Confirmed" %}</th><th class="num">{% t "Total" %}</th></tr></thead>
+        <tbody>
+        {% for facility in by_facility %}
+          <tr>
+            <td>{{ facility.name }}<div class="note-inline">{{ facility.code|upper }}</div></td>
+            <td class="num">{{ facility.confirmed }}</td>
+            <td class="num">{{ facility.total }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3"><div class="table-empty">{% t "No facilities configured." %}</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header">
+    <strong>{% t "Latest applications" %}</strong>
+    <a class="note-inline" href="/app/bookings/">{% t "Open booking management" %}</a>
+  </div>
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>{% t "Reference" %}</th><th>{% t "Applicant" %}</th><th>{% t "Facility" %} / {% t "Unit" %}</th><th>{% t "Dates" %}</th><th>{% t "Status" %}</th><th class="num">{% t "Total" %}</th></tr></thead>
+      <tbody>
+      {% for booking in recent %}
+        <tr>
+          <td><a class="ref" href="/app/bookings/{{ booking.pk }}/">{{ booking.reference }}</a></td>
+          <td>{{ booking.applicant_name }}<div class="note-inline">{{ booking.get_category_display }}</div></td>
+          <td>{{ booking.facility.name }}<div class="note-inline">{{ booking.unit.name }}</div></td>
+          <td>{{ booking.check_in|date:"d M" }} - {{ booking.check_out|date:"d M Y" }}</td>
+          <td><span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label }}</span></td>
+          <td class="num">{{ booking.total|money }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty"><i class="bi bi-inbox"></i>No applications yet.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

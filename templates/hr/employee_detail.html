@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{{ employee.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ employee.name }}</h1>
+    <div class="sub mono">{{ employee.employee_no }} · {{ employee.designation.name|default:"No designation" }}
+      · {{ employee.department.name|default:"No department" }}</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip chip-{{ employee.status|chip }}">{{ employee.get_status_display }}</span>
+  <a class="btn btn-sm btn-outline-primary" href="/app/hr/employees/">Back</a>
+</div>
+
+<div class="detail-grid card mb-3">
+  <div class="card-body detail-grid">
+    <div><div class="k">Employment type</div><div class="v">{{ employee.get_employment_type_display }}</div></div>
+    <div><div class="k">Joined</div><div class="v">{{ employee.joining_date|d }}</div></div>
+    <div><div class="k">Service</div><div class="v">{{ employee.service_years }} year(s)</div></div>
+    <div><div class="k">Phone</div><div class="v">{{ employee.phone|default:"-" }}</div></div>
+    <div><div class="k">Email</div><div class="v">{{ employee.email|default:"-" }}</div></div>
+    <div><div class="k">Supervisor</div><div class="v">{{ employee.supervisor.name|default:"-" }}</div></div>
+    <div><div class="k">Emergency contact</div><div class="v">{{ employee.emergency_contact|default:"-" }}</div></div>
+    <div><div class="k">Linked account</div><div class="v">{{ employee.user.username|default:"Not linked" }}</div></div>
+  </div>
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="card">
+      <div class="card-header"><strong>Recent attendance</strong></div>
+      <div class="table-wrap">
+        <table class="table-gzp">
+          <thead><tr><th>Date</th><th>Status</th><th>In</th><th>Out</th></tr></thead>
+          <tbody>
+          {% for row in attendance %}
+            <tr>
+              <td>{{ row.date|d }}</td>
+              <td><span class="chip chip-{{ row.status|chip }}">{{ row.get_status_display }}</span></td>
+              <td>{{ row.in_time|time:"H:i"|default:"-" }}</td>
+              <td>{{ row.out_time|time:"H:i"|default:"-" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4"><div class="table-empty">No attendance recorded.</div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><strong>Leave history</strong></div>
+      <div class="table-wrap">
+        <table class="table-gzp">
+          <thead><tr><th>Type</th><th>Dates</th><th>Days</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for leave in leaves %}
+            <tr>
+              <td>{{ leave.get_leave_type_display }}</td>
+              <td>{{ leave.start_date|d }} - {{ leave.end_date|d }}</td>
+              <td>{{ leave.days }}</td>
+              <td><span class="chip chip-{{ leave.status|chip }}">{{ leave.get_status_display }}</span></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4"><div class="table-empty">No leave applied.</div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Training and certification</strong></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Title</th><th>Completed</th><th>Expires</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for record in training %}
+          <tr>
+            <td>{{ record.title }}<div class="note-inline">{{ record.provider }}</div></td>
+            <td>{{ record.completed_on|d }}</td>
+            <td>{{ record.expires_on|d }}</td>
+            <td>{% if record.is_expired %}<span class="chip chip-danger">Expired</span>
+                {% elif record.expires_on %}<span class="chip chip-warning">{{ record.days_left }} day(s)</span>
+                {% else %}<span class="chip chip-muted">No expiry</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="table-empty">No training records.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if employee.notes %}
+      <div class="card-body"><div class="section-title">Notes</div><p class="small mb-0">{{ employee.notes }}</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

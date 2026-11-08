@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Deliverables and UAT{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Deliverables and UAT" %}</h1>
+    <div class="sub">Acceptance checklist. UAT results are recorded by the UAT permission and logged with the actor
+      and time.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/acceptance/">45-day plan</a>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f"><label>Checklist</label>
+    <select class="form-select" name="kind">
+      <option value="">All</option>
+      {% for code, label in kinds %}<option value="{{ code }}" {% if kind == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/acceptance/checklists/">Reset</a>
+</form>
+
+<div class="card">
+  <div class="card-header"><strong>{{ passed }} item(s) passed</strong></div>
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Type</th><th>Area</th><th>Item</th><th>Status</th><th>Checked</th><th style="min-width:280px">Record result</th></tr></thead>
+      <tbody>
+      {% for item in rows %}
+        <tr>
+          <td><span class="chip chip-{% if item.kind == 'uat' %}info{% else %}muted{% endif %}">{{ item.get_kind_display }}</span></td>
+          <td>{{ item.area }}</td>
+          <td>{{ item.item }}</td>
+          <td><span class="chip chip-{{ item.status|chip }}">{{ item.get_status_display }}</span>
+            {% if item.note %}<div class="note-inline">{{ item.note }}</div>{% endif %}</td>
+          <td class="small">{{ item.checked_at|dt }}<div class="note-inline">{{ item.checked_by.display_name|default:"" }}</div></td>
+          <td>
+            {% if "support.uat"|can:user %}
+              <form method="post" class="d-flex gap-1">
+                {% csrf_token %}
+                <input type="hidden" name="item" value="{{ item.pk }}">
+                <select class="form-select form-select-sm" name="status">
+                  {% for code, label in statuses %}<option value="{{ code }}" {% if item.status == code %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+                <input class="form-control form-control-sm" name="note" placeholder="Note">
+                <button class="btn btn-sm btn-outline-primary" type="submit">Save</button>
+              </form>
+            {% else %}<span class="note-inline">View only</span>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty">No checklist items. Run the demo seed.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

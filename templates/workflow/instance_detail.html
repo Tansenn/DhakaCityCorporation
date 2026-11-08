@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Workflow {{ instance.tracking_id }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1 class="mono">{{ instance.tracking_id }}</h1>
+    <div class="sub">{{ instance.template.name }} · requested by {{ instance.requester.display_name|default:"-" }}
+      on {{ instance.created_at|dt }}</div>
+  </div>
+  <div class="spacer"></div>
+  <span class="chip chip-{{ instance.status|chip }}">{{ instance.get_status_display }}</span>
+  {% if instance.object_url %}<a class="btn btn-sm btn-outline-primary" href="{{ instance.object_url }}">Open record</a>{% endif %}
+</div>
+
+<div class="two-col">
+  <div>
+    <div class="card">
+      <div class="card-header"><strong>Route and progress</strong></div>
+      <div class="card-body">
+        <div class="steps">
+          {% for step in steps %}
+            <div class="step {% if instance.current_step_id == step.pk %}active{% endif %}
+                        {% if instance.status == 'rejected' and instance.current_step_id == step.pk %}rejected{% endif %}">
+              <div class="n">{{ step.order }}</div>
+              <div>
+                <div class="t">{{ step.name }}</div>
+                <div class="note-inline">{{ step.role.name }} · SLA {{ step.sla_hours }}h
+                  {% if step.condition %} · conditional step{% endif %}</div>
+              </div>
+            </div>
+          {% empty %}
+            <div class="note-inline">No steps matched the request conditions.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><strong>Decision history</strong></div>
+      <div class="table-wrap">
+        <table class="table-gzp">
+          <thead><tr><th>When</th><th>Step</th><th>Decision</th><th>By</th><th>Note</th></tr></thead>
+          <tbody>
+          {% for record in records %}
+            <tr>
+              <td class="small">{{ record.created_at|dt }}</td>
+              <td>{{ record.step.name|default:"-" }}</td>
+              <td><span class="chip chip-{% if record.decision == 'approve' %}success{% elif record.decision == 'reject' %}danger{% elif record.decision == 'submit' %}info{% else %}warning{% endif %}">{{ record.get_decision_display }}</span></td>
+              <td>{{ record.actor.display_name|default:"System" }}<div class="note-inline">{{ record.actor_role }}</div></td>
+              <td class="small">{{ record.comments|default:"-" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5"><div class="table-empty">No decisions recorded.</div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><strong>Request data</strong></div>
+      <div class="card-body">
+        <div class="detail-grid">
+          <div><div class="k">Subject</div><div class="v">{{ instance.subject }}</div></div>
+          <div><div class="k">Amount</div><div class="v">{{ instance.amount|money }}</div></div>
+          <div><div class="k">Record type</div><div class="v">{{ instance.object_type }}</div></div>
+          <div><div class="k">Record id</div><div class="v">{{ instance.object_id }}</div></div>
+          <div><div class="k">Completed</div><div class="v">{{ instance.completed_at|dt }}</div></div>
+          <div><div class="k">Note</div><div class="v">{{ instance.note|default:"-" }}</div></div>
+        </div>
+        {% if instance.payload %}
+          <div class="section-title mt-3">Payload</div>
+          <pre class="small" style="white-space:pre-wrap;max-height:320px;overflow:auto">{{ instance.payload }}</pre>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><strong>Tasks</strong></div>
+      <div class="table-wrap">
+        <table class="table-gzp">
+          <thead><tr><th>Step</th><th>Role</th><th>Due</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for task in tasks %}
+            <tr>
+              <td>{{ task.step.name }}</td>
+              <td>{{ task.role.name }}</td>
+              <td class="small">{{ task.due_at|dt }}<div class="note-inline">{{ task.get_priority_display }}</div></td>
+              <td>
+                <span class="chip chip-{{ task.status|chip }}">{{ task.get_status_display }}</span>
+                {% if task.is_overdue %}<span class="chip chip-danger">Overdue</span>{% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4"><div class="table-empty">No tasks.</div></td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Review and submit{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Review your application</h1>
+    <div class="sub">Step 2 of 3 - check the price and submit the details.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-secondary" href="/book/{{ facility.code }}/">Change room or dates</a>
+</div>
+
+<div class="steps">
+  <div class="step done"><span class="n">1</span> Choose room and dates</div>
+  <div class="step on"><span class="n">2</span> Review price and documents</div>
+  <div class="step"><span class="n">3</span> Submit and track</div>
+</div>
+
+{% if form.errors %}
+  <div class="alert alert-danger">
+    <b>Please correct the following:</b>
+    <ul class="mb-0 mt-1">
+      {% for field in form %}{% for error in field.errors %}<li>{{ field.label }}: {{ error }}</li>{% endfor %}{% endfor %}
+      {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" class="detail-grid">
+  {% csrf_token %}
+  <div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-person-vcard me-1"></i> Applicant and visit details</div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Applicant</label>
+            <input class="form-control" value="{{ user.display_name }}" disabled>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Applicant category</label>
+            <input class="form-control" value="{{ category_label }}" disabled>
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="purpose">Purpose of visit / meeting <span class="required">*</span></label>
+            <input class="form-control" id="purpose" name="purpose" maxlength="255" required
+                   value="{{ form.purpose.value|default:'' }}" placeholder="e.g. Official field visit, district coordination meeting">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="guests">Number of guests</label>
+            <input class="form-control" type="number" min="1" id="guests" name="guests" value="{{ form.guests.value|default:1 }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label" for="contact_phone">Contact number</label>
+            <input class="form-control" id="contact_phone" name="contact_phone" value="{{ form.contact_phone.value|default:'' }}" placeholder="Sample number only">
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="notes">Notes for the booking desk</label>
+            <textarea class="form-control" id="notes" name="notes" rows="3">{{ form.notes.value|default:'' }}</textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-paperclip me-1"></i> Supporting documents</div>
+      <div class="card-body">
+        <div class="alert-inline info mb-3">
+          Required for {{ draft.category }}: {{ required_docs }}. In this demo you may submit now and the
+          booking desk can request documents through a clarification message.
+        </div>
+        <label class="form-label" for="documents">Attach files (PDF, JPG, PNG, TXT; up to 5 MB each)</label>
+        <input class="form-control" type="file" id="documents" name="documents" multiple>
+        <div class="dz mt-2"><i class="bi bi-cloud-arrow-up"></i> Files are stored locally. Sample data only.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="bi bi-journal-check me-1"></i> Declaration</div>
+      <div class="card-body">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+          <label class="form-check-label small" for="terms">
+            I have read and accept the published terms, tariff, holiday rate, security deposit and the
+            sample cancellation and refund policy. I understand that approval is subject to the Parishad
+            authority matrix and that a permit is issued only after verified payment.
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><i class="bi bi-clipboard-data me-1"></i> Your booking</div>
+      <div class="card-body">
+        <div class="kv mb-3">
+          <dt>Facility</dt><dd>{{ facility.name }}</dd>
+          <dt>Room / hall</dt><dd>{{ unit.name }} ({{ unit.get_kind_display }})</dd>
+          <dt>Dates</dt><dd>{{ check_in|date:"d M Y" }} to {{ check_out|date:"d M Y" }}</dd>
+          {% if slot %}<dt>Slot</dt><dd>{{ draft.slot|title }}</dd>{% endif %}
+          <dt>Category</dt><dd>{{ category_label }}</dd>
+        </div>
+        <div class="summary-box">
+          {% for line in price.lines %}
+            <div class="summary-row"><span>{{ line.label }}</span><span>{{ line.amount|money }}</span></div>
+          {% endfor %}
+          <div class="summary-row"><span>Charges</span><span>{{ price.charges|money }}</span></div>
+          <div class="summary-row"><span>Security deposit (refundable)</span><span>{{ price.deposit|money }}</span></div>
+          {% if price.gateway_charge %}
+            <div class="summary-row"><span>Gateway charge (paid by user)</span><span>{{ price.gateway_charge|money }}</span></div>
+          {% endif %}
+          <div class="summary-row total"><span>Total payable after approval</span><span>{{ price.total|money }}</span></div>
+        </div>
+        <div class="alert-inline warn mt-3">
+          <i class="bi bi-info-circle"></i> Payment is collected only after approval. A temporary hold is
+          created now and released if the application is rejected, cancelled or the payment window lapses.
+        </div>
+        <button class="btn btn-accent w-100 mt-3" type="submit">
+          <i class="bi bi-send me-1"></i> Submit application
+        </button>
+        <div class="note-inline text-center mt-2">You will receive a reference number and an acknowledgment.</div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}

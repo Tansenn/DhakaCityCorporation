@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Overdue files{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Overdue files" %}</h1>
+    <div class="sub">Files past their due date that are not closed or archived. Follow up with the assigned officer.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/documents/">Register</a>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>File no.</th><th>Subject</th><th>Assigned</th><th>Due</th><th>Days overdue</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for doc in rows %}
+        <tr>
+          <td class="mono">{{ doc.file_no }}</td>
+          <td>{{ doc.subject }}</td>
+          <td>{{ doc.assigned_to.display_name|default:"Unassigned" }}</td>
+          <td>{{ doc.due_date|d }}</td>
+          <td><span class="chip chip-danger">{{ doc.due_date|timesince }} late</span></td>
+          <td><span class="chip chip-{{ doc.status|chip }}">{{ doc.get_status_display }}</span></td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/documents/{{ doc.pk }}/">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty"><i class="bi bi-check2-circle"></i>No overdue files. Good.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

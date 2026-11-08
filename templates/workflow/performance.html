@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}Workflow performance{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{% t "Workflow performance" %}</h1>
+    <div class="sub">Turnaround, SLA exposure and rejection reasons. Computed from workflow instances and task
+      records, not from a static spreadsheet.</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-sm btn-outline-primary" href="/app/mis/reports/"><i class="bi bi-download me-1"></i>Reports</a>
+</div>
+
+<div class="stat-grid mb-3">
+  <div class="stat"><div class="label">Instances in view</div><div class="value">{{ total }}</div>
+    <div class="hint">Up to the last 1000 matching rows</div><div class="ic"><i class="bi bi-diagram-3"></i></div></div>
+  <div class="stat"><div class="label">Average turnaround</div><div class="value" style="font-size:1.5rem">{{ avg_turnaround }}</div>
+    <div class="hint">Completed instances only</div><div class="ic"><i class="bi bi-stopwatch"></i></div></div>
+  <div class="stat"><div class="label">Open tasks</div><div class="value">{{ open_count }}</div>
+    <div class="hint">Pending across all roles</div><div class="ic"><i class="bi bi-inbox"></i></div></div>
+  <div class="stat {% if overdue_count %}accent{% endif %}"><div class="label">Overdue</div><div class="value">{{ overdue_count }}</div>
+    <div class="hint">Past the step SLA</div><div class="ic"><i class="bi bi-alarm"></i></div></div>
+</div>
+
+<form class="filter-bar" method="get">
+  <div class="f">
+    <label>Category</label>
+    <select class="form-select" name="category">
+      <option value="">All categories</option>
+      {% for code, label in categories %}
+        <option value="{{ code }}" {% if category == code %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="f"><label>From</label><input class="form-control" type="date" name="from" value="{{ request.GET.from }}"></div>
+  <div class="f"><label>To</label><input class="form-control" type="date" name="to" value="{{ request.GET.to }}"></div>
+  <button class="btn btn-primary" type="submit">Apply</button>
+  <a class="btn btn-outline-secondary" href="/app/mis/workflow/">Reset</a>
+</form>
+
+<div class="two-col">
+  <div class="card">
+    <div class="card-header"><strong>By template</strong></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Template</th><th>Category</th><th class="num">Instances</th></tr></thead>
+        <tbody>
+        {% for row in by_template %}
+          <tr>
+            <td>{{ row.template__name }}</td>
+            <td>{{ row.template__category }}</td>
+            <td class="num">{{ row.total }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3"><div class="table-empty">No instances match.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Pending workload by step</strong></div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>Step</th><th>Role</th><th class="num">Pending</th></tr></thead>
+        <tbody>
+        {% for row in by_step %}
+          <tr>
+            <td>{{ row.step__name }}</td>
+            <td>{{ row.role__name }}</td>
+            <td class="num">{{ row.total }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3"><div class="table-empty">No pending tasks.</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="two-col mt-3">
+  <div class="card">
+    <div class="card-header"><strong>Status mix</strong></div>
+    <div class="card-body">
+      {% for code, count in counts %}
+        <div class="d-flex justify-content-between small mb-1">
+          <span>{{ code|title }}</span><span>{{ count }}</span>
+        </div>
+        <div class="progress-thin mb-2"><span style="width:{% widthratio count total 100 %}%"></span></div>
+      {% empty %}
+        <div class="note-inline">No instances yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><strong>Top rejection reasons</strong></div>
+    <div class="card-body">
+      {% for reason, count in reasons %}
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <div class="small">{{ reason }}</div>
+          <span class="chip chip-danger ms-2">{{ count }}</span>
+        </div>
+      {% empty %}
+        <div class="note-inline">No rejections recorded.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header"><strong>Recent instances</strong></div>
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>Tracking</th><th>Template</th><th>Requester</th><th>Status</th><th>Current step</th><th>Created</th><th></th></tr></thead>
+      <tbody>
+      {% for instance in instances %}
+        <tr>
+          <td class="mono">{{ instance.tracking_id }}</td>
+          <td>{{ instance.template.name }}</td>
+          <td>{{ instance.requester.display_name|default:"-" }}</td>
+          <td><span class="chip chip-{{ instance.status|chip }}">{{ instance.get_status_display }}</span></td>
+          <td>{{ instance.current_step.name|default:"-" }}</td>
+          <td class="small">{{ instance.created_at|dt }}</td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/workflow/instances/{{ instance.pk }}/">Open</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7"><div class="table-empty">No workflow instances recorded.</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
