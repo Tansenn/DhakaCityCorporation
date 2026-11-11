@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Reception desk{% endblock %}
+{% block title %}{% t "Reception desk" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Reception desk</h1>
-    <div class="sub">{% if facility %}{{ facility.name }}{% else %}All facilities{% endif %} ·
-      verify booking codes and record check-in / check-out.</div>
+    <h1>{% t "Reception desk" %}</h1>
+    <div class="sub">{% if facility %}{{ facility.name|tr:lang }}{% else %}{% t "All facilities" %}{% endif %} ·
+      {% t "verify booking codes and record check-in / check-out." %}</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-sm btn-outline-primary" href="/app/bookings/?queue=reception">Booking list</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/bookings/?queue=reception">{% t "Booking list" %}</a>
 </div>
 
 <div class="two-col">
@@ -37,8 +37,8 @@
             </div>
             <div class="kv">
               <dt>Applicant</dt><dd>{{ found.applicant_name }}</dd>
-              <dt>Facility</dt><dd>{{ found.facility.name }} / {{ found.unit.name }}</dd>
-              <dt>Dates</dt><dd>{{ found.check_in|date:"d M Y" }} → {{ found.check_out|date:"d M Y" }}</dd>
+              <dt>Facility</dt><dd>{{ found.facility.name|tr:lang }} / {{ found.unit.name|tr:lang }}</dd>
+              <dt>Dates</dt><dd>{{ found.check_in|d:"d M Y" }} → {{ found.check_out|d:"d M Y" }}</dd>
               <dt>Guests</dt><dd>{{ found.guests }}</dd>
               <dt>Payment</dt><dd>{{ found.payment_txn_id|default:"-" }}</dd>
               <dt>Check-in</dt><dd>{{ found.checked_in_at|dt }}</dd>
@@ -57,8 +57,8 @@
                 <a class="btn btn-sm btn-outline-secondary" href="/app/bookings/{{ found.pk }}/">Open booking</a>
               </div>
             {% else %}
-              <div class="alert-inline warn mt-3">This booking is {{ found.status_label|lower }} and cannot
-                be checked in. Ask the applicant to complete payment.</div>
+              <div class="alert-inline warn mt-3">{% t "This booking cannot be checked in." %}
+                {% t "Status" %}: {{ found.status_label|tr:lang }}. {% t "Ask the applicant to complete payment." %}</div>
             {% endif %}
           </div>
         {% endif %}
@@ -76,8 +76,8 @@
               <tr>
                 <td><span class="ref">{{ booking.reference }}</span></td>
                 <td>{{ booking.applicant_name }}</td>
-                <td>{{ booking.unit.name }}</td>
-                <td>{{ booking.check_in|date:"d M Y" }}{% if booking.check_in == today %}<span class="chip chip-lime ms-1">Today</span>{% endif %}</td>
+                <td>{{ booking.unit.name|tr:lang }}</td>
+                <td>{{ booking.check_in|d:"d M Y" }}{% if booking.check_in == today %}<span class="chip chip-lime ms-1">Today</span>{% endif %}</td>
                 <td><span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label }}</span></td>
                 <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/bookings/{{ booking.pk }}/">Open</a></td>
               </tr>
@@ -110,7 +110,7 @@
         <div class="kv">
           <dt>Name</dt><dd>{{ user.display_name }}</dd>
           <dt>Role</dt><dd>{{ user.role_name }}</dd>
-          <dt>Facility</dt><dd>{{ facility.name|default:"All facilities" }}</dd>
+          <dt>Facility</dt><dd>{{ facility.name|default:"All facilities"|tr:lang }}</dd>
         </div>
       </div>
     </div>

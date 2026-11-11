@@ -8,37 +8,45 @@
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/gzp.css' %}">
-  <style>.auth-wrap { min-height: calc(100vh - 27px); }</style>
+  <link rel="stylesheet" href="{% static 'css/gzp-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'css/catalogue.css' %}">
+  <style>.auth-wrap { min-height: 100vh; }</style>
 </head>
 <body>
-<div class="demo-ribbon"><i class="bi bi-cone-striped"></i> {% t "Demo version - sample data" %}</div>
 <div class="auth-wrap">
   <aside class="auth-side">
     <a class="brand" href="/">
       <img src="{% static 'img/adcelerete_logo.png' %}" alt="Adcelerete logo">
       <span>
         <span style="font-weight:700;color:#fff;display:block">Gazipur Zila Parishad</span>
-        <span style="font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:#a7acce">Integrated Digital Platform</span>
+        <span style="font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:#a7acce">{% t "Integrated Digital Platform" %}</span>
       </span>
     </a>
     <div>
-      <h1>One platform for records, approvals, projects and Dakbungalow bookings.</h1>
-      <p>Integrated digital automation, management information and citizen-facing
-        Dakbungalow e-booking with verified payment confirmation — a working demo
-        prepared by {{ SUPPLIER }}.</p>
+      <h1>{% t "Your next space. One simple place." %}</h1>
+      <p>{% t "Explore six kinds of Parishad assets, manage your applications and follow every approval." %}</p>
       <ul class="bullets">
-        <li><i class="bi bi-check-circle-fill"></i> Seven modules sharing one identity, audit trail and workflow engine</li>
-        <li><i class="bi bi-check-circle-fill"></i> Configurable approval routes and an editable authority matrix</li>
-        <li><i class="bi bi-check-circle-fill"></i> Signed gateway callbacks, printable permits and QR verification</li>
-        <li><i class="bi bi-check-circle-fill"></i> Role-based dashboards with least-privilege enforcement</li>
+        <li><i class="bi bi-check-circle-fill"></i> {% t "Seven modules sharing one identity, audit trail and workflow engine" %}</li>
+        <li><i class="bi bi-check-circle-fill"></i> {% t "Configurable approval routes and an editable authority matrix" %}</li>
+        <li><i class="bi bi-check-circle-fill"></i> {% t "Signed gateway callbacks, printable permits and QR verification" %}</li>
+        <li><i class="bi bi-check-circle-fill"></i> {% t "Role-based dashboards with least-privilege enforcement" %}</li>
       </ul>
     </div>
+    <div class="auth-logos">
+      <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="Gazipur Zila Parishad">
+      <img src="{% static 'img/bd_govt_seal.png' %}" alt="Government of Bangladesh">
+      <span>{% t "Government of the People's Republic of Bangladesh" %}</span>
+    </div>
     <div style="font-size:.7rem;color:#8f94b8">
-      Demo version - sample data. Complements D-Nothi/e-Nothi, e-GP and statutory
-      approvals; does not replace or bypass them.
+      {% t "Complements D-Nothi/e-Nothi, e-GP and statutory approvals; does not replace or bypass them." %}
     </div>
   </aside>
   <main class="auth-main">
+    <div class="lang-switch auth-lang" role="group" aria-label="Language">
+      <a class="{% if lang == 'en' %}on{% endif %}" href="/lang/en/?next={{ request.get_full_path|urlencode }}">EN</a>
+      <a class="{% if lang == 'bn' %}on{% endif %}" href="/lang/bn/?next={{ request.get_full_path|urlencode }}">বাংলা</a>
+      <a class="{% if lang == 'bng' %}on{% endif %}" href="/lang/bng/?next={{ request.get_full_path|urlencode }}">Banglish</a>
+    </div>
     <div class="auth-form">
       {% include 'partials/messages.html' %}
       {% block auth_content %}{% endblock %}

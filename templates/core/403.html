@@ -1,20 +1,19 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Access denied{% endblock %}
+{% block title %}{% t "Access denied" %}{% endblock %}
 {% block content %}
 <div class="card mx-auto mt-5" style="max-width:620px">
   <div class="card-body text-center p-5">
     <div class="display-4 mb-2"><i class="bi bi-shield-x"></i></div>
-    <h1 class="h3">Access denied (403)</h1>
-    <p class="sub">Your role does not include this permission. Access is enforced on the server, not only by
-      hiding the menu link.</p>
-    <p class="note-inline">Signed in as {{ user.display_name|default:"a guest" }}{% if user.role_name %} ({{ user.role_name }}){% endif %}.</p>
+    <h1 class="h3">{% t "Access denied" %}</h1>
+    <p class="sub">{% t "Your role does not include this permission. Access is enforced on the server, not only by hiding the menu link." %}</p>
+    <p class="note-inline">{% t "Signed in as" %} {% if user.is_authenticated %}{{ user.display_name }}{% else %}{% t "a guest" %}{% endif %}{% if user.role_name %} ({{ user.role_name|tr:lang }}){% endif %}.</p>
     <div class="d-flex gap-2 justify-content-center mt-3">
-      <a class="btn btn-primary" href="/app/">Back to dashboard</a>
-      <a class="btn btn-outline-secondary" href="/">Public home</a>
+      <a class="btn btn-primary" href="/app/">{% t "Back to dashboard" %}</a>
+      <a class="btn btn-outline-secondary" href="/">{% t "Public home" %}</a>
     </div>
-    <div class="small mt-3">If you believe this is wrong, ask an administrator to review your role in
-      <a href="/app/users/">Users and roles</a>.</div>
+    <div class="small mt-3">{% t "If you believe this is wrong, ask an administrator to review your role in" %}
+      <a href="/app/users/">{% t "Users and roles" %}</a>.</div>
   </div>
 </div>
 {% endblock %}

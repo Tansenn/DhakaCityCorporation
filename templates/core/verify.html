@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Permit verification{% endblock %}
+{% block title %}{% t "Permit verification" %}{% endblock %}
 {% block content %}
 <div class="verify-card mt-4">
   {% if valid %}
@@ -24,9 +24,9 @@
       <div><div class="k">Permit no.</div><div class="v">{{ booking.permit_no|default:"-" }}</div></div>
       <div><div class="k">Booking reference</div><div class="v">{{ booking.reference }}</div></div>
       <div><div class="k">Applicant</div><div class="v">{{ booking.applicant_name }}</div></div>
-      <div><div class="k">Facility</div><div class="v">{{ booking.facility.name }}</div></div>
-      <div><div class="k">Room / hall</div><div class="v">{{ booking.unit.name }}</div></div>
-      <div><div class="k">Stay</div><div class="v">{{ booking.check_in|date:"d M Y" }} to {{ booking.check_out|date:"d M Y" }}</div></div>
+      <div><div class="k">Facility</div><div class="v">{{ booking.facility.name|tr:lang }}</div></div>
+      <div><div class="k">Room / hall</div><div class="v">{{ booking.unit.name|tr:lang }}</div></div>
+      <div><div class="k">Stay</div><div class="v">{{ booking.check_in|d:"d M Y" }} to {{ booking.check_out|d:"d M Y" }}</div></div>
       <div><div class="k">Guests</div><div class="v">{{ booking.guests }}</div></div>
       <div><div class="k">Payment</div><div class="v">{{ booking.payment_txn_id|default:"-" }}</div></div>
       <div><div class="k">Issued</div><div class="v">{{ booking.permit_issued_at|dt }}</div></div>

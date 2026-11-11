@@ -21,6 +21,10 @@ class PaymentCallbackTests(TestCase):
             self.citizen, self.room, status='awaiting_payment',
             payment_deadline=timezone.now() + timedelta(hours=5),
             amount='5500.00')
+        from facilities.availability import take_hold
+        from core.utils import daterange_days
+        take_hold(self.room, daterange_days(self.booking.check_in, self.booking.check_out),
+                  '', self.booking.payment_deadline, booking=self.booking)
         self.payment = gateway.start_payment(self.booking)
 
     def signed(self, outcome='pay', **overrides):

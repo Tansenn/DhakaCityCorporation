@@ -6,14 +6,14 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 
 from core.utils import next_reference
 
 STATUSES = [
-    ('submitted', 'Submitted'),
-    ('under_review', 'Under Review'),
+    ('submitted', 'Booked'),
+    ('under_review', 'Pending approval'),
     ('clarification', 'Clarification Required'),
     ('recommended', 'Recommended'),
     ('approved', 'Approved'),
@@ -57,9 +57,15 @@ class Booking(models.Model):
     guests = models.PositiveIntegerField(default=1)
     purpose = models.CharField(max_length=255)
     contact_phone = models.CharField(max_length=30, blank=True)
+    national_id = models.CharField(max_length=40, blank=True)
+    office_id = models.CharField(max_length=40, blank=True)
     notes = models.TextField(blank=True)
 
     status = models.CharField(max_length=20, choices=STATUSES, default='submitted')
+    payment_flow = models.CharField(
+        max_length=20, default='approval_first',
+        choices=[('approval_first', 'Approval first'), ('direct', 'Direct payment')],
+    )
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     deposit = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0'))
     gateway_charge = models.DecimalField(max_digits=10, decimal_places=2,
@@ -132,14 +138,39 @@ class Booking(models.Model):
         return STATUS_LABELS.get(self.status, self.status)
 
     @property
+    def has_active_hold(self):
+        """Every requested night/slot must still be held by this booking."""
+        from core.utils import daterange_days
+        from facilities.availability import active_lock_filter
+
+        now = timezone.now()
+        if self.hold_expires_at is not None and self.hold_expires_at <= now:
+            return False
+        dates = ({self.check_in} if self.is_hall else
+                 set(daterange_days(self.check_in, self.check_out)))
+        held_dates = set(self.locks.filter(
+            unit_id=self.unit_id, slot=self.slot if self.is_hall else '',
+            date__in=dates, released=False,
+        ).filter(active_lock_filter(now)).values_list('date', flat=True))
+        return bool(dates) and dates == held_dates
+
+    @property
     def can_pay(self):
-        return (self.status == 'awaiting_payment'
+        eligible = (self.status == 'awaiting_payment' or (
+            self.payment_flow == 'direct' and self.status in (
+                'submitted', 'under_review', 'recommended', 'clarification', 'approved')))
+        return (eligible
                 and (self.payment_deadline is None
-                     or self.payment_deadline > timezone.now()))
+                     or self.payment_deadline > timezone.now())
+                and self.payment is None
+                and self.has_active_hold)
 
     @property
     def payment(self):
-        return self.payments.filter(status='success').order_by('-verified_at').first()
+        """The verified collection, including payment pending workflow approval."""
+        return self.payments.filter(
+            status='success', verified_at__isnull=False,
+        ).order_by('-verified_at').first()
 
     @property
     def payment_txn_id(self):
@@ -176,7 +207,7 @@ class Booking(models.Model):
     def timeline(self):
         """Citizen timeline: status changes plus submission."""
         rows = [{
-            'status': 'submitted', 'label': 'Submitted',
+            'status': 'submitted', 'label': STATUS_LABELS['submitted'],
             'at': self.created_at, 'actor': self.applicant_name,
             'comment': 'Application received',
         }]
@@ -190,10 +221,52 @@ class Booking(models.Model):
             })
         return rows
 
+    @transaction.atomic
+    def confirm_paid(self):
+        """Issue a permit once approval, verified payment and inventory all agree."""
+        from facilities import availability
+        from notifications.services import send
+
+        self.refresh_from_db(from_queryset=Booking.objects.select_for_update())
+        if self.status not in ('approved', 'awaiting_payment'):
+            return False
+        instance = self.workflow_instance
+        if instance and instance.status != 'approved':
+            return False
+        payment = self.payment
+        if payment is None or payment.amount != self.total:
+            return False
+        # Serialize against inventory release as well as another confirmation.
+        list(self.locks.select_for_update().filter(released=False))
+        if not self.has_active_hold:
+            return False
+
+        self.hold_expires_at = None
+        self.payment_deadline = None
+        self.permit_no = self.reference.replace('GZP-DB', 'GZP-PRM')
+        self.permit_issued_at = timezone.now()
+        self.save(update_fields=['hold_expires_at', 'payment_deadline',
+                                 'permit_no', 'permit_issued_at', 'updated_at'])
+        self.set_status('paid', comment=f'Approved; payment {payment.txn_id} verified by gateway callback')
+        availability.confirm_locks(self)
+        send(self.applicant, 'permit_ready', {
+            'reference': self.reference,
+            'subject': f'Your booking permit is ready - {self.reference}',
+            'message': 'Download the permit from your application page.',
+        }, url=f'/bookings/{self.pk}/permit.pdf', channels=['inapp', 'email'])
+        return True
+
+    @transaction.atomic
     def on_workflow_decision(self, decision, instance):
         """Called by the workflow engine after every decision."""
         from facilities import availability
+        from notifications.services import send
+        from payments.models import Refund
 
+        self.refresh_from_db(from_queryset=Booking.objects.select_for_update())
+        if self.status in ('paid', 'completed', 'cancelled', 'expired', 'rejected'):
+            return
+        payment = self.payment
         if decision in ('correct', 'return'):
             self.set_status('clarification', comment=instance.note or 'Correction requested')
             return
@@ -202,17 +275,38 @@ class Booking(models.Model):
             self.rejected_at = timezone.now()
             self.rejection_reason = instance.note[:255]
             self.save(update_fields=['rejected_at', 'rejection_reason'])
+            if payment:
+                refund, created = Refund.objects.get_or_create(
+                    booking=self, payment=payment,
+                    defaults={'amount': payment.amount, 'percent': Decimal('100'),
+                              'reason': instance.note[:255] or 'Application rejected after payment'},
+                )
+                self.refund_status = refund.status
+                self.refund_percent = refund.percent
+                self.refund_amount = refund.amount
+                self.refund_requested_at = refund.created_at
+                self.save(update_fields=['refund_status', 'refund_percent',
+                                         'refund_amount', 'refund_requested_at'])
+                if created:
+                    message = 'Your application was rejected. A full simulated refund has been requested.'
+                    send(self.applicant, 'status_update', {
+                        'reference': self.reference,
+                        'subject': f'Refund requested for {self.reference}',
+                        'message': message, 'body': message,
+                    }, url=f'/bookings/{self.pk}/', channels=['inapp', 'email', 'sms'])
             availability.release_booking_locks(self)
             self.hold_expires_at = None
-            self.save(update_fields=['hold_expires_at'])
+            self.payment_deadline = None
+            self.save(update_fields=['hold_expires_at', 'payment_deadline'])
             return
 
         if instance.status == 'approved':
-            if self.status in ('paid', 'completed', 'cancelled', 'expired'):
-                return
             self.approved_at = timezone.now()
-            self.status = 'approved'
-            self.save(update_fields=['approved_at', 'status', 'updated_at'])
+            self.set_status('approved', comment='Final approval recorded.')
+            self.save(update_fields=['approved_at', 'updated_at'])
+            if payment:
+                self.confirm_paid()
+                return
             self.set_status('awaiting_payment',
                             comment='Approved. Payment can now be completed.')
             self.payment_deadline = availability.resolve_payment_window(self)
@@ -228,7 +322,7 @@ class Booking(models.Model):
         else:
             self.set_status('under_review', comment='Review in progress')
         self.hold_expires_at = (timezone.now() + timedelta(hours=48)
-                                if self.workflow_instance else None)
+                               if not payment and self.workflow_instance else None)
         self.save(update_fields=['hold_expires_at'])
 
 

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Employees{% endblock %}
+{% block title %}{% t "Employees" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -55,6 +55,8 @@
     </table>
   </div>
 </div>
+
+{% include 'partials/pagination.html' %}
 
 {% if "hr.manage"|can:user %}
   <div class="card mt-3">

@@ -1,9 +1,11 @@
 from django.urls import path
 
-from . import views
+from . import views, catalogue
 
 urlpatterns = [
-    path('', views.home, name='home'),
+    path('', catalogue.catalogue, name='home'),
+    path('user/', catalogue.catalogue, name='user_home'),
+    path('user/assets/<int:pk>/', catalogue.asset_detail, name='asset_detail'),
     path('track/', views.track, name='track'),
     path('verify/<uuid:token>/', views.verify_permit, name='verify_permit'),
     path('lang/<str:code>/', views.set_language, name='set_language'),

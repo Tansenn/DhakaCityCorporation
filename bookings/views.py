@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,6 +18,7 @@ from django.views.decorators.http import require_POST
 from accounts.decorators import citizen_required, perm_required, staff_required
 from audit.models import log
 from bookings.forms import ApplyForm, DetailsForm
+from bookings.journey import build_journey
 from bookings.models import (
     Booking,
     BookingDocument,
@@ -25,6 +26,7 @@ from bookings.models import (
     BookingStatusChange,
     STATUSES,
 )
+from core.assets import asset_status
 from core.pdf import permit_pdf, receipt_pdf
 from core.utils import csv_response, daterange_days, money, paginate, parse_date, today, validate_upload
 from facilities import availability
@@ -44,9 +46,9 @@ from workflow import engine
 from workflow.models import WorkflowInstance, WorkflowTemplate, WorkflowTask
 
 REQUIRED_DOCS = {
-    'government': 'Government service ID or office order (sample)',
-    'citizen': 'National ID (sample) and a contact number',
-    'organization': 'Organisation request letter on letterhead (sample)',
+    'government': 'NID or government office / service ID (sample)',
+    'citizen': 'National ID - NID, 10 to 17 digits (sample)',
+    'organization': 'National ID of the representative and a letter on letterhead (sample)',
 }
 
 
@@ -83,13 +85,19 @@ def _cancel_open_workflow(booking, actor, note):
         instance.tasks.filter(status='pending').update(status='cancelled')
 
 
+@transaction.atomic
 def cancel_booking(booking, actor, reason, refund_request=True):
-    """Cancel an open or paid booking; paid bookings open a refund request."""
+    """Cancel an open or paid booking; paid bookings open a refund request.
+
+    The booking row is locked so a concurrent cancel, payment callback or
+    workflow decision cannot double-cancel or double-refund.
+    """
+    booking = Booking.objects.select_for_update().get(pk=booking.pk)
     if booking.status in ('cancelled', 'rejected', 'expired', 'completed'):
         return False, 'This booking cannot be cancelled in its current status.'
     from_status = booking.status
     refund_created = None
-    if booking.status in ('paid', 'completed') and refund_request:
+    if booking.payment is not None and refund_request:
         percent, _ = availability.refund_percent(max(0, booking.days_until_checkin))
         amount = (booking.total * percent / Decimal('100')).quantize(Decimal('0.01'))
         refund_created = Refund.objects.create(
@@ -132,8 +140,10 @@ def facility_public(request, code):
         Facility.objects.prefetch_related('units', 'units__tariffs'), code=code,
         is_active=True)
     start = parse_date(request.GET.get('from')) or today()
-    calendar = availability.facility_calendar(facility, start, 35)
-    units = facility.units.filter(is_active=True).prefetch_related('tariffs')
+    calendar = availability.facility_calendar(facility, start, 35,
+                                              asset_category='dakbungalow')
+    units = facility.units.filter(is_active=True, asset_category='dakbungalow'
+                                  ).prefetch_related('tariffs')
     return render(request, 'bookings/facility_public.html', {
         'facility': facility,
         'units': units,
@@ -152,8 +162,12 @@ def citizen_home(request):
         'facility', 'unit').order_by('-created_at')
     active = rows.filter(status__in=['submitted', 'under_review', 'clarification',
                                      'recommended', 'approved', 'awaiting_payment', 'paid'])
+    page = paginate(request, rows, 10)
+    for booking in page:
+        booking.journey_info = build_journey(booking, request.user)
     return render(request, 'bookings/citizen_home.html', {
-        'bookings': paginate(request, rows, 10),
+        'bookings': page,
+        'page_obj': page,
         'active_count': active.count(),
         'page_title': 'My applications',
         'draft': request.session.get('booking_draft'),
@@ -164,7 +178,7 @@ def citizen_home(request):
 def apply_start(request, code):
     facility = get_object_or_404(Facility, code=code, is_active=True)
     if request.method == 'POST':
-        form = ApplyForm(request.POST)
+        form = ApplyForm(request.POST, asset_category='dakbungalow')
         if form.is_valid():
             data = form.cleaned_data
             unit = data['unit']
@@ -185,10 +199,12 @@ def apply_start(request, code):
     else:
         form = ApplyForm(initial={'facility': facility, 'check_in': today() + timedelta(days=1),
                                   'check_out': today() + timedelta(days=2), 'guests': 1})
-    units = facility.units.filter(is_active=True).prefetch_related('tariffs')
+    units = facility.units.filter(is_active=True, asset_category='dakbungalow'
+                                  ).prefetch_related('tariffs')
     return render(request, 'bookings/apply_start.html', {
         'facility': facility, 'form': form, 'units': units,
-        'calendar': availability.facility_calendar(facility, today(), 35),
+        'calendar': availability.facility_calendar(facility, today(), 35,
+                                                   asset_category='dakbungalow'),
         'calendar_leading': list(range(today().weekday())),
         'slot_choices': availability.SLOT_CHOICES,
         'page_title': f'Apply - {facility.name}',
@@ -196,6 +212,7 @@ def apply_start(request, code):
 
 
 @citizen_required
+@transaction.atomic
 def apply_details(request):
     draft = request.session.get('booking_draft')
     if not draft:
@@ -211,7 +228,9 @@ def apply_details(request):
         return redirect('home')
 
     if request.method == 'POST':
-        form = DetailsForm(request.POST)
+        form = DetailsForm(request.POST, category=draft['category'])
+        if form.is_valid() and form.cleaned_data['guests'] > unit.capacity:
+            form.add_error('guests', 'The number of guests exceeds the selected asset capacity.')
         if form.is_valid():
             if not is_free(unit, check_in, check_out, slot):
                 messages.error(request, 'The inventory was taken while you were applying. '
@@ -229,7 +248,10 @@ def apply_details(request):
                 guests=form.cleaned_data['guests'],
                 purpose=form.cleaned_data['purpose'],
                 contact_phone=form.cleaned_data.get('contact_phone') or request.user.phone,
+                national_id=form.cleaned_data.get('national_id', ''),
+                office_id=form.cleaned_data.get('office_id', ''),
                 notes=form.cleaned_data.get('notes', ''),
+                payment_flow=draft.get('payment_flow', 'approval_first'),
                 amount=price['charges'],
                 deposit=price['deposit'],
                 gateway_charge=price['gateway_charge'],
@@ -238,8 +260,10 @@ def apply_details(request):
                 hold_expires_at=hold_until,
             )
             try:
-                take_hold(unit, daterange_days(check_in, check_out), slot, hold_until,
-                          booking=booking)
+                with transaction.atomic():
+                    availability.release_expired_holds([unit])
+                    take_hold(unit, daterange_days(check_in, check_out), slot, hold_until,
+                              booking=booking)
             except IntegrityError:
                 booking.delete()
                 messages.error(request, 'Another application just took that inventory. '
@@ -284,11 +308,21 @@ def apply_details(request):
                            f'{booking.unit.name} was received and is under review.',
             }, url=f'/bookings/{booking.pk}/', channels=['inapp', 'email', 'sms'])
             request.session.pop('booking_draft', None)
+            if booking.payment_flow == 'direct':
+                booking.refresh_from_db()
+                payment = start_payment(booking)
+                return redirect('gateway_checkout', txn_id=payment.txn_id)
             return redirect('booking_submitted', pk=booking.pk)
 
     else:
-        form = DetailsForm(initial={'guests': draft.get('guests', 1),
-                                    'contact_phone': request.user.phone})
+        last = Booking.objects.filter(applicant=request.user).exclude(
+            national_id='').order_by('-created_at').first()
+        form = DetailsForm(
+            initial={'guests': draft.get('guests', 1),
+                     'contact_phone': request.user.phone,
+                     'national_id': last.national_id if last else '',
+                     'office_id': last.office_id if last else ''},
+            category=draft['category'])
     return render(request, 'bookings/apply_details.html', {
         'unit': unit, 'facility': unit.facility, 'price': price, 'draft': draft,
         'category_label': dict(Booking.CATEGORIES).get(draft['category'], draft['category']),
@@ -302,7 +336,9 @@ def apply_details(request):
 def booking_submitted(request, pk):
     booking = get_object_or_404(Booking, pk=pk, applicant=request.user)
     return render(request, 'bookings/submitted.html', {
-        'booking': booking, 'page_title': 'Application submitted',
+        'booking': booking,
+        'journey': build_journey(booking, request.user),
+        'page_title': 'Application submitted',
     })
 
 
@@ -321,6 +357,7 @@ def _thread_context(request, booking):
         'history': booking.status_changes.select_related('actor'),
         'verify_url': _verify_url(request, booking),
         'refund_policy': availability.refund_policy_text(),
+        'journey': build_journey(booking, request.user),
     }
 
 
@@ -506,11 +543,16 @@ def staff_list(request):
     counts = {code: 0 for code, _ in STATUSES}
     for row in _staff_booking_queryset(request.user).values('status').annotate(n=Count('id')):
         counts[row['status']] = row['n']
+    day = today()
+    assets = asset_status(day)
+    free_today = next(row['free'] for row in assets if row['code'] == 'dakbungalow')
     return render(request, 'bookings/staff_list.html', {
         'page_obj': paginate(request, rows, 20),
         'counts': counts,
         'statuses': STATUSES,
         'facilities': Facility.objects.filter(is_active=True),
+        'available_units': free_today,
+        'assets': assets,
         'status': status, 'facility': facility, 'queue': queue, 'q': q,
         'page_title': 'Booking management',
     })

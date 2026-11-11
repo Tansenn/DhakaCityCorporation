@@ -1,0 +1,33 @@
+{% load gzp %}
+<div class="card gov-card mt-3" data-tour="assets">
+  <div class="card-header">
+    <strong><i class="bi bi-collection me-1"></i>{% t "Assets" %}</strong>
+    <span class="spacer"></span>
+    <span class="note-inline">{% t "Booked and available today" %}</span>
+    <a class="note-inline" href="/app/facilities/">{% t "All assets" %}</a>
+  </div>
+  <div class="card-body">
+    <div class="asset-status-grid">
+      {% for asset in asset_status %}
+        <div class="asset-stat" tabindex="0">
+          <div class="asset-stat-head">
+            <span class="ic"><i class="bi {{ asset.icon }}"></i></span>
+            <b>{% t asset.name %}</b>
+          </div>
+          <span class="detail">{{ asset.booked|bnnum }}/{{ asset.total|bnnum }} {% t asset.unit %} {% t "booked" %}</span>
+          <span class="asset-bar" aria-hidden="true"><span style="width:{{ asset.percent }}%"></span></span>
+          <span class="detail free">{{ asset.free|bnnum }} {% t "available" %}</span>
+          <div class="asset-pop" role="tooltip">
+            <div class="asset-pop-head">{% t asset.name %}</div>
+            <div class="asset-pop-row"><span>{% t "Total" %}</span><b>{{ asset.total|bnnum }} {% t asset.unit %}</b></div>
+            <div class="asset-pop-row">
+              <span>{% if asset.code == 'dakbungalow' %}{% t "Booked today" %}{% else %}{% t "Booked" %}{% endif %}</span>
+              <b>{{ asset.booked|bnnum }} ({{ asset.percent }}%)</b>
+            </div>
+            <div class="asset-pop-row"><span>{% t "Available" %}</span><b>{{ asset.free|bnnum }}</b></div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>

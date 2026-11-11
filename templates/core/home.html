@@ -1,52 +1,87 @@
 {% extends 'base.html' %}
 {% load static gzp %}
-{% block title %}Dakbungalow booking · Gazipur Zila Parishad{% endblock %}
+{% block title %}{% t "Dakbungalow booking" %} · Gazipur Zila Parishad{% endblock %}
 {% block content %}
+<section class="portal-band" aria-label="{% t "Choose your portal" %}">
+  <div class="portal-visual">
+    <img src="{% static 'img/zp_building.png' %}" alt="Gazipur Zila Parishad office">
+    <span class="pv-badge"><i class="bi bi-patch-check-fill me-1"></i>{% t "Official service" %}</span>
+    <div class="pv-content">
+      <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="Gazipur Zila Parishad logo">
+      <div>
+        <b>{% t "Gazipur Zila Parishad" %}</b>
+        <small>{% t "Two portals, one platform. Citizens book services; officials review and approve." %}</small>
+      </div>
+    </div>
+  </div>
+  <div class="portal-choices">
+    <a class="portal-box" href="{% if user.is_authenticated and user.is_citizen %}/citizen/{% else %}/login/?portal=citizen{% endif %}">
+      <span class="pb-ic"><i class="bi bi-person-fill"></i></span>
+      <span>
+        <b>{% t "Citizen / user portal" %}</b>
+        <span class="pb-sub">{% t "Book a Dakbungalow, track your application, pay securely and download your permit." %}</span>
+        <span class="pb-go">{% t "Enter citizen portal" %} <i class="bi bi-arrow-right"></i></span>
+      </span>
+    </a>
+    <a class="portal-box official" href="{% if user.is_authenticated and user.is_staff_portal_user %}/app/{% else %}/login/?portal=official{% endif %}">
+      <span class="pb-ic"><i class="bi bi-shield-lock-fill"></i></span>
+      <span>
+        <b>{% t "Officials portal" %}</b>
+        <span class="pb-sub">{% t "Booking desk, technical review, approvals, finance, HR and system administration." %}</span>
+        <span class="pb-go">{% t "Official sign-in" %} <i class="bi bi-arrow-right"></i></span>
+      </span>
+    </a>
+    {% if not user.is_authenticated %}
+      <div class="text-center" style="font-size:.74rem;color:#b9c0e8">
+        {% t "New here?" %} <a href="/register/" style="color:var(--lime);font-weight:700">{% t "Create a citizen account" %}</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
 <section class="hero">
   <div class="hero-inner">
-    <span class="ribbon-inline"><i class="bi bi-cone-striped"></i> Demo version - sample data</span>
-    <h1>Book a Gazipur Zila Parishad Dakbungalow</h1>
-    <p>Four Parishad Dakbungalows with rooms, VIP suites and conference halls. Check live
-      availability, apply online, track approval and pay securely. Tariffs and rules shown
-      here are sample values confirmed during the requirements phase.</p>
+    <span class="ribbon-inline"><i class="bi bi-shield-check"></i> {% t "Official booking service" %}</span>
+    <h1>{% t "Book a Gazipur Zila Parishad Dakbungalow" %}</h1>
+    <p>{% t "Four Parishad Dakbungalows with rooms, VIP suites and conference halls. Check live availability, apply online, track approval and pay securely." %}</p>
     <form class="hero-search" method="get" action="/">
       <div>
-        <label for="facility">Facility</label>
+        <label for="facility">{% t "Facility" %}</label>
         <select class="form-select" id="facility" name="facility">
-          <option value="">All four facilities</option>
+          <option value="">{% t "All four facilities" %}</option>
           {% for f in facilities %}
             <option value="{{ f.code }}" {% if facility_code == f.code %}selected{% endif %}>{{ f.name }}</option>
           {% endfor %}
         </select>
       </div>
       <div>
-        <label for="check_in">Check-in</label>
+        <label for="check_in">{% t "Check-in" %}</label>
         <input class="form-control" type="date" id="check_in" name="check_in" value="{{ check_in|date:'Y-m-d' }}">
       </div>
       <div>
-        <label for="check_out">Check-out</label>
+        <label for="check_out">{% t "Check-out" %}</label>
         <input class="form-control" type="date" id="check_out" name="check_out" value="{{ check_out|date:'Y-m-d' }}">
       </div>
       <div class="d-flex align-items-end">
-        <button class="btn btn-accent w-100" type="submit"><i class="bi bi-search me-1"></i> Check availability</button>
+        <button class="btn btn-accent w-100" type="submit"><i class="bi bi-search me-1"></i> {% t "Check availability" %}</button>
       </div>
     </form>
     <div class="hero-strip">
-      <div class="mini-kpi"><div class="v">{{ facilities|length }}</div><div class="l">Approved Dakbungalows</div></div>
-      <div class="mini-kpi"><div class="v">Online</div><div class="l">Application and approval tracking</div></div>
-      <div class="mini-kpi"><div class="v">Verified</div><div class="l">Signed payment confirmation</div></div>
+      <div class="mini-kpi"><div class="v">{{ facilities|length }}</div><div class="l">{% t "Approved Dakbungalows" %}</div></div>
+      <div class="mini-kpi"><div class="v">{% t "Online" %}</div><div class="l">{% t "Application and approval tracking" %}</div></div>
+      <div class="mini-kpi"><div class="v">{% t "Verified" %}</div><div class="l">{% t "Signed payment confirmation" %}</div></div>
     </div>
   </div>
 </section>
 
 <div class="page-head mt-4" id="facilities">
   <div>
-    <h1 style="font-size:1.05rem">Available facilities</h1>
-    <div class="sub">Availability for {{ check_in|date:'d M' }} to {{ check_out|date:'d M Y' }}.
-      Showing sample inventory of rooms and halls.</div>
+    <h1 style="font-size:1.05rem">{% t "Available facilities" %}</h1>
+    <div class="sub">{% t "Availability for" %} {{ check_in|d:'d M' }} {% t "to" %} {{ check_out|d:'d M Y' }}.
+      {% t "Showing sample inventory of rooms and halls." %}</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-sm btn-outline-primary" href="/track/">Track an application</a>
+  <a class="btn btn-sm btn-outline-primary" href="/track/">{% t "Track an application" %}</a>
 </div>
 
 <div class="facility-grid">
@@ -54,22 +89,22 @@
     <a class="facility-card" href="/facilities/{{ facility.code }}/" style="text-decoration:none;color:inherit">
       <div class="photo">
         {% if facility.photo %}
-          <img src="{{ facility.photo.url }}" alt="{{ facility.name }}">
+          <img src="{{ facility.photo.url }}" alt="{{ facility.name|tr:lang }}">
         {% else %}
-          <img src="{% static 'img/facility-placeholder.svg' %}" alt="{{ facility.name }}">
+          <img src="{% static 'img/facility-placeholder.svg' %}" alt="{{ facility.name|tr:lang }}">
         {% endif %}
-        <span class="tag">{{ facility.units.count }} room(s) / hall(s)</span>
+        <span class="tag">{{ facility.units.count|bnnum }} {% t "room(s) / hall(s)" %}</span>
       </div>
       <div class="body">
-        <h3>{{ facility.name }}</h3>
-        <div class="loc"><i class="bi bi-geo-alt"></i>{{ facility.location }}</div>
+        <h3>{{ facility.name|tr:lang }}</h3>
+        <div class="loc"><i class="bi bi-geo-alt"></i>{{ facility.location|tr:lang }}</div>
         <div class="desc">{{ facility.description|truncatechars:110 }}</div>
         <div class="foot">
           <div class="price">
-            {% if facility.lowest_tariff %}From ৳{{ facility.lowest_tariff|floatformat:0 }}<small> / night</small>{% else %}Tariff on request{% endif %}
+            {% if facility.lowest_tariff %}{% t "From" %} ৳{{ facility.lowest_tariff|floatformat:0|bnnum }}<small> / {% t "night" %}</small>{% else %}{% t "Tariff on request" %}{% endif %}
           </div>
           <span class="chip {% if facility.available_count %}chip-success{% else %}chip-danger{% endif %}">
-            {{ facility.available_count }} free
+            {{ facility.available_count|bnnum }} {% t "free" %}
           </span>
         </div>
       </div>
@@ -77,7 +112,7 @@
   {% empty %}
     <div class="card"><div class="card-body table-empty">
       <i class="bi bi-buildings"></i>
-      <p>No facilities are published yet.</p>
+      <p>{% t "No facilities are published yet." %}</p>
     </div></div>
   {% endfor %}
 </div>
@@ -85,46 +120,45 @@
 <div class="feature-strip mt-4">
   <div class="feature">
     <span class="ic"><i class="bi bi-1-circle"></i></span>
-    <div><b>Browse and choose</b><span>See facilities, rooms, photos, tariffs, blackout dates and live availability.</span></div>
+    <div><b>{% t "Browse and choose" %}</b><span>{% t "See facilities, rooms, photos, tariffs, blackout dates and live availability." %}</span></div>
   </div>
   <div class="feature">
     <span class="ic"><i class="bi bi-2-circle"></i></span>
-    <div><b>Apply with documents</b><span>Register with email/OTP, choose dates and attach the documents for your category.</span></div>
+    <div><b>{% t "Apply with documents" %}</b><span>{% t "Register, choose dates and attach the documents for your category." %}</span></div>
   </div>
   <div class="feature">
     <span class="ic"><i class="bi bi-3-circle"></i></span>
-    <div><b>Track approval</b><span>Follow every step from the booking desk to the authorised approver.</span></div>
+    <div><b>{% t "Track approval" %}</b><span>{% t "Follow every step from the booking desk to the authorised approver." %}</span></div>
   </div>
   <div class="feature">
     <span class="ic"><i class="bi bi-4-circle"></i></span>
-    <div><b>Pay and get the permit</b><span>Pay through the gateway and download the permit with a verification QR code.</span></div>
+    <div><b>{% t "Pay and get the permit" %}</b><span>{% t "Pay through the gateway and download the permit with a verification QR code." %}</span></div>
   </div>
 </div>
 
 <div class="card mt-4">
-  <div class="card-header"><i class="bi bi-info-circle me-1"></i> Before you apply</div>
+  <div class="card-header"><i class="bi bi-info-circle me-1"></i> {% t "Before you apply" %}</div>
   <div class="card-body">
     <div class="row g-3">
       <div class="col-md-4">
-        <b class="small">Documents by category</b>
+        <b class="small">{% t "Documents by category" %}</b>
         <ul class="small text-muted mt-2 mb-0">
-          <li>Government official: service ID or office order.</li>
-          <li>Public citizen: national ID and a contact number.</li>
-          <li>Organization: request letter on letterhead.</li>
+          <li>{% t "Government official: service ID or office order." %}</li>
+          <li>{% t "Public citizen: national ID and a contact number." %}</li>
+          <li>{% t "Organization: request letter on letterhead." %}</li>
         </ul>
       </div>
       <div class="col-md-4">
-        <b class="small">Sample rules</b>
+        <b class="small">{% t "Sample rules" %}</b>
         <ul class="small text-muted mt-2 mb-0">
-          <li>Friday and Saturday nights use the holiday tariff.</li>
-          <li>A security deposit may apply and is shown before payment.</li>
-          <li>Technical review for conference halls and VIP suites.</li>
+          <li>{% t "Friday and Saturday nights use the holiday tariff." %}</li>
+          <li>{% t "A security deposit may apply and is shown before payment." %}</li>
+          <li>{% t "Technical review for conference halls and VIP suites." %}</li>
         </ul>
       </div>
       <div class="col-md-4">
-        <b class="small">Not a statutory platform</b>
-        <p class="small text-muted mt-2 mb-0">This portal complements D-Nothi/e-Nothi, e-GP and statutory
-          approvals. It does not replace or bypass them.</p>
+        <b class="small">{% t "Not a statutory platform" %}</b>
+        <p class="small text-muted mt-2 mb-0">{% t "This portal complements D-Nothi/e-Nothi, e-GP and statutory approvals. It does not replace or bypass them." %}</p>
       </div>
     </div>
   </div>

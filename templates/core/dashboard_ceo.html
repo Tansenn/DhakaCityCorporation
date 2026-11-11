@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{% t "CEO dashboard" %}{% endblock %}
+{% block content %}
+<div class="gov-page-head">
+  <div>
+    <div class="gov-eyebrow">{% t "Office of the Chief Executive Officer" %}</div>
+    <h1>{% t "CEO dashboard" %}</h1>
+    <div class="sub">{{ today|d:"l, d F Y" }} · {{ user.display_name }}</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-outline-primary btn-sm" href="/app/mis/"><i class="bi bi-graph-up me-1"></i>{% t "Reports" %}</a>
+  <a class="btn btn-primary btn-sm" href="/app/tasks/"><i class="bi bi-inbox me-1"></i>{% t "My tasks" %} {% if my_pending %}({{ my_pending|bnnum }}){% endif %}</a>
+</div>
+
+{% for alert in alerts %}
+  <div class="alert alert-{{ alert.level }} d-flex align-items-center gap-2 py-2">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div class="flex-grow-1">{{ alert.count|bnnum }} {% t alert.text_key %}</div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ alert.url }}">{% t "Open" %}</a>
+  </div>
+{% endfor %}
+
+<div class="gov-grid">
+  <a class="gov-box" href="/app/mis/bookings/" data-tour="revenue">
+    <div class="gov-box-icon"><i class="bi bi-cash-coin"></i></div>
+    <div class="gov-box-label">{% t "Revenue this month" %}</div>
+    <div class="gov-box-value">{{ revenue.month|money }}</div>
+    <div class="gov-box-foot">{% t "Today" %}: {{ revenue.today|money }} · {{ revenue.payments|bnnum }} {% t "payments" %}</div>
+  </a>
+  <a class="gov-box" href="/app/tasks/" data-tour="approvals">
+    <div class="gov-box-icon"><i class="bi bi-inbox"></i></div>
+    <div class="gov-box-label">{% t "Approvals at my desk" %}</div>
+    <div class="gov-box-value">{{ approvals.mine|bnnum }}</div>
+    <div class="gov-box-foot">{{ approvals.overdue|bnnum }} {% t "overdue" %} · {{ approvals.pending|bnnum }} {% t "in the system" %}</div>
+  </a>
+  <a class="gov-box" href="/app/hr/attendance/" data-tour="staff">
+    <div class="gov-box-icon"><i class="bi bi-people"></i></div>
+    <div class="gov-box-label">{% t "Staff present today" %}</div>
+    <div class="gov-box-value">{{ attendance.present|bnnum }}<small>/{{ attendance.total|bnnum }}</small></div>
+    <div class="gov-box-foot">{{ attendance.absent|bnnum }} {% t "absent" %} · {{ attendance.leave|bnnum }} {% t "on leave" %} · {{ attendance.not_marked|bnnum }} {% t "not marked" %}</div>
+  </a>
+  <a class="gov-box" href="/app/notifications/" data-tour="mail">
+    <div class="gov-box-icon"><i class="bi bi-envelope"></i></div>
+    <div class="gov-box-label">{% t "Mail & notices" %}</div>
+    <div class="gov-box-value">{{ mail.unread|bnnum }}</div>
+    <div class="gov-box-foot">{{ mail.today|bnnum }} {% t "received today" %}</div>
+  </a>
+</div>
+
+<div class="card gov-card mb-3" data-tour="route">
+  <div class="card-header">
+    <strong><i class="bi bi-diagram-3 me-1"></i>{% t "Approval status" %}</strong>
+    <span class="spacer"></span>
+    <span class="chip chip-warning">{% t "Pending approval" %}</span>
+    {% if my_step %}<span class="chip chip-primary">{% t "Your office is step" %} {{ my_step.order }}</span>{% endif %}
+  </div>
+  <div class="card-body py-3">
+    {% include 'bookings/_route.html' %}
+  </div>
+</div>
+
+<div class="gov-two">
+  {% include 'core/_mail_box.html' %}
+  {% include 'core/_meeting_box.html' %}
+</div>
+
+<div class="gov-two mt-3">
+  {% include 'core/_attendance_box.html' %}
+  <div class="card gov-card h-100">
+    <div class="card-header">
+      <strong><i class="bi bi-building me-1"></i>{% t "Dakbungalows today" %}</strong>
+      <span class="spacer"></span>
+      <a class="note-inline" href="/app/bookings/">{% t "All bookings" %}</a>
+    </div>
+    <div class="card-body">
+      <div class="mini-grid">
+        <div><b>{{ applications.arrival_count|bnnum }}</b><span>{% t "Arrivals" %}</span></div>
+        <div><b>{{ applications.departure_count|bnnum }}</b><span>{% t "Departures" %}</span></div>
+        <div><b>{{ applications.in_house|bnnum }}</b><span>{% t "In house" %}</span></div>
+        <div><b>{{ applications.new_today|bnnum }}</b><span>{% t "New applications" %}</span></div>
+      </div>
+      <div class="list-subhead">{% t "Arriving today" %}</div>
+      <div class="list-rows">
+        {% for booking in applications.arrivals %}
+          <div class="list-row">
+            <div class="list-time">{{ booking.check_in|d:"d M" }}</div>
+            <div class="grow">
+              <a class="ref" href="/app/bookings/{{ booking.pk }}/">{{ booking.reference }}</a>
+              <div class="note-inline">{{ booking.applicant_name }} · {{ booking.facility.name|tr:lang }} / {{ booking.unit.name|tr:lang }}</div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="table-empty py-2">{% t "No arrivals due today." %}</div>
+        {% endfor %}
+      </div>
+      {% if revenue.pending_count %}
+        <div class="gov-foot-note">
+          <i class="bi bi-clock me-1"></i>{% t "Approved but unpaid" %}:
+          {{ revenue.pending|money }} · {{ revenue.pending_count|bnnum }} {% t "booking(s)" %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="card gov-card mt-3" data-tour="waiting">
+  <div class="card-header">
+    <strong><i class="bi bi-check2-square me-1"></i>{% t "Approvals waiting for you" %}</strong>
+    <span class="spacer"></span>
+    <a class="note-inline" href="/app/tasks/">{% t "Open all tasks" %}</a>
+  </div>
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr>
+        <th>{% t "Reference" %}</th><th>{% t "Subject" %}</th><th>{% t "Step" %}</th>
+        <th>{% t "Due" %}</th><th>{% t "Status" %}</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for task in approvals.waiting %}
+        <tr>
+          <td><span class="ref">{{ task.instance.tracking_id }}</span></td>
+          <td>{{ task.instance.subject|tr:lang }}</td>
+          <td>{{ task.step.name|tr:lang }}<div class="note-inline">{{ task.role.name|tr:lang }}</div></td>
+          <td>{{ task.due_at|dt }}</td>
+          <td>
+            {% if task.is_overdue %}<span class="chip chip-danger">{% t "Overdue" %}</span>
+            {% else %}<span class="chip chip-warning">{% t "Pending approval" %}</span>{% endif %}
+          </td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/tasks/{{ task.pk }}/">{% t "Open" %}</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty py-3"><i class="bi bi-check2-circle"></i>{% t "Nothing is waiting at your desk." %}</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% include 'partials/asset_status.html' %}
+
+<div class="card gov-card mt-3">
+  <div class="card-header">
+    <strong><i class="bi bi-journal-text me-1"></i>{% t "Latest applications" %}</strong>
+    <span class="spacer"></span>
+    <a class="note-inline" href="/app/bookings/">{% t "Booking management" %}</a>
+  </div>
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr>
+        <th>{% t "Reference" %}</th><th>{% t "Applicant" %}</th>
+        <th>{% t "Facility" %}</th><th>{% t "Dates" %}</th>
+        <th>{% t "Status" %}</th><th class="num">{% t "Total" %}</th>
+      </tr></thead>
+      <tbody>
+      {% for booking in applications.recent %}
+        <tr>
+          <td><a class="ref" href="/app/bookings/{{ booking.pk }}/">{{ booking.reference }}</a></td>
+          <td>{{ booking.applicant_name }}</td>
+          <td>{{ booking.facility.name|tr:lang }}<div class="note-inline">{{ booking.unit.name|tr:lang }}</div></td>
+          <td>{{ booking.check_in|d:"d M" }} - {{ booking.check_out|d:"d M Y" }}</td>
+          <td><span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label|tr:lang }}</span></td>
+          <td class="num">{{ booking.total|money }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6"><div class="table-empty py-3">{% t "No applications yet." %}</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'core/_tour.html' with tour='ceo' %}
+{% endblock %}

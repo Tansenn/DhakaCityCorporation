@@ -1,15 +1,15 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Workflow designer{% endblock %}
+{% block title %}{% t "Workflow designer" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Workflow designer</h1>
-    <div class="sub">Routes are stored in the database: ordered steps, role, allowed decisions and conditional rules. Nothing is hard-coded in module views.</div>
+    <h1>{% t "Workflow designer" %}</h1>
+    <div class="sub">{% t "Routes are stored in the database: ordered steps, role, allowed decisions and conditional rules. Nothing is hard-coded in module views." %}</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-outline-primary btn-sm" href="/app/workflow/matrix/"><i class="bi bi-shield-check me-1"></i> Authority matrix</a>
-  <a class="btn btn-primary btn-sm" href="/app/workflow/new/"><i class="bi bi-plus-lg me-1"></i> New template</a>
+  <a class="btn btn-outline-primary btn-sm" href="/app/workflow/matrix/"><i class="bi bi-shield-check me-1"></i> {% t "Authority matrix" %}</a>
+  <a class="btn btn-primary btn-sm" href="/app/workflow/new/"><i class="bi bi-plus-lg me-1"></i> {% t "New template" %}</a>
 </div>
 
 {% for template in templates %}
@@ -21,13 +21,13 @@
         {% if template.is_active %}Active{% else %}Inactive{% endif %}
       </span>
       <span class="spacer"></span>
-      <a class="btn btn-sm btn-outline-primary" href="/app/workflow/{{ template.pk }}/">Edit template</a>
-      <a class="btn btn-sm btn-outline-primary" href="/app/workflow/{{ template.pk }}/step/new/">Add step</a>
+      <a class="btn btn-sm btn-outline-primary" href="/app/workflow/{{ template.pk }}/">{% t "Edit template" %}</a>
+      <a class="btn btn-sm btn-outline-primary" href="/app/workflow/{{ template.pk }}/step/new/">{% t "Add step" %}</a>
     </div>
     <div class="card-body">
       <div class="note-inline mb-2">
-        <span class="mono">{{ template.code }}</span> · {{ template.get_category_display }}
-        {% if template.description %}· {{ template.description }}{% endif %}
+        <span class="mono">{{ template.code }}</span> · {{ template.get_category_display|tr:lang }}
+        {% if template.description %}· {{ template.description|tr:lang }}{% endif %}
       </div>
       <div class="table-wrap">
         <table class="table-gzp">

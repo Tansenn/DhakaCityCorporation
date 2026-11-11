@@ -3,12 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="{{ APP_NAME }} - demo version with sample data.">
-  <title>{% block title %}{{ page_title|default:"Home" }} · {{ APP_NAME_MAIN }}{% endblock %}</title>
+  <meta name="description" content="{{ APP_NAME }} - Gazipur Zila Parishad booking and office platform.">
+  <title>{% block title %}{{ page_title|default:"Home"|tr:lang }} · {{ APP_NAME_MAIN }}{% endblock %}</title>
   <link rel="icon" href="{% static 'img/adcelerete_logo.png' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/gzp.css' %}">
+  <link rel="stylesheet" href="{% static 'css/gzp-theme.css' %}">
+  <link rel="stylesheet" href="{% static 'css/catalogue.css' %}">
   {% block extra_css %}{% endblock %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
@@ -20,7 +22,7 @@
       <img src="{% static 'img/adcelerete_logo.png' %}" alt="Adcelerete logo">
       <div>
         <div class="brand-name">{{ APP_NAME_MAIN }}</div>
-        <div class="brand-sub">{{ APP_NAME_SUB }}</div>
+        <div class="brand-sub">{{ APP_NAME_SUB|tr:lang }}</div>
       </div>
     </div>
     <div class="sidebar-scroll">
@@ -34,10 +36,6 @@
           {% endfor %}
         </div>
       {% endfor %}
-      <div class="sidebar-note">
-        <strong>{% t "Demo version" %}</strong><br>
-        Sample data only. Approvals, payments and messages are simulated where marked.
-      </div>
     </div>
   </aside>
 
@@ -47,14 +45,15 @@
         <i class="bi bi-list"></i>
       </button>
       <div>
-        <div class="page-title">{% block topbar_title %}{{ page_title|default:"Dashboard" }}{% endblock %}</div>
-        <div class="crumb">{{ APP_NAME_MAIN }} · {{ user.role_name }}</div>
+        <div class="page-title">{% block topbar_title %}{{ page_title|default:"Dashboard"|tr:lang }}{% endblock %}</div>
+        <div class="crumb">{{ APP_NAME_MAIN }} · {{ user.role_name|tr:lang }}</div>
       </div>
       <div class="topbar-spacer"></div>
 
       <div class="lang-switch" role="group" aria-label="Language">
         <a class="{% if lang == 'en' %}on{% endif %}" href="/lang/en/?next={{ request.get_full_path|urlencode }}">EN</a>
         <a class="{% if lang == 'bn' %}on{% endif %}" href="/lang/bn/?next={{ request.get_full_path|urlencode }}">বাংলা</a>
+        <a class="{% if lang == 'bng' %}on{% endif %}" href="/lang/bng/?next={{ request.get_full_path|urlencode }}">Banglish</a>
       </div>
 
       <a class="icon-btn" href="/app/notifications/" aria-label="Notifications">
@@ -69,7 +68,7 @@
           <span class="avatar">{{ user.display_name|initials }}</span>
           <span class="d-none d-lg-block">
             <span class="u-name">{{ user.display_name }}</span><br>
-            <span class="u-role">{{ user.role_name }}</span>
+            <span class="u-role">{{ user.role_name|tr:lang }}</span>
           </span>
         </a>
         <ul class="dropdown-menu dropdown-menu-end shadow-sm">
@@ -84,7 +83,6 @@
         </ul>
       </div>
     </header>
-    <div class="demo-ribbon"><i class="bi bi-cone-striped"></i> {% t "Demo version - sample data" %}</div>
     <main class="page" id="main">
       {% include 'partials/messages.html' %}
 {% else %}
@@ -94,12 +92,12 @@
         <img src="{% static 'img/adcelerete_logo.png' %}" alt="Adcelerete logo">
         <span>
           <span class="bn">{{ APP_NAME_MAIN }}</span><br>
-          <span class="bs">{{ APP_NAME_SUB }}</span>
+          <span class="bs">{{ APP_NAME_SUB|tr:lang }}</span>
         </span>
       </a>
       <nav class="public-nav" aria-label="Public navigation">
         <a href="/" class="{% if request.path == '/' %}on{% endif %}">{% t "Home" %}</a>
-        <a href="/#facilities">{% t "Browse facilities" %}</a>
+        <a href="/user/" class="{% if request.path == '/user/' %}on{% endif %}">{% t "User panel" %}</a>
         <a href="/track/">{% t "Track application" %}</a>
         {% if user.is_authenticated and user.is_citizen %}
           <a href="/citizen/" class="{% if request.path == '/citizen/' %}on{% endif %}">{% t "My applications" %}</a>
@@ -109,6 +107,7 @@
         <div class="lang-switch" role="group" aria-label="Language">
           <a class="{% if lang == 'en' %}on{% endif %}" href="/lang/en/?next={{ request.get_full_path|urlencode }}">EN</a>
           <a class="{% if lang == 'bn' %}on{% endif %}" href="/lang/bn/?next={{ request.get_full_path|urlencode }}">বাংলা</a>
+          <a class="{% if lang == 'bng' %}on{% endif %}" href="/lang/bng/?next={{ request.get_full_path|urlencode }}">Banglish</a>
         </div>
         {% if user.is_authenticated %}
           <a class="icon-btn" href="/app/notifications/" aria-label="Notifications">
@@ -137,16 +136,16 @@
       </div>
     </div>
   </header>
-  <div class="demo-ribbon"><i class="bi bi-cone-striped"></i> {% t "Demo version - sample data" %}</div>
   <main id="main">
     <div class="public-wrap">
       {% include 'partials/messages.html' %}
 {% endif %}
+      {% if not is_catalogue %}{% include 'partials/asset_ribbon.html' %}{% endif %}
       {% block content %}{% endblock %}
 {% if user.is_authenticated and user.is_staff_portal_user %}
     </main>
     <footer class="app-footer">
-      Prepared by {{ SUPPLIER }}. Demo version. This platform complements D-Nothi/e-Nothi, e-GP and statutory approvals; it does not replace or bypass them.
+      {% t "Prepared by" %} {{ SUPPLIER }}. {% t "This platform complements D-Nothi/e-Nothi, e-GP and statutory approvals; it does not replace or bypass them." %}
     </footer>
   </div>
 {% else %}
@@ -155,14 +154,12 @@
   <footer class="public-footer">
     <div class="inner">
       <div>
-        <strong>{{ APP_NAME_MAIN }}</strong> · {{ APP_NAME_SUB }}<br>
-        Prepared by {{ SUPPLIER }}. Demo version.
+        <strong>{{ APP_NAME_MAIN }}</strong> · {{ APP_NAME_SUB|tr:lang }}<br>
+        {% t "Prepared by" %} {{ SUPPLIER }}.
       </div>
       <div class="sep"></div>
       <div style="max-width:560px">
-        This system complements D-Nothi/e-Nothi, e-GP and other mandatory government platforms.
-        It does not replace or bypass statutory approval authority. Tariffs, rules and approval
-        routes shown are sample values.
+        {% t "This system complements D-Nothi/e-Nothi, e-GP and other mandatory government platforms. It does not replace or bypass statutory approval authority. Tariffs, rules and approval routes shown are sample values." %}
       </div>
     </div>
   </footer>

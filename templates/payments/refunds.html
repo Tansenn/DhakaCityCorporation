@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Refunds{% endblock %}
+{% block title %}{% t "Refunds" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Refunds</h1>
-    <div class="sub">Cancellation refund requests under the published sample policy. The gateway refund is simulated.</div>
+    <h1>{% t "Refunds" %}</h1>
+    <div class="sub">{% t "Cancellation refund requests under the published sample policy. The gateway refund is simulated." %}</div>
   </div>
   <div class="spacer"></div>
-  <span class="badge-soft">Pending value: {{ pending_total|money }}</span>
+  <span class="badge-soft">{% t "Pending value:" %} {{ pending_total|money }}</span>
 </div>
 
 <div class="stat-grid mb-3">

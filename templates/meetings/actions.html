@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Action follow-up{% endblock %}
+{% block title %}{% t "Action follow-up" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -55,4 +55,5 @@
     </table>
   </div>
 </div>
+{% include 'partials/pagination.html' %}
 {% endblock %}

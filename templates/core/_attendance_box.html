@@ -1,0 +1,42 @@
+{% load gzp %}
+<div class="card gov-card h-100" data-tour="attendance-card">
+  <div class="card-header">
+    <strong><i class="bi bi-person-check me-1"></i>{% t "Staff attendance today" %}</strong>
+    <span class="spacer"></span>
+    <span class="chip {% if attendance.present %}chip-success{% else %}chip-muted{% endif %}">
+      {{ attendance.present|bnnum }}/{{ attendance.total|bnnum }} {% t "present" %}
+    </span>
+    <a class="note-inline ms-2" href="/app/hr/attendance/">{% t "Attendance register" %}</a>
+  </div>
+  <div class="card-body">
+    {% if not attendance.recorded %}
+      <div class="alert-inline warn mb-3">
+        <i class="bi bi-info-circle"></i>{% t "Attendance has not been marked for today yet." %}
+      </div>
+    {% endif %}
+    <div class="att-grid">
+      <div class="att-box present"><b>{{ attendance.present|bnnum }}</b><span>{% t "Present" %}</span></div>
+      <div class="att-box absent"><b>{{ attendance.absent|bnnum }}</b><span>{% t "Absent" %}</span></div>
+      <div class="att-box leave"><b>{{ attendance.leave|bnnum }}</b><span>{% t "On leave" %}</span></div>
+      <div class="att-box missing"><b>{{ attendance.not_marked|bnnum }}</b><span>{% t "Not marked" %}</span></div>
+    </div>
+    <div class="att-names mt-3">
+      <div class="att-name-group">
+        <div class="att-name-title">{% t "Came in" %}</div>
+        {% for name in attendance.present_names %}<span class="person present">{{ name }}</span>{% endfor %}
+        {% if attendance.present_more %}<span class="person more">+{{ attendance.present_more|bnnum }}</span>{% endif %}
+        {% if not attendance.present_names %}<span class="note-inline">{% t "Nobody marked yet." %}</span>{% endif %}
+      </div>
+      <div class="att-name-group">
+        <div class="att-name-title">{% t "Not in today" %}</div>
+        {% for name in attendance.absent_names %}<span class="person absent">{{ name }}</span>{% endfor %}
+        {% for name in attendance.not_marked_names %}<span class="person missing">{{ name }}</span>{% endfor %}
+        {% if attendance.absent_more %}<span class="person more">+{{ attendance.absent_more|bnnum }}</span>{% endif %}
+        {% if attendance.not_marked_more %}<span class="person more">+{{ attendance.not_marked_more|bnnum }}</span>{% endif %}
+        {% if not attendance.absent_names and not attendance.not_marked_names %}
+          <span class="note-inline">{% t "Everyone is accounted for." %}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>

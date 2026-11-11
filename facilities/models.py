@@ -37,7 +37,9 @@ class Facility(models.Model):
 
     @property
     def lowest_tariff(self):
-        tariff = (Tariff.objects.filter(unit__facility=self, unit__is_active=True)
+        tariff = (Tariff.objects.filter(
+                      unit__facility=self, unit__is_active=True,
+                      unit__asset_category='dakbungalow')
                   .order_by('amount').first())
         return tariff.amount if tariff else None
 
@@ -47,11 +49,18 @@ class Unit(models.Model):
         ('room', 'Room'),
         ('suite', 'VIP suite'),
         ('hall', 'Conference hall'),
+        ('asset', 'Daily reservation'),
+    ]
+    ASSET_CATEGORIES = [
+        ('land', 'Lands'), ('ponds', 'Ponds'), ('markets', 'Markets'),
+        ('kheyaghat', 'Kheyaghat'), ('auditorium', 'Auditorium'),
+        ('dakbungalow', 'Dakbungalows'),
     ]
     facility = models.ForeignKey(Facility, on_delete=models.CASCADE, related_name='units')
     code = models.SlugField(max_length=40)
     name = models.CharField(max_length=120)
     kind = models.CharField(max_length=10, choices=KINDS, default='room')
+    asset_category = models.CharField(max_length=20, choices=ASSET_CATEGORIES, default='dakbungalow')
     capacity = models.PositiveIntegerField(default=2)
     description = models.CharField(max_length=255, blank=True)
     amenities = models.CharField(max_length=255, blank=True)
@@ -64,6 +73,10 @@ class Unit(models.Model):
 
     def __str__(self):
         return f'{self.facility.name} - {self.name}'
+
+    @property
+    def catalogue_image(self):
+        return f'img/asset-{self.asset_category}.jpg'
 
     @property
     def is_hall(self):

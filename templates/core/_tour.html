@@ -1,0 +1,77 @@
+{% load static gzp %}
+<div class="tour" id="pageTour" data-tour="{{ tour }}" hidden>
+  <div class="tour-spot" id="tourSpot" aria-hidden="true"></div>
+  <div class="tour-card" id="tourCard" role="dialog" aria-labelledby="tourTitle">
+    <div class="tour-arrow up" id="tourArrow" aria-hidden="true"></div>
+    <div class="tour-head">
+      <span class="tour-count" id="tourCount"></span>
+      <button type="button" class="tour-close" id="tourSkip" aria-label="{% t "Skip the guide" %}">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    <h3 id="tourTitle"></h3>
+    <p id="tourText"></p>
+    <div class="tour-actions">
+      <button type="button" class="tour-link" id="tourSkipLink">{% t "Skip" %}</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn btn-sm btn-outline-primary" id="tourPrev">{% t "Back" %}</button>
+      <button type="button" class="btn btn-sm btn-accent" id="tourNext"
+              data-next="{% t "Next" %}" data-finish="{% t "Finish" %}">{% t "Next" %}</button>
+    </div>
+  </div>
+</div>
+
+<button type="button" class="tour-replay" id="tourReplay" title="{% t "How to use this dashboard" %}"
+        aria-label="{% t "How to use this dashboard" %}">
+  <i class="bi bi-question-lg"></i>
+</button>
+
+<ol class="tour-source" id="tourSource" hidden>
+  {% if tour == 'ceo' %}
+    <li data-target="[data-tour=revenue]"
+        data-title="{% t "Revenue this month" %}"
+        data-text="{% t "Money collected from Dakbungalow bookings this month. The line below shows today's collection and the number of verified payments. Click the box to open the booking and revenue report." %}"></li>
+    <li data-target="[data-tour=approvals]"
+        data-title="{% t "Approvals at my desk" %}"
+        data-text="{% t "Requests waiting for your signature, how many of them are past the response target, and how many are moving through the system. Click to open your task list." %}"></li>
+    <li data-target="[data-tour=staff]"
+        data-title="{% t "Staff present today" %}"
+        data-text="{% t "How many employees came in, how many are absent or on leave, and how many are not marked yet. Click for the attendance register." %}"></li>
+    <li data-target="[data-tour=mail]"
+        data-title="{% t "Mail & notices" %}"
+        data-text="{% t "Unread internal notices and citizen requests. This number is what still needs your attention. Click to open the mail box." %}"></li>
+    <li data-target="[data-tour=route]"
+        data-title="{% t "Approval status" %}"
+        data-text="{% t "Every booking passes the same plain route: booking desk, engineering review, executive officer, then the CEO for amounts above the delegated limit. Each stage stays pending approval until that desk decides." %}"></li>
+    <li data-target="[data-tour=meeting-card]"
+        data-title="{% t "Today's meetings" %}"
+        data-text="{% t "Meetings scheduled for today with time, venue and chair. If nothing is scheduled, the next meetings are listed instead." %}"></li>
+    <li data-target="[data-tour=waiting]"
+        data-title="{% t "Approvals waiting for you" %}"
+        data-text="{% t "Each row is one decision you can take now. Rows marked in red are past the response target. Open a row to read the application and record your decision." %}"></li>
+  {% else %}
+    <li data-target="[data-tour=mail]"
+        data-title="{% t "Mail & notices" %}"
+        data-text="{% t "Unread notices and messages for the administration. The number is what still needs an answer." %}"></li>
+    <li data-target="[data-tour=staff]"
+        data-title="{% t "Staff present today" %}"
+        data-text="{% t "Who came in, who is absent or on leave, and who is not marked yet. A warning appears until attendance is marked for the day." %}"></li>
+    <li data-target="[data-tour=approvals]"
+        data-title="{% t "Approvals in the system" %}"
+        data-text="{% t "Every workflow approval currently open across all offices, with the overdue count. Use this to spot a desk where requests are piling up." %}"></li>
+    <li data-target="[data-tour=revenue]"
+        data-title="{% t "Revenue this month" %}"
+        data-text="{% t "Dakbungalow money collected this month, today's collection and the number of payments." %}"></li>
+    <li data-target="[data-tour=quick]"
+        data-title="{% t "Common tasks" %}"
+        data-text="{% t "Everything an administrator needs in one place: users and roles, approval steps and limits, settings, assets and tariffs, the activity log, security and system status." %}"></li>
+    <li data-target="[data-tour=status]"
+        data-title="{% t "System status" %}"
+        data-text="{% t "Active users, roles, recent health notices and the last verified backup. Open the full page for database and backup detail." %}"></li>
+    <li data-target="[data-tour=audit]"
+        data-title="{% t "Recent activity" %}"
+        data-text="{% t "The latest recorded actions: sign-ins, decisions, settings changes, payments and exports. Open the activity log to search the full trail." %}"></li>
+  {% endif %}
+</ol>
+
+<script src="{% static 'js/tour.js' %}" defer></script>

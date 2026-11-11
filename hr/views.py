@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from accounts.decorators import perm_required, staff_required
 from audit.models import log
-from core.utils import parse_date, today
+from core.utils import paginate, parse_date, today
 from hr.models import (
     Attendance,
     Department,
@@ -42,17 +42,18 @@ def dashboard(request):
     }
     upcoming_leave = LeaveRequest.objects.filter(
         status__in=('approved', 'recommended'), start_date__gte=today()
-    ).select_related('employee')[:6]
+    ).select_related('employee')
     expiring = TrainingRecord.objects.filter(
         expires_on__lte=today() + timedelta(days=60)
-    ).select_related('employee')[:6]
+    ).select_related('employee')
     return render(request, 'hr/dashboard.html', {
         'stats': stats,
-        'employees': employees[:8],
+        'employees': employees[:3],
         'departments': Department.objects.all(),
         'selected_department': department,
-        'upcoming_leave': upcoming_leave,
-        'expiring': expiring,
+        'upcoming_leave': upcoming_leave[:3],
+        'expiring': expiring[:3],
+        'expiring_count': expiring.count(),
         'page_title': 'Human resources',
     })
 
@@ -99,7 +100,7 @@ def employees(request):
             return redirect('hr_employees')
 
     return render(request, 'hr/employees.html', {
-        'page_obj': rows,
+        'page_obj': paginate(request, rows),
         'departments': Department.objects.all(),
         'designations': Designation.objects.select_related('department').all(),
         'q': q, 'department': department, 'status': status,
@@ -148,8 +149,9 @@ def attendance(request):
     counts = {}
     for status, _ in Attendance.STATUS:
         counts[status] = sum(1 for r in records.values() if r.status == status)
+    page_obj = paginate(request, employees)
     return render(request, 'hr/attendance.html', {
-        'day': day, 'employees': employees, 'records': records,
+        'day': day, 'employees': page_obj, 'page_obj': page_obj, 'records': records,
         'statuses': Attendance.STATUS, 'counts': counts,
         'page_title': 'Attendance',
     })
@@ -202,7 +204,7 @@ def leave(request):
         return redirect('hr_leave')
 
     return render(request, 'hr/leave.html', {
-        'page_obj': rows,
+        'page_obj': paginate(request, rows),
         'employee': employee,
         'can_see_all': can_see_all,
         'leave_types': LeaveRequest.TYPES,
@@ -240,6 +242,7 @@ def roster(request):
     employees = Employee.objects.filter(status='active')
     return render(request, 'hr/roster.html', {
         'days': days, 'employees': employees, 'grid': grid,
+        'page_obj': paginate(request, employees),
         'shifts': Roster.SHIFTS, 'start': start,
         'page_title': 'Duty roster',
     })
@@ -264,8 +267,10 @@ def training(request):
             log(request.user, 'create', record, 'Training record added', request, module='hr')
             messages.success(request, 'Training record added.')
         return redirect('hr_training')
+    page_obj = paginate(request, rows)
     return render(request, 'hr/training.html', {
-        'rows': rows,
+        'rows': page_obj,
+        'page_obj': page_obj,
         'employees': Employee.objects.filter(status='active'),
         'page_title': 'Training and expiry',
     })

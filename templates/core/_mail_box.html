@@ -1,0 +1,25 @@
+{% load gzp %}
+<div class="card gov-card h-100" data-tour="mail-card">
+  <div class="card-header">
+    <strong><i class="bi bi-envelope me-1"></i>{% t "Mail & notices" %}</strong>
+    <span class="spacer"></span>
+    <span class="chip {% if mail.unread %}chip-warning{% else %}chip-muted{% endif %}">
+      {{ mail.unread|bnnum }} {% t "unread" %}
+    </span>
+    <a class="note-inline ms-2" href="/app/notifications/">{% t "Open mail" %}</a>
+  </div>
+  <div class="mail-list">
+    {% for item in mail.items %}
+      <a class="mail-row" href="{{ item.url|default:'/app/notifications/' }}">
+        <span class="mail-dot {% if not item.is_read %}on{% endif %}"></span>
+        <span class="mail-body">
+          <span class="mail-subject">{{ item.subject|default:item.template_code|tr:lang }}</span>
+          <span class="mail-preview">{{ item.preview|default:"No further detail."|tr:lang }}</span>
+        </span>
+        <span class="mail-time">{{ item.created_at|dt:"d M, H:i" }}</span>
+      </a>
+    {% empty %}
+      <div class="table-empty py-3"><i class="bi bi-envelope-open"></i>{% t "No mail yet." %}</div>
+    {% endfor %}
+  </div>
+</div>

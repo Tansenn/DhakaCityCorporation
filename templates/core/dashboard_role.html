@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{% t "My dashboard" %}{% endblock %}
+{% block content %}
+<div class="gov-page-head">
+  <div>
+    <div class="gov-eyebrow">{{ user.role_name|tr:lang }}</div>
+    <h1>{% t "My dashboard" %}</h1>
+    <div class="sub">{{ today|d:"l, d F Y" }} · {{ user.display_name }}</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-outline-primary btn-sm" href="/app/notifications/"><i class="bi bi-envelope me-1"></i>{% t "Mail" %}</a>
+  <a class="btn btn-primary btn-sm" href="/app/tasks/"><i class="bi bi-inbox me-1"></i>{% t "My tasks" %} {% if my_pending %}({{ my_pending|bnnum }}){% endif %}</a>
+</div>
+
+{% for alert in alerts %}
+  <div class="alert alert-{{ alert.level }} d-flex align-items-center gap-2 py-2">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div class="flex-grow-1">{{ alert.count|bnnum }} {% t alert.text_key %}</div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ alert.url }}">{% t "Open" %}</a>
+  </div>
+{% endfor %}
+
+<div class="gov-grid">
+  <a class="gov-box" href="/app/tasks/">
+    <div class="gov-box-icon"><i class="bi bi-inbox"></i></div>
+    <div class="gov-box-label">{% t "My tasks" %}</div>
+    <div class="gov-box-value">{{ approvals.mine|bnnum }}</div>
+    <div class="gov-box-foot">{{ approvals.desk }} {% t "waiting at your desk" %}</div>
+  </a>
+  <a class="gov-box" href="{{ focus.url }}">
+    <div class="gov-box-icon"><i class="bi bi-{{ focus.icon }}"></i></div>
+    <div class="gov-box-label">{{ focus.label|tr:lang }}</div>
+    <div class="gov-box-value">{{ focus.value|bnnum }}</div>
+    <div class="gov-box-foot">{{ focus.hint|tr:lang }}</div>
+  </a>
+  <a class="gov-box {% if overdue_tasks %}gov-box-alert{% endif %}" href="/app/tasks/?status=overdue">
+    <div class="gov-box-icon"><i class="bi bi-alarm"></i></div>
+    <div class="gov-box-label">{% t "Overdue tasks" %}</div>
+    <div class="gov-box-value">{{ overdue_tasks|bnnum }}</div>
+    <div class="gov-box-foot">{% t "Reminders are sent automatically" %}</div>
+  </a>
+  <a class="gov-box" href="/app/notifications/">
+    <div class="gov-box-icon"><i class="bi bi-envelope"></i></div>
+    <div class="gov-box-label">{% t "Mail & notices" %}</div>
+    <div class="gov-box-value">{{ mail.unread|bnnum }}</div>
+    <div class="gov-box-foot">{{ mail.today|bnnum }} {% t "received today" %}</div>
+  </a>
+</div>
+
+<div class="card gov-card mb-3">
+  <div class="card-header">
+    <strong><i class="bi bi-diagram-3 me-1"></i>{% t "How a Dakbungalow booking is approved" %}</strong>
+    <span class="spacer"></span>
+    {% if my_step %}
+      <span class="chip chip-primary">{% t "You check step" %} {{ my_step.order|bnnum }}</span>
+    {% endif %}
+  </div>
+  <div class="card-body py-3">
+    {% include 'bookings/_route.html' %}
+    {% if my_step %}
+      <div class="route-note">
+        <i class="bi bi-info-circle me-1"></i>
+        <strong>{% t "Your part" %}:</strong> {{ my_step.duty|tr:lang }}.
+        {% t "You can" %}:
+        {% for decision in my_step.decisions %}<span class="chip chip-muted">{{ decision|tr:lang }}</span>{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="gov-two">
+  <div class="card gov-card h-100">
+    <div class="card-header">
+      <strong><i class="bi bi-check2-square me-1"></i>{% t "My tasks" %}</strong>
+      <span class="spacer"></span>
+      <a class="note-inline" href="/app/tasks/">{% t "Open all tasks" %}</a>
+    </div>
+    <div class="table-wrap">
+      <table class="table-gzp">
+        <thead><tr><th>{% t "Reference" %}</th><th>{% t "Work" %}</th><th>{% t "Due" %}</th><th></th></tr></thead>
+        <tbody>
+        {% for task in my_tasks_list %}
+          <tr>
+            <td>
+              {% if task.instance.object_url %}
+                <a class="ref" href="{{ task.instance.object_url }}">{{ task.instance.tracking_id }}</a>
+              {% else %}
+                <span class="ref">{{ task.instance.tracking_id }}</span>
+              {% endif %}
+              <div class="note-inline">{{ task.instance.subject|tr:lang }}</div>
+            </td>
+            <td>{{ task.step.name|tr:lang }}
+              <div class="note-inline">{{ task.role.name|tr:lang }}</div>
+            </td>
+            <td>
+              {% if task.is_overdue %}
+                <span class="chip chip-danger">{% t "Overdue" %}</span>
+              {% else %}
+                {{ task.due_at|dt }}
+              {% endif %}
+            </td>
+            <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="/app/tasks/{{ task.pk }}/">{% t "Open" %}</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4"><div class="table-empty py-3"><i class="bi bi-check2-circle"></i>{% t "No task is waiting at your desk." %}</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% include 'core/_mail_box.html' %}
+</div>
+
+<div class="card gov-card mt-3">
+  <div class="card-header">
+    <strong><i class="bi bi-grid me-1"></i>{% t "Common tasks" %}</strong>
+    <span class="note-inline">{% t "Only the items your role can use are shown." %}</span>
+  </div>
+  <div class="card-body">
+    <div class="quick-grid">
+      <a class="quick-tile" href="/app/tasks/"><i class="bi bi-inbox"></i><span>{% t "My tasks" %}</span></a>
+      {% if "bookings.view"|can:user %}
+        <a class="quick-tile" href="/app/bookings/"><i class="bi bi-calendar-check"></i><span>{% t "All bookings" %}</span></a>
+      {% endif %}
+      {% if "bookings.review"|can:user %}
+        <a class="quick-tile" href="/app/bookings/?queue=desk"><i class="bi bi-list-check"></i><span>{% t "Review queue" %}</span></a>
+      {% endif %}
+      {% if "bookings.reception"|can:user %}
+        <a class="quick-tile" href="/app/reception/"><i class="bi bi-qr-code-scan"></i><span>{% t "Check-in desk" %}</span></a>
+      {% endif %}
+      {% if "payments.view"|can:user %}
+        <a class="quick-tile" href="/app/payments/"><i class="bi bi-credit-card"></i><span>{% t "Payments" %}</span></a>
+      {% endif %}
+      {% if "payments.refund"|can:user %}
+        <a class="quick-tile" href="/app/refunds/"><i class="bi bi-arrow-counterclockwise"></i><span>{% t "Refunds" %}</span></a>
+      {% endif %}
+      {% if "hr.attendance"|can:user %}
+        <a class="quick-tile" href="/app/hr/attendance/"><i class="bi bi-calendar2-check"></i><span>{% t "Attendance" %}</span></a>
+      {% endif %}
+      {% if "hr.view"|can:user %}
+        <a class="quick-tile" href="/app/hr/employees/"><i class="bi bi-person-vcard"></i><span>{% t "Staff list" %}</span></a>
+      {% endif %}
+      {% if "hr.self"|can:user %}
+        <a class="quick-tile" href="/app/hr/leave/"><i class="bi bi-calendar-x"></i><span>{% t "Leave" %}</span></a>
+      {% endif %}
+      {% if "documents.view"|can:user %}
+        <a class="quick-tile" href="/app/documents/"><i class="bi bi-journal-text"></i><span>{% t "File register" %}</span></a>
+      {% endif %}
+      {% if "projects.view"|can:user %}
+        <a class="quick-tile" href="/app/projects/"><i class="bi bi-kanban"></i><span>{% t "Projects" %}</span></a>
+      {% endif %}
+      {% if "meetings.view"|can:user %}
+        <a class="quick-tile" href="/app/meetings/"><i class="bi bi-calendar-event"></i><span>{% t "Meetings" %}</span></a>
+      {% endif %}
+      {% if "mis.reports"|can:user %}
+        <a class="quick-tile" href="/app/mis/reports/"><i class="bi bi-file-earmark-bar-graph"></i><span>{% t "Reports" %}</span></a>
+      {% endif %}
+      {% if "accounts.view_users"|can:user %}
+        <a class="quick-tile" href="/app/users/"><i class="bi bi-person-gear"></i><span>{% t "Users & roles" %}</span></a>
+      {% endif %}
+      {% if "support.view"|can:user %}
+        <a class="quick-tile" href="/app/support/"><i class="bi bi-life-preserver"></i><span>{% t "Support tickets" %}</span></a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from django import template
 from django.utils import formats, timezone
 from django.utils.html import format_html
@@ -24,6 +26,15 @@ def tr(value, lang):
 @register.filter
 def money(value):
     return money_fmt(value)
+
+
+@register.filter
+def bnnum(value):
+    """Render plain numbers with Bengali digits when the page is in Bangla."""
+    text = str(value)
+    if i18n.CURRENT_LANG.get() == 'bn':
+        return text.translate(i18n.BN_DIGITS)
+    return text
 
 
 @register.filter
@@ -58,20 +69,41 @@ def device_label(value, lang):
     return i18n.status_bn(str(value)) if lang == 'bn' else value
 
 
+_PRICE_RATE = re.compile(r'^(\d{1,2} [A-Za-z]{3} \d{4}) - (standard|holiday) rate$')
+_HALL_LINE = re.compile(r'^Conference hall - (.+) on (\d{1,2} [A-Za-z]{3} \d{4})$')
+
+
+@register.filter
+def price_label(label, lang):
+    """Localize stored price-line labels that were generated in English."""
+    text = str(label)
+    if lang != 'bn':
+        return text
+    match = _PRICE_RATE.match(text)
+    if match:
+        rate = 'ছুটির দিনের হার' if match.group(2) == 'holiday' else 'সাধারণ হার'
+        return i18n.localize(f'{match.group(1)} - {rate}')
+    match = _HALL_LINE.match(text)
+    if match:
+        slot = i18n.translate(match.group(1), 'bn')
+        return i18n.localize(f'কনফারেন্স হল - {slot} ({match.group(2)})')
+    return i18n.translate(text, 'bn')
+
+
 @register.filter
 def dt(value, fmt='d M Y, H:i'):
     if not value:
         return '-'
     if timezone.is_aware(value):
         value = timezone.localtime(value)
-    return formats.date_format(value, fmt)
+    return i18n.localize(formats.date_format(value, fmt))
 
 
 @register.filter
 def d(value, fmt='d M Y'):
     if not value:
         return '-'
-    return formats.date_format(value, fmt)
+    return i18n.localize(formats.date_format(value, fmt))
 
 
 @register.filter

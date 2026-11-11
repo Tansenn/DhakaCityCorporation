@@ -1,11 +1,10 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Track application{% endblock %}
+{% block title %}{% t "Track application" %}{% endblock %}
 {% block content %}
 <div class="hero-mini">
-  <h1>Track an application</h1>
-  <p>Enter the booking reference printed on your acknowledgement or permit. Public tracking
-    shows status only; documents and personal details require sign-in.</p>
+  <h1>{% t "Track an application" %}</h1>
+  <p>{% t "Enter the booking reference printed on your acknowledgement or permit. Public tracking shows status only; documents and personal details require sign-in." %}</p>
   <form class="hero-search" method="get" action="/track/">
     <div style="grid-column:span 2">
       <label for="reference">Booking reference</label>
@@ -28,8 +27,8 @@
       <div class="card-body">
         <div class="detail-grid">
           <div><div class="k">Applicant</div><div class="v">{{ booking.applicant_name }}</div></div>
-          <div><div class="k">Facility</div><div class="v">{{ booking.facility.name }} - {{ booking.unit.name }}</div></div>
-          <div><div class="k">Dates</div><div class="v">{{ booking.check_in|date:"d M Y" }} to {{ booking.check_out|date:"d M Y" }}</div></div>
+          <div><div class="k">Facility</div><div class="v">{{ booking.facility.name|tr:lang }} - {{ booking.unit.name|tr:lang }}</div></div>
+          <div><div class="k">Dates</div><div class="v">{{ booking.check_in|d:"d M Y" }} to {{ booking.check_out|d:"d M Y" }}</div></div>
           <div><div class="k">Guests</div><div class="v">{{ booking.guests }}</div></div>
           <div><div class="k">Total</div><div class="v">{{ booking.total|money }}</div></div>
           <div><div class="k">Submitted</div><div class="v">{{ booking.created_at|dt }}</div></div>
@@ -42,7 +41,7 @@
               <div class="dot"></div>
               <div>
                 <div class="t">{{ item.label }}</div>
-                <div class="note-inline">{{ item.at|dt }}{% if item.comment %} · {{ item.comment }}{% endif %}</div>
+                <div class="note-inline">{{ item.at|dt }}{% if item.comment %} · {{ item.comment|tr:lang }}{% endif %}</div>
               </div>
             </div>
           {% endfor %}
@@ -52,14 +51,14 @@
           <i class="bi bi-info-circle"></i>
           <div>
             {% if booking.status == 'awaiting_payment' %}
-              Payment is pending. Sign in and open your application to complete the simulated gateway payment before
+              {% t "Payment is pending. Sign in and open your application to complete the simulated gateway payment before" %}
               {{ booking.payment_deadline|dt }}.
             {% elif booking.status == 'clarification' %}
-              The booking desk has requested clarification. Sign in to respond with the missing information.
+              {% t "The booking desk has requested clarification. Sign in to respond with the missing information." %}
             {% elif booking.status == 'paid' %}
-              Payment is verified and the permit is issued. Open the application to download the receipt and permit.
+              {% t "Payment is verified and the permit is issued. Open the application to download the receipt and permit." %}
             {% else %}
-              Keep this reference for future tracking. You will be notified at each status change.
+              {% t "Keep this reference for future tracking. You will be notified at each status change." %}
             {% endif %}
           </div>
         </div>
@@ -67,7 +66,7 @@
     </div>
   {% else %}
     <div class="alert alert-warning mt-3">
-      <i class="bi bi-search me-1"></i>No booking found for <b>{{ reference }}</b>. Check the reference and try again.
+      <i class="bi bi-search me-1"></i>{% t "No booking found for" %} <b>{{ reference }}</b>. {% t "Check the reference and try again." %}
     </div>
   {% endif %}
 {% endif %}

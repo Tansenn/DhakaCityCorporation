@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Leave{% endblock %}
+{% block title %}{% t "Leave" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -37,6 +37,7 @@
         </tbody>
       </table>
     </div>
+    {% include 'partials/pagination.html' %}
   </div>
 
   <div class="card">

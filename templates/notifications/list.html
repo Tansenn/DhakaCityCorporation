@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Notifications{% endblock %}
+{% block title %}{% t "Notifications" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <h1>{% t "Notifications" %}</h1>
-    <div class="sub">In-app notifications for your account. Email and SMS copies are in the demo outbox.</div>
+    <div class="sub">{% t "In-app notifications for your account. Email and SMS copies are in the demo outbox." %}</div>
   </div>
   <div class="spacer"></div>
   <form method="post">
     {% csrf_token %}
     <input type="hidden" name="mark_all" value="1">
-    <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-check2-all me-1"></i>Mark all read</button>
+    <button class="btn btn-sm btn-outline-primary" type="submit"><i class="bi bi-check2-all me-1"></i>{% t "Mark all read" %}</button>
   </form>
 </div>
 
@@ -20,17 +20,17 @@
     {% for row in rows %}
       <div class="list-row">
         <div>
-          <b>{{ row.subject|default:"Notification" }}</b>
-          <div class="small">{{ row.body|truncatechars:160 }}</div>
-          <div class="note-inline">{{ row.created_at|dt }} · {{ row.get_channel_display }}</div>
+          <b>{{ row.subject|default:"Notification"|tr:lang }}</b>
+          <div class="small">{{ row.body|tr:lang|truncatechars:160 }}</div>
+          <div class="note-inline">{{ row.created_at|dt }} · {{ row.get_channel_display|tr:lang }}</div>
         </div>
         <div class="d-flex gap-2 align-items-center">
-          {% if not row.is_read %}<span class="chip chip-info">Unread</span>{% endif %}
-          {% if row.url %}<a class="btn btn-sm btn-outline-primary" href="{{ row.url }}">Open</a>{% endif %}
+          {% if not row.is_read %}<span class="chip chip-info">{% t "Unread" %}</span>{% endif %}
+          {% if row.url %}<a class="btn btn-sm btn-outline-primary" href="{{ row.url }}">{% t "Open" %}</a>{% endif %}
         </div>
       </div>
     {% empty %}
-      <div class="table-empty"><i class="bi bi-bell"></i>No notifications yet.</div>
+      <div class="table-empty"><i class="bi bi-bell"></i>{% t "No notifications yet." %}</div>
     {% endfor %}
   </div>
 </div>

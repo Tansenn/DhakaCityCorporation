@@ -9,7 +9,7 @@ from django.utils import timezone
 from accounts.decorators import perm_required
 from accounts.models import User
 from audit.models import log
-from core.utils import business_hours_after, next_reference, parse_date
+from core.utils import business_hours_after, next_reference, paginate, parse_date
 from support.models import ChangeRequest, ChecklistItem, PlanPhase, Ticket
 
 
@@ -56,7 +56,7 @@ def tickets(request):
         'resolved': Ticket.objects.filter(status__in=('resolved', 'closed')).count(),
     }
     return render(request, 'support/tickets.html', {
-        'page_obj': rows,
+        'page_obj': paginate(request, rows),
         'statuses': Ticket.STATUS,
         'priorities': Ticket.PRIORITY,
         'categories': Ticket.CATEGORIES,
@@ -95,7 +95,7 @@ def ticket_detail(request, pk):
 
 @perm_required('support.view')
 def acceptance(request):
-    phases = PlanPhase.objects.all()
+    phases = PlanPhase.objects.order_by('sort_order', 'pk')
     if request.method == 'POST':
         if not request.user.can('support.manage'):
             raise PermissionDenied('You cannot edit the plan.')
@@ -105,13 +105,16 @@ def acceptance(request):
         phase.save(update_fields=['status', 'notes'])
         messages.success(request, 'Plan updated.')
         return redirect('support_acceptance')
-    done = sum(1 for p in phases if p.status == 'done')
+    done = phases.filter(status='done').count()
+    total = phases.count()
+    page_obj = paginate(request, phases)
     return render(request, 'support/acceptance.html', {
-        'phases': phases,
+        'phases': page_obj,
+        'page_obj': page_obj,
         'statuses': PlanPhase.STATUS,
         'done': done,
-        'total': len(phases),
-        'percent': round(done / len(phases) * 100) if phases else 0,
+        'total': total,
+        'percent': round(done / total * 100) if total else 0,
         'page_title': '45-day plan',
     })
 
@@ -119,7 +122,7 @@ def acceptance(request):
 @perm_required('support.view')
 def checklists(request):
     kind = request.GET.get('kind', '')
-    rows = ChecklistItem.objects.all()
+    rows = ChecklistItem.objects.order_by('kind', 'sort_order', 'pk')
     if kind:
         rows = rows.filter(kind=kind)
     if request.method == 'POST':
@@ -135,9 +138,10 @@ def checklists(request):
         messages.success(request, 'Checklist updated.')
         return redirect(f'/app/acceptance/checklists/?kind={kind}' if kind
                         else '/app/acceptance/checklists/')
-    passed = sum(1 for i in rows if i.status == 'passed')
+    passed = rows.filter(status='passed').count()
+    page_obj = paginate(request, rows)
     return render(request, 'support/checklists.html', {
-        'rows': rows, 'kind': kind, 'passed': passed,
+        'rows': page_obj, 'page_obj': page_obj, 'kind': kind, 'passed': passed,
         'statuses': ChecklistItem.STATUS,
         'kinds': ChecklistItem.KINDS,
         'page_title': 'Deliverables and UAT',
@@ -179,8 +183,10 @@ def change_requests(request):
                 module='support')
             messages.success(request, 'Change request updated.')
         return redirect('support_changes')
+    page_obj = paginate(request, rows)
     return render(request, 'support/change_requests.html', {
-        'rows': rows,
+        'rows': page_obj,
+        'page_obj': page_obj,
         'statuses': ChangeRequest.STATUS,
         'impacts': ChangeRequest.IMPACT,
         'page_title': 'Change requests',

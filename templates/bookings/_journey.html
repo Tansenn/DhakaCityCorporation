@@ -1,0 +1,43 @@
+{% load gzp %}
+<div class="journey-card {% if journey.is_staff %}journey-staff{% endif %}">
+  <div class="journey-head">
+    <div>
+      <div class="journey-kicker">{% t "Application status" %}</div>
+      <div class="journey-instruction">
+        <i class="bi bi-info-circle me-1"></i>
+        {% if journey.instruction_key == 'waiting' %}
+          {% t "Waiting for" %} <strong>{{ journey.current.role_short|tr:lang }}</strong>
+          {% t "to review your application." %}
+        {% else %}
+          {{ journey.instruction|tr:lang }}
+        {% endif %}
+      </div>
+    </div>
+    <span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label|tr:lang }}</span>
+  </div>
+  <ol class="journey-track">
+    {% for stage in journey.stages %}
+      <li class="j-stage {{ stage.state }}{% if stage.is_mine %} mine{% endif %}">
+        <span class="j-dot">
+          {% if stage.state == 'done' %}<i class="bi bi-check-lg"></i>
+          {% elif stage.state == 'stopped' %}<i class="bi bi-x-lg"></i>
+          {% else %}{{ forloop.counter }}{% endif %}
+        </span>
+        <div class="j-body">
+          <div class="j-title">{{ stage.label|tr:lang }}</div>
+          {% if stage.role_short %}
+            <div class="j-role">{{ stage.role_short|tr:lang }}{% if stage.is_mine %} · {% t "your desk" %}{% endif %}</div>
+          {% endif %}
+          <div class="j-duty">{{ stage.duty|tr:lang }}</div>
+          {% if stage.actor %}<div class="j-when">{{ stage.actor }}{% if stage.when %} · {{ stage.when|dt }}{% endif %}</div>
+          {% elif stage.when %}<div class="j-when">{{ stage.when|dt }}</div>{% endif %}
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+  <div class="journey-legend">
+    <span><i class="j-key done"></i>{% t "Done" %}</span>
+    <span><i class="j-key current"></i>{% t "Waiting here" %}</span>
+    <span><i class="j-key waiting"></i>{% t "Next" %}</span>
+  </div>
+</div>

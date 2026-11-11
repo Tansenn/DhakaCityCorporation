@@ -116,3 +116,37 @@ class FacilityTariffTests(TestCase):
         inactive.is_active = False
         inactive.save(update_fields=['is_active'])
         self.assertEqual(fac.lowest_tariff, Decimal('900.00'))
+
+    def test_lowest_tariff_ignores_non_dakbungalow_assets(self):
+        fac = facility('tariff-assets')
+        unit(fac, 'R1', amount='900.00')
+        unit(fac, 'P1', kind='asset', amount='100.00', asset_category='ponds')
+        self.assertEqual(fac.lowest_tariff, Decimal('900.00'))
+
+
+class LegacyDakbungalowScopeTests(TestCase):
+    def setUp(self):
+        self.fac = facility('scope')
+        self.room = unit(self.fac, 'R1')
+        self.pond = unit(self.fac, 'P1', kind='asset', asset_category='ponds')
+
+    def test_available_units_excludes_non_dakbungalow_assets(self):
+        start = timezone.localdate() + timedelta(days=3)
+        units = availability.available_units(self.fac, start, start + timedelta(days=1))
+        self.assertIn(self.room, units)
+        self.assertNotIn(self.pond, units)
+
+    def test_facility_calendar_can_scope_to_dakbungalow(self):
+        start = timezone.localdate() + timedelta(days=3)
+        availability.take_hold(self.pond, [start], '', timezone.now() + timedelta(hours=2))
+        day = availability.facility_calendar(self.fac, start, 1,
+                                             asset_category='dakbungalow')[0]
+        self.assertEqual(day['booked'], 0)
+        self.assertEqual(day['free'], 1)
+
+    def test_facility_calendar_without_scope_keeps_all_assets(self):
+        start = timezone.localdate() + timedelta(days=3)
+        availability.take_hold(self.pond, [start], '', timezone.now() + timedelta(hours=2))
+        day = availability.facility_calendar(self.fac, start, 1)[0]
+        self.assertEqual(day['booked'], 1)
+        self.assertEqual(day['free'], 1)

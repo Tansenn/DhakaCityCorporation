@@ -1,28 +1,42 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Booking management{% endblock %}
+{% block title %}{% t "Booking management" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Booking management</h1>
-    <div class="sub">All Dakbungalow applications, filters, status and approval history.</div>
+    <h1>{% t "Booking management" %}</h1>
+    <div class="sub">{% t "All Dakbungalow applications, filters, status and approval history." %}</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-sm btn-outline-primary" href="/app/bookings/export.csv"><i class="bi bi-download me-1"></i>Export CSV</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/bookings/export.csv"><i class="bi bi-download me-1"></i>{% t "Export CSV" %}</a>
   {% if "workflow.view"|can:user %}
     <a class="btn btn-sm btn-outline-primary" href="/app/tasks/"><i class="bi bi-inbox me-1"></i>My tasks</a>
   {% endif %}
 </div>
 
-<div class="stat-grid mb-3">
-  <div class="stat"><div class="label">Submitted</div><div class="value">{{ counts.submitted }}</div>
-    <div class="hint">Waiting for the booking desk</div><div class="ic"><i class="bi bi-inbox"></i></div></div>
-  <div class="stat"><div class="label">In review</div><div class="value">{{ counts.under_review }}</div>
-    <div class="hint">Under review / clarification</div><div class="ic"><i class="bi bi-search"></i></div></div>
-  <div class="stat"><div class="label">Awaiting payment</div><div class="value">{{ counts.awaiting_payment }}</div>
-    <div class="hint">Approved, payment window open</div><div class="ic"><i class="bi bi-credit-card"></i></div></div>
-  <div class="stat accent"><div class="label">Confirmed / completed</div><div class="value">{{ counts.paid }}</div>
-    <div class="hint">{{ counts.completed }} completed stays</div><div class="ic"><i class="bi bi-check2-circle"></i></div></div>
+<div class="stat-grid stat-grid-5 mb-3">
+  <div class="stat stat-pop" tabindex="0">
+    <div class="label">{% t "Booked" %}</div><div class="value">{{ counts.submitted|bnnum }}</div>
+    <div class="hint">{% t "Waiting for the booking desk" %}</div><div class="ic"><i class="bi bi-inbox"></i></div>
+    <div class="asset-pop" role="tooltip">
+      <div class="asset-pop-head">{% t "Assets" %}</div>
+      {% for asset in assets %}
+        <div class="asset-pop-row">
+          <i class="bi {{ asset.icon }}"></i>
+          <span>{{ asset.name|tr:lang }}</span>
+          <b class="asset-pop-num">{{ asset.booked|bnnum }}/{{ asset.total|bnnum }}</b>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+  <div class="stat"><div class="label">{% t "Pending approval" %}</div><div class="value">{{ counts.under_review|bnnum }}</div>
+    <div class="hint">{% t "Under review / clarification" %}</div><div class="ic"><i class="bi bi-search"></i></div></div>
+  <div class="stat"><div class="label">{% t "Awaiting payment" %}</div><div class="value">{{ counts.awaiting_payment|bnnum }}</div>
+    <div class="hint">{% t "Approved, payment window open" %}</div><div class="ic"><i class="bi bi-credit-card"></i></div></div>
+  <div class="stat accent"><div class="label">{% t "Confirmed / completed" %}</div><div class="value">{{ counts.paid|bnnum }}</div>
+    <div class="hint">{{ counts.completed|bnnum }} {% t "completed stays" %}</div><div class="ic"><i class="bi bi-check2-circle"></i></div></div>
+  <div class="stat"><div class="label">{% t "Available" %}</div><div class="value">{{ available_units|bnnum }}</div>
+    <div class="hint">{% t "Units free today" %}</div><div class="ic"><i class="bi bi-door-open"></i></div></div>
 </div>
 
 <form class="filter-bar" method="get">
@@ -31,9 +45,9 @@
     <input class="form-control" name="q" value="{{ q }}" placeholder="Reference, applicant, purpose">
   </div>
   <div class="f">
-    <label>Status</label>
+    <label>{% t "Booking status" %}</label>
     <select class="form-select" name="status">
-      <option value="">All statuses</option>
+      <option value="">{% t "All statuses" %}</option>
       {% for code, label in statuses %}
         <option value="{{ code }}" {% if status == code %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
@@ -44,7 +58,7 @@
     <select class="form-select" name="facility">
       <option value="">All</option>
       {% for facility in facilities %}
-        <option value="{{ facility.code }}" {% if facility.code == facility_code %}selected{% endif %}>{{ facility.name }}</option>
+        <option value="{{ facility.code }}" {% if facility.code == facility_code %}selected{% endif %}>{{ facility.name|tr:lang }}</option>
       {% endfor %}
     </select>
   </div>
@@ -68,16 +82,16 @@
       <table class="table-gzp">
         <thead><tr>
           <th>Reference</th><th>Applicant</th><th>Facility / unit</th><th>Dates</th>
-          <th class="num">Total</th><th>Status</th><th>Payment</th><th></th>
+          <th class="num">{% t "Total" %}</th><th>{% t "Booking status" %}</th><th>{% t "Payment" %}</th><th></th>
         </tr></thead>
         <tbody>
         {% for booking in page_obj %}
           <tr>
-            <td><span class="ref">{{ booking.reference }}</span><br><span class="note-inline">{{ booking.created_at|date:"d M Y" }}</span></td>
+            <td><span class="ref">{{ booking.reference }}</span><br><span class="note-inline">{{ booking.created_at|d:"d M Y" }}</span></td>
             <td><b>{{ booking.applicant_name }}</b><br><span class="note-inline">{{ booking.get_category_display }}</span></td>
-            <td>{{ booking.facility.name }}<br><span class="note-inline">{{ booking.unit.name }}</span></td>
-            <td>{{ booking.check_in|date:"d M" }} - {{ booking.check_out|date:"d M Y" }}<br>
-              <span class="note-inline">{{ booking.nights }} night(s){% if booking.slot %} · {{ booking.get_slot_display }}{% endif %}</span></td>
+            <td>{{ booking.facility.name|tr:lang }}<br><span class="note-inline">{{ booking.unit.name|tr:lang }}</span></td>
+            <td>{{ booking.check_in|d:"d M" }} - {{ booking.check_out|d:"d M Y" }}<br>
+              <span class="note-inline">{{ booking.nights }} {% t "night(s)" %}{% if booking.slot %} · {{ booking.get_slot_display }}{% endif %}</span></td>
             <td class="num">{{ booking.total|money }}</td>
             <td><span class="chip chip-{{ booking.status|chip }}">{{ booking.status_label }}</span></td>
             <td>{% if booking.payment %}<span class="chip chip-success">Paid</span><br><span class="note-inline">{{ booking.payment.receipt_no }}</span>

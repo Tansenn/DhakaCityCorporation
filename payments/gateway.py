@@ -46,7 +46,7 @@ def new_txn_id():
 
 
 def start_payment(booking):
-    """Open a gateway transaction for an approved booking."""
+    """Open a simulated transaction; eligibility is rechecked at callback time."""
     payment = Payment.objects.create(
         booking=booking,
         txn_id=new_txn_id(),
@@ -60,7 +60,7 @@ def start_payment(booking):
     return payment
 
 
-def callback_payload(payment, outcome):
+def callback_payload(payment, outcome, channel='card'):
     """Build the payload a hosted gateway would POST back."""
     status = {'pay': 'SUCCESS', 'fail': 'FAILED', 'cancel': 'CANCELLED'}.get(
         outcome, outcome.upper())
@@ -70,6 +70,7 @@ def callback_payload(payment, outcome):
         'amount': str(payment.amount),
         'currency': 'BDT',
         'status': status,
+        'channel': channel,
         'store_amount': str(payment.amount),
         'nonce': secrets.token_hex(8),
         'gateway_time': timezone.now().isoformat(timespec='seconds'),
@@ -81,7 +82,13 @@ def handle_callback(payload, signature):
     """Verify a signed gateway callback and apply it. Returns (result, message)."""
     payload = dict(payload or {})
     txn_id = str(payload.get('txn_id') or '')
-    payment = Payment.objects.select_for_update().filter(txn_id=txn_id).first()
+    candidate = Payment.objects.filter(txn_id=txn_id).values('pk', 'booking_id').first()
+    payment = None
+    booking = None
+    if candidate:
+        # Booking first: different transactions for the same demand must serialize.
+        booking = Booking.objects.select_for_update().get(pk=candidate['booking_id'])
+        payment = Payment.objects.select_for_update().get(pk=candidate['pk'])
     valid = verify_signature(payload, signature)
 
     record = PaymentCallback.objects.create(
@@ -103,12 +110,12 @@ def handle_callback(payload, signature):
             f'Callback rejected: invalid signature for {txn_id}', module='payments')
         return 'rejected', 'Invalid signature. The callback was rejected.'
 
-    booking = payment.booking
     try:
         amount = Decimal(str(payload.get('amount')))
     except (InvalidOperation, TypeError):
         amount = Decimal('-1')
-    if amount != payment.amount or payload.get('booking') not in (None, booking.reference):
+    if (not amount.is_finite() or amount != payment.amount
+            or payload.get('booking') not in (None, booking.reference)):
         record.result = 'mismatch'
         record.save(update_fields=['result'])
         log(None, 'payment', payment,
@@ -116,17 +123,26 @@ def handle_callback(payload, signature):
             module='payments')
         return 'mismatch', 'Amount or booking reference does not match the demand.'
 
-    if payment.status == 'success':
+    if ((payment.verified_at is not None and payment.status in ('success', 'refunded'))
+            or booking.payments.filter(
+                status__in=('success', 'refunded'), verified_at__isnull=False).exists()):
         record.result = 'duplicate'
         record.save(update_fields=['result'])
         log(None, 'payment', payment,
             f'Duplicate callback ignored for {txn_id}', module='payments')
-        return 'duplicate', 'This transaction was already confirmed. Duplicate callback ignored.'
+        return 'duplicate', 'Payment for this booking was already confirmed. Duplicate callback ignored.'
 
-    if booking.status != 'awaiting_payment':
+    if payment.amount != booking.total:
         record.result = 'mismatch'
         record.save(update_fields=['result'])
-        return 'mismatch', 'The booking is no longer awaiting payment.'
+        return 'mismatch', 'Amount or booking reference does not match the demand.'
+
+    # Lock and recheck the actual nights/slot, not just an old booking status.
+    list(booking.locks.select_for_update().filter(released=False))
+    if not booking.can_pay:
+        record.result = 'mismatch'
+        record.save(update_fields=['result'])
+        return 'mismatch', 'The booking is not eligible for payment or its inventory hold has expired or been released.'
 
     status = str(payload.get('status') or '').upper()
     if status == 'SUCCESS':
@@ -139,17 +155,9 @@ def handle_callback(payload, signature):
         record.result = 'confirmed'
         record.save(update_fields=['result'])
 
-        booking.status = 'paid'
         booking.hold_expires_at = None
         booking.payment_deadline = None
-        booking.permit_no = booking.reference.replace('GZP-DB', 'GZP-PRM')
-        booking.permit_issued_at = timezone.now()
-        booking.save(update_fields=['status', 'hold_expires_at', 'payment_deadline',
-                                    'permit_no', 'permit_issued_at', 'updated_at'])
-        BookingStatusChange.objects.create(
-            booking=booking, from_status='awaiting_payment', to_status='paid',
-            comment=f'Payment {payment.txn_id} verified by gateway callback',
-        )
+        booking.save(update_fields=['hold_expires_at', 'payment_deadline', 'updated_at'])
         booking.locks.filter(released=False).update(hold_expires_at=None)
 
         send(booking.applicant, 'payment_receipt', {
@@ -159,14 +167,12 @@ def handle_callback(payload, signature):
             'amount': money(payment.amount),
             'receipt': payment.receipt_no,
         }, url=f'/bookings/{booking.pk}/', channels=['inapp', 'email', 'sms'])
-        send(booking.applicant, 'permit_ready', {
-            'reference': booking.reference,
-            'subject': f'Your booking permit is ready - {booking.reference}',
-            'message': 'Download the permit from your application page.',
-        }, url=f'/bookings/{booking.pk}/permit.pdf', channels=['inapp', 'email'])
+        confirmed = booking.confirm_paid()
         log(booking.applicant, 'payment', booking,
             f'Payment confirmed {payment.txn_id} {money(payment.amount)}', module='payments')
-        return 'confirmed', 'Payment verified and booking confirmed.'
+        if confirmed:
+            return 'confirmed', 'Payment verified and booking confirmed.'
+        return 'confirmed', 'Payment received. Approval is pending; the permit will be issued after final approval.'
 
     if status in ('FAILED', 'CANCELLED'):
         payment.status = 'failed' if status == 'FAILED' else 'cancelled'

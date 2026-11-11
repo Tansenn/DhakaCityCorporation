@@ -1,14 +1,13 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Task {{ task.instance.tracking_id }}{% endblock %}
+{% block title %}{% t "Task" %} {{ task.instance.tracking_id }}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>{{ task.instance.subject }}</h1>
+    <h1>{{ task.instance.subject|tr:lang }}</h1>
     <div class="sub">
       <span class="ref">{{ task.instance.tracking_id }}</span> ·
-      {{ task.instance.template.name }} · step {{ task.step.order }} of
-      {{ task.instance.template.steps.count }}
+      {{ task.instance.template.name|tr:lang }} · {% t "step" %} {{ task.step.order }}/{{ task.instance.template.steps.count }}
     </div>
   </div>
   <div class="spacer"></div>
@@ -26,15 +25,15 @@
         <div class="timeline">
           {% for record in records %}
             <div class="tl-item done">
-              <div class="what">{{ record.step.name|default:"Submitted" }} — {{ record.get_decision_display }}</div>
-              <div class="when">{{ record.created_at|dt }} · {{ record.actor.display_name|default:"System" }}{% if record.actor_role %} ({{ record.actor_role }}){% endif %}</div>
-              {% if record.comments %}<div class="note">{{ record.comments }}</div>{% endif %}
+              <div class="what">{{ record.step.name|default:"Submitted"|tr:lang }} — {{ record.get_decision_display|tr:lang }}</div>
+              <div class="when">{{ record.created_at|dt }} · {{ record.actor.display_name|default:"System" }}{% if record.actor_role %} ({{ record.actor_role|tr:lang }}){% endif %}</div>
+              {% if record.comments %}<div class="note">{{ record.comments|tr:lang }}</div>{% endif %}
             </div>
           {% endfor %}
           {% if task.status == 'pending' %}
             <div class="tl-item now">
-              <div class="what">{{ task.step.name }} — awaiting your decision</div>
-              <div class="when">Due {{ task.due_at|dt }}{% if task.is_overdue %} · overdue{% endif %}</div>
+              <div class="what">{{ task.step.name|tr:lang }} — {% t "awaiting your decision" %}</div>
+              <div class="when">{% t "Due" %} {{ task.due_at|dt }}{% if task.is_overdue %} · {% t "overdue" %}{% endif %}</div>
             </div>
           {% endif %}
         </div>
@@ -68,7 +67,7 @@
               <label class="form-label required" for="comments">Note / reason</label>
               <textarea class="form-control" id="comments" name="comments" rows="3" required placeholder="Recorded in the audit trail and shared with the requester where appropriate."></textarea>
             </div>
-            <button class="btn btn-primary" type="submit">{% t "Submit" %} decision</button>
+            <button class="btn btn-primary" type="submit">{% t "Submit" %} {% t "decision" %}</button>
           </form>
         </div>
       </div>
@@ -85,13 +84,11 @@
           <dt>Tracking ID</dt><dd class="mono">{{ task.instance.tracking_id }}</dd>
           <dt>Status</dt><dd><span class="chip chip-{{ task.instance.status|chip }}">{{ task.instance.get_status_display }}</span></dd>
           <dt>Requester</dt><dd>{{ task.instance.requester.display_name|default:"-" }}</dd>
-          <dt>Current step</dt><dd>{{ task.step.name }} ({{ task.role.name }})</dd>
-          <dt>Task priority</dt><dd>{{ task.get_priority_display }}</dd>
+          <dt>Current step</dt><dd>{{ task.step.name|tr:lang }} ({{ task.role.name|tr:lang }})</dd>
+          <dt>Task priority</dt><dd>{{ task.get_priority_display|tr:lang }}</dd>
           <dt>Due</dt><dd>{{ task.due_at|dt }}</dd>
-          {% for key, value in task.instance.payload.items %}
-            {% if key != 'url' and key != 'subject' %}
-              <dt>{{ key|title }}</dt><dd>{{ value }}</dd>
-            {% endif %}
+          {% for label, value in payload_rows %}
+            <dt>{% t label %}</dt><dd>{{ value|tr:lang }}</dd>
           {% endfor %}
         </div>
       </div>
@@ -103,8 +100,8 @@
           <div class="list-row">
             <div class="ic">{{ step.order }}</div>
             <div class="grow">
-              <b>{{ step.name }}</b>
-              <span>{{ step.role.name }} · SLA {{ step.sla_hours }}h</span>
+              <b>{{ step.name|tr:lang }}</b>
+              <span>{{ step.role.name|tr:lang }} · SLA {{ step.sla_hours|bnnum }}{% t "h" %}</span>
             </div>
             {% if step == task.instance.current_step %}<span class="chip chip-lime">Current</span>{% endif %}
             {% if step.condition %}<span class="chip chip-muted" title='{{ step.condition }}'>Conditional</span>{% endif %}

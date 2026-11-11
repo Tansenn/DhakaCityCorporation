@@ -43,10 +43,11 @@ def facility(code='test-facility'):
         code=code, name=f'Test facility {code}', location='Test location')
 
 
-def unit(fac, code='R1', kind='room', amount='1500.00', deposit='1000.00'):
+def unit(fac, code='R1', kind='room', amount='1500.00', deposit='1000.00',
+         asset_category='dakbungalow'):
     obj = Unit.objects.create(
         facility=fac, code=code, name=f'Test {kind} {code}', kind=kind,
-        capacity=10 if kind == 'hall' else 2,
+        capacity=10 if kind == 'hall' else 2, asset_category=asset_category,
     )
     for category in ('government', 'citizen', 'organization'):
         Tariff.objects.create(

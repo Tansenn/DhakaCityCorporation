@@ -1,11 +1,11 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Attendance{% endblock %}
+{% block title %}{% t "Attendance" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <h1>{% t "Attendance" %}</h1>
-    <div class="sub">Daily attendance for {{ day|date:"l, d F Y" }}. Existing records are shown and can be corrected.</div>
+    <div class="sub">{% t "Daily attendance for" %} {{ day|d:"l, d F Y" }}. {% t "Existing records are shown and can be corrected." %}</div>
   </div>
   <div class="spacer"></div>
   <form method="get" class="d-flex gap-2">
@@ -17,7 +17,7 @@
 <div class="stat-grid mb-3">
   {% for code, label in statuses %}
     <div class="stat"><div class="label">{{ label }}</div><div class="value">{{ counts|get_item:code }}</div>
-      <div class="hint">On {{ day|date:"d M Y" }}</div><div class="ic"><i class="bi bi-calendar2-check"></i></div></div>
+      <div class="hint">On {{ day|d:"d M Y" }}</div><div class="ic"><i class="bi bi-calendar2-check"></i></div></div>
   {% endfor %}
 </div>
 
@@ -60,4 +60,5 @@
     </div>
   </div>
 </form>
+{% include 'partials/pagination.html' %}
 {% endblock %}

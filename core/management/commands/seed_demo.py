@@ -112,6 +112,7 @@ class Command(BaseCommand):
             self._seed_health()
             self._post_seed_settings()
 
+        call_command('seed_assets')
         self._create_backup()
         self._summarise()
 
@@ -686,14 +687,26 @@ class Command(BaseCommand):
         statuses = ['present'] * 82 + ['late'] * 8 + ['leave'] * 5 + ['absent'] * 5
         records = []
         seen = set()
+        attendance_people = [e for e in self.employees.values() if e.status == 'active']
         for offset in range(14):
             day = self._day(-offset)
-            if day.weekday() >= 5:
+            if day.weekday() >= 5 and offset != 0:
                 continue
-            for employee in list(self.employees.values())[:22]:
+            for index, employee in enumerate(attendance_people):
                 if (employee.pk, day) in seen:
                     continue
-                status = random.choice(statuses)
+                if offset == 0:
+                    # Keep today's sheet readable for the executive dashboard.
+                    if index < 17:
+                        status = 'present'
+                    elif index < 21:
+                        status = 'late'
+                    elif index < 23:
+                        status = 'absent'
+                    else:
+                        status = 'leave'
+                else:
+                    status = random.choice(statuses)
                 in_time = time(9, random.randint(0, 45)) if status in (
                     'present', 'late') else None
                 out_time = time(17, random.randint(0, 30)) if status in (
@@ -1209,6 +1222,9 @@ class Command(BaseCommand):
             ('Budget review for the next quarter', -2, time(10, 30), time(12, 0),
              'Conference room, Parishad office', 'held',
              'Approve re-appropriation proposals and review expenditure.'),
+            ('Weekly coordination with department heads', 0, time(10, 30), time(12, 0),
+             'Conference room, Parishad office', 'scheduled',
+             'Review the weekly service delivery report and pending decisions.'),
             ('Inter-agency disaster preparedness', 3, time(10, 0), time(11, 30),
              'Conference room, Parishad office', 'scheduled',
              'Coordinate cyclone preparedness with upazila offices.'),
@@ -1700,6 +1716,11 @@ class Command(BaseCommand):
             ('gazipur-sadar/R2', 'citizen', 'paid', 2, '',
              'Official training at Gazipur', 'approved',
              {'offset': 0, 'checked_in': True}),
+            ('kapasia/R2', 'government', 'paid', 3, '',
+             'Divisional inspection team', 'approved', {'offset': -1}),
+            ('sreepur/S2', 'organization', 'completed', 2, '',
+             'Official delegation stay', 'approved',
+             {'offset': -2, 'completed': True}),
             ('gazipur-sadar/R3', 'citizen', 'completed', 2, '',
              'Wedding family stay', 'approved', {'offset': -3, 'completed': True}),
             ('sreepur/R1', 'citizen', 'paid', 1, '',
@@ -2018,6 +2039,14 @@ class Command(BaseCommand):
                     created_at=self._at(days=1, hours=5),
                 )
 
+        # show today's collection on the executive dashboard
+        latest = Payment.objects.filter(status='success').order_by(
+            '-verified_at').first()
+        if latest:
+            latest.verified_at = self.now - timedelta(hours=2)
+            latest.initiated_at = self.now - timedelta(hours=2, minutes=12)
+            latest.save(update_fields=['verified_at', 'initiated_at'])
+
         self.stdout.write(
             '  bookings: %d, locks: %d, payments: %d, refunds: %d'
             % (Booking.objects.count(), InventoryLock.objects.count(),
@@ -2047,6 +2076,27 @@ class Command(BaseCommand):
                 booking.created_at + timedelta(hours=1),
             ))
         notes.extend([
+            (self.users['ceo'],
+             'Approval waiting at your desk',
+             'A booking application needs the final approval today.',
+             '/app/tasks/?status=pending', 'task_assigned', self._at(hours=2)),
+            (self.users['ceo'],
+             'Meeting today: Weekly coordination with department heads',
+             'Starts at 10:30 AM in the conference room, Parishad office.',
+             '/app/meetings/', 'reminder', self._at(hours=5)),
+            (self.users['ceo'],
+             'Revenue summary for November',
+             'This month\u2019s collections and pending payments are ready in the '
+             'executive summary.', '/app/mis/', 'status_update',
+             self._at(days=1, hours=2)),
+            (self.users['admin'],
+             'Nightly backup completed',
+             'The database backup finished and the integrity check passed.',
+             '/app/security/', 'status_update', self._at(hours=3)),
+            (self.users['admin'],
+             'System health summary',
+             'No errors were recorded in the last 24 hours.',
+             '/app/health/', 'status_update', self._at(hours=7)),
             (self.users['reception'],
              'Upcoming confirmed stays', 'Three confirmed bookings are due in '
              'the next three days at Gazipur Sadar.', '/app/reception/',
@@ -2069,9 +2119,6 @@ class Command(BaseCommand):
             (self.users['registry'],
              'Files forwarded', 'Two files were forwarded for your review.',
              '/app/documents/', 'status_update', self._at(days=2)),
-            (self.users['admin'],
-             'System health summary', 'No errors were recorded in the last '
-             '24 hours.', '/app/health/', 'status_update', self._at(days=1)),
             (self.users['management'],
              'Monthly report ready', 'The monthly booking and revenue report is '
              'ready for review.', '/app/mis/bookings/', 'status_update',
@@ -2222,7 +2269,7 @@ class Command(BaseCommand):
 
     def _seed_health(self):
         events = [
-            ('info', 'Application started in demo mode', '/'),
+            ('info', 'Application started', '/'),
             ('info', 'Database connectivity check passed', '/health/'),
             ('info', 'Vendored static assets loaded', '/static/'),
             ('warning', 'Payment callback with an invalid signature was '

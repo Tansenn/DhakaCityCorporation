@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 {% load static gzp %}
-{% block title %}Facilities and availability{% endblock %}
+{% block title %}{% t "Assets" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Facilities and availability</h1>
-    <div class="sub">Four sample Dakbungalows, room and hall inventory, tariffs and blackout dates.</div>
+    <h1>{% t "Assets" %}</h1>
+    <div class="sub">{% t "Land, ponds, markets, kheyaghat, auditorium and the Dak Bungalow register in one place." %}</div>
   </div>
   <div class="spacer"></div>
   <form method="post" action="/app/facilities/release-holds/">
     {% csrf_token %}
     <button class="btn btn-sm btn-outline-primary" type="submit">
-      <i class="bi bi-arrow-clockwise me-1"></i>Release expired holds ({{ expired_holds }})
+      <i class="bi bi-arrow-clockwise me-1"></i>{% t "Release expired holds" %} ({{ expired_holds }})
     </button>
   </form>
   {% if "facilities.manage"|can:user %}
@@ -19,14 +19,51 @@
   {% endif %}
 </div>
 
+<div class="card gov-card mb-3">
+  <div class="card-header">
+    <strong><i class="bi bi-collection me-1"></i>{% t "All assets" %}</strong>
+    <span class="spacer"></span>
+    <span class="note-inline">{% t "Zila Parishad properties" %}</span>
+  </div>
+  <div class="card-body">
+    <div class="asset-grid">
+      {% for asset in assets %}
+        {% if asset.code == 'dakbungalow' %}
+          <a class="asset-card" href="#dakbungalow">
+            <span class="ic"><i class="bi {{ asset.icon }}"></i></span>
+            <div>
+              <b>{% t asset.name %}</b>
+              <span class="detail">{{ rest_houses|bnnum }} {% t "rest houses" %} · {{ unit_count|bnnum }} {% t "units" %}</span>
+            </div>
+            <i class="bi bi-arrow-down go"></i>
+          </a>
+        {% else %}
+          <div class="asset-card">
+            <span class="ic"><i class="bi {{ asset.icon }}"></i></span>
+            <div>
+              <b>{% t asset.name %}</b>
+              <span class="detail">{{ asset.detail|tr:lang }}</span>
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-2" id="dakbungalow">
+  <h2 class="h6 mb-0"><i class="bi bi-house-door me-1"></i>{% t "Dak Bungalow details" %}</h2>
+  <span class="note-inline">{% t "Room and hall inventory, tariffs and blackout dates." %}</span>
+</div>
+
 <div class="d-grid gap-3">
 {% for card in cards %}
   <div class="card">
     <div class="card-header">
-      <i class="bi bi-building me-1"></i> {{ card.facility.name }}
+      <i class="bi bi-building me-1"></i> {{ card.facility.name|tr:lang }}
       <span class="badge-soft ms-2">{{ card.units|length }} unit(s)</span>
       <div class="spacer"></div>
-      <span class="note-inline me-2">{{ card.facility.location }}</span>
+      <span class="note-inline me-2">{{ card.facility.location|tr:lang }}</span>
       <a class="btn btn-sm btn-outline-primary" href="/app/facilities/{{ card.facility.pk }}/">Manage</a>
       <a class="btn btn-sm btn-outline-secondary" href="/facilities/{{ card.facility.code }}/">Public page</a>
     </div>
@@ -38,7 +75,7 @@
             <div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div><div class="dow">Sun</div>
             {% for day in card.calendar %}
               <div class="cal-day {% if day.is_blackout %}blackout{% elif day.is_past %}past{% endif %}">
-                <div class="n">{{ day.date|date:"j" }}</div>
+                <div class="n">{{ day.date|d:"j" }}</div>
                 {% if day.is_blackout %}<div class="free none">Closed</div>
                 {% elif day.free %}<div class="free">{{ day.free }} free</div>
                 {% else %}<div class="free none">Full</div>{% endif %}
@@ -54,8 +91,8 @@
               <tbody>
               {% for unit in card.units %}
                 <tr>
-                  <td><b>{{ unit.name }}</b><br><span class="note-inline">{{ unit.code }}</span></td>
-                  <td><span class="chip {% if unit.is_hall %}chip-teal{% elif unit.is_suite %}chip-primary{% else %}chip-muted{% endif %}">{{ unit.get_kind_display }}</span></td>
+                  <td><b>{{ unit.name|tr:lang }}</b><br><span class="note-inline">{{ unit.code }}</span></td>
+                  <td><span class="chip {% if unit.is_hall %}chip-teal{% elif unit.is_suite %}chip-primary{% else %}chip-muted{% endif %}">{{ unit.get_kind_display|tr:lang }}</span></td>
                   <td>{{ unit.capacity }}</td>
                   <td class="num">
                     {% for tariff in unit.tariffs.all %}{% if tariff.category == 'citizen' %}৳{{ tariff.amount|floatformat:0 }}{% endif %}{% endfor %}
@@ -64,7 +101,7 @@
                     <div class="d-flex gap-1">
                       {% for day in unit.next_days %}
                         <span class="chip {% if day.free %}chip-success{% else %}chip-danger{% endif %}"
-                              title="{{ day.date|date:'d M Y' }}">{{ day.date|date:"d" }}</span>
+                              title="{{ day.date|d:'d M Y' }}">{{ day.date|d:"d" }}</span>
                       {% endfor %}
                     </div>
                   </td>

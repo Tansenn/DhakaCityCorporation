@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Roles & permissions{% endblock %}
+{% block title %}{% t "Roles & permissions" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Roles, display names & permission matrix</h1>
-    <div class="sub">Edit role display names and tick the permissions each role receives. Changes apply immediately and are audited.</div>
+    <h1>{% t "Roles, display names & permission matrix" %}</h1>
+    <div class="sub">{% t "Edit role display names and tick the permissions each role receives. Changes apply immediately and are audited." %}</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-outline-secondary btn-sm" href="/app/users/"><i class="bi bi-arrow-left me-1"></i> Accounts</a>
+  <a class="btn btn-outline-secondary btn-sm" href="/app/users/"><i class="bi bi-arrow-left me-1"></i> {% t "Accounts" %}</a>
 </div>
 
 <div class="alert alert-warning d-flex gap-2 align-items-start">

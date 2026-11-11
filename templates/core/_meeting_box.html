@@ -1,0 +1,38 @@
+{% load gzp %}
+<div class="card gov-card h-100" data-tour="meeting-card">
+  <div class="card-header">
+    <strong><i class="bi bi-calendar-event me-1"></i>{% t "Today's meetings" %}</strong>
+    <span class="spacer"></span>
+    <span class="chip chip-muted">{{ meetings.count|bnnum }} {% t "today" %}</span>
+    <a class="note-inline ms-2" href="/app/meetings/">{% t "All meetings" %}</a>
+  </div>
+  <div class="list-rows">
+    {% for meeting in meetings.today %}
+      <div class="list-row">
+        <div class="list-time">
+          {{ meeting.start_time|time:"H:i"|bnnum }}{% if meeting.end_time %}–{{ meeting.end_time|time:"H:i"|bnnum }}{% endif %}
+        </div>
+        <div class="grow">
+          <b>{{ meeting.title|tr:lang }}</b>
+          <div class="note-inline">{{ meeting.venue|tr:lang }}{% if meeting.chair %} · {{ meeting.chair.display_name }}{% endif %}</div>
+        </div>
+        <span class="chip chip-{{ meeting.status|chip }}">{{ meeting.get_status_display|tr:lang }}</span>
+      </div>
+    {% empty %}
+      <div class="table-empty py-3">
+        <i class="bi bi-calendar2-x"></i>{% t "No meeting is scheduled today." %}
+      </div>
+      {% if meetings.upcoming %}
+        <div class="list-subhead">{% t "Next meetings" %}</div>
+        {% for meeting in meetings.upcoming|slice:":3" %}
+          <div class="list-row">
+            <div class="list-time">{{ meeting.date|d:"d M" }}</div>
+            <div class="grow"><b>{{ meeting.title|tr:lang }}</b>
+              <div class="note-inline">{{ meeting.venue|tr:lang }}{% if meeting.start_time %} · {{ meeting.start_time|time:"H:i"|bnnum }}{% endif %}</div>
+            </div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>

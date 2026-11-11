@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Authority matrix{% endblock %}
+{% block title %}{% t "Authority matrix" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Authority matrix</h1>
-    <div class="sub">Who may give final approval, in which request category and up to what amount. Approvals outside this matrix are refused by the server.</div>
+    <h1>{% t "Authority matrix" %}</h1>
+    <div class="sub">{% t "Who may give final approval, in which request category and up to what amount. Approvals outside this matrix are refused by the server." %}</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-outline-primary btn-sm" href="/app/workflow/"><i class="bi bi-diagram-3 me-1"></i> Workflow designer</a>
+  <a class="btn btn-outline-primary btn-sm" href="/app/workflow/"><i class="bi bi-diagram-3 me-1"></i> {% t "Workflow designer" %}</a>
 </div>
 
 <div class="alert alert-lime">

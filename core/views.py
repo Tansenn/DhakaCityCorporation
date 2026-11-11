@@ -16,8 +16,11 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from accounts.decorators import perm_required, staff_required
+from accounts.models import Role, User
 from audit.models import AuditEntry, log
-from bookings.models import STATUSES, Booking
+from bookings.journey import booking_route
+from bookings.models import Booking
+from core.assets import asset_status
 from core.defaults import SETTING_DEFS
 from core.models import (
     AppSetting,
@@ -30,7 +33,11 @@ from core.models import (
 from core.utils import money, paginate, parse_date, today
 from facilities.availability import available_units
 from facilities.models import Facility
-from workflow.models import WorkflowInstance, WorkflowTask
+from hr.models import Attendance, Employee
+from meetings.models import ActionItem, Meeting
+from notifications.models import Notification
+from payments.models import Payment, Refund
+from workflow.models import WorkflowTask
 
 
 def home(request):
@@ -87,7 +94,7 @@ def verify_permit(request, token):
 
 
 def set_language(request, code):
-    if code not in ('en', 'bn'):
+    if code not in ('en', 'bn', 'bng'):
         code = 'en'
     request.session['gzp_lang'] = code
     target = request.GET.get('next') or '/'
@@ -97,69 +104,236 @@ def set_language(request, code):
     return HttpResponseRedirect(target)
 
 
-@staff_required
-def dashboard(request):
-    status_counts = {code: 0 for code, _ in STATUSES}
-    for row in Booking.objects.values('status').annotate(n=Count('id')):
-        status_counts[row['status']] = row['n']
+def _mail_summary(user, day):
+    qs = Notification.objects.filter(user=user, channel='inapp')
+    items = list(qs.order_by('-created_at')[:3])
+    for item in items:
+        item.preview = ' '.join((item.body or '').split())[:110]
+    return {
+        'unread': qs.filter(read_at__isnull=True).count(),
+        'today': qs.filter(created_at__date=day).count(),
+        'items': items,
+    }
 
-    month_start = today().replace(day=1)
-    collection = Booking.objects.filter(
-        status__in=('paid', 'completed'), permit_issued_at__date__gte=month_start
-    ).aggregate(total=Sum('total'))['total'] or 0
 
-    next_week = today() + timedelta(days=7)
-    upcoming = Booking.objects.filter(
-        status__in=('paid', 'completed'), check_in__gte=today(), check_in__lt=next_week
-    ).select_related('facility', 'unit', 'applicant').order_by('check_in')[:8]
+def _attendance_summary(day):
+    rows = list(Attendance.objects.filter(date=day).select_related('employee'))
+    active = Employee.objects.filter(status='active')
+    active_total = active.count()
+    marked_active = len([row for row in rows if row.employee.status == 'active'])
+    present = [row.employee.name for row in rows if row.status in ('present', 'late')]
+    absent = [row.employee.name for row in rows if row.status == 'absent']
+    on_leave = [row.employee.name for row in rows if row.status == 'leave']
+    missing = active.exclude(pk__in=[row.employee_id for row in rows])
+    missing_names = list(missing.values_list('name', flat=True)[:3])
+    return {
+        'recorded': bool(rows),
+        'total': active_total,
+        'present': len(present),
+        'present_names': present[:3],
+        'present_more': max(0, len(present) - 3),
+        'absent': len(absent),
+        'absent_names': absent[:3],
+        'absent_more': max(0, len(absent) - 3),
+        'leave': len(on_leave),
+        'leave_names': on_leave[:3],
+        'leave_more': max(0, len(on_leave) - 3),
+        'not_marked': active_total - marked_active,
+        'not_marked_names': missing_names,
+        'not_marked_more': max(0, active_total - marked_active - len(missing_names)),
+    }
 
-    pending_all = WorkflowTask.objects.filter(status='pending')
-    my_tasks = pending_all.filter(Q(role=request.user.role) | Q(assignee=request.user))
-    overdue = pending_all.filter(due_at__lt=timezone.now())
-    recent = Booking.objects.select_related('facility', 'unit', 'applicant')[:8]
+
+def _meeting_summary(day):
+    todays_qs = Meeting.objects.filter(date=day).exclude(status='cancelled')
+    today_count = todays_qs.count()
+    todays = list(todays_qs.select_related('chair').order_by('start_time', 'pk')[:3])
+    upcoming = list(
+        Meeting.objects.filter(date__gt=day, status='scheduled')
+        .select_related('chair').order_by('date', 'start_time', 'pk')[:3])
+    return {
+        'today': todays,
+        'count': today_count,
+        'upcoming': upcoming,
+        'next': todays[0] if todays else (upcoming[0] if upcoming else None),
+        'open_actions': ActionItem.objects.exclude(
+            status__in=('done', 'cancelled')).count(),
+    }
+
+
+def _revenue_summary(day):
+    month_start = day.replace(day=1)
+    verified = Payment.objects.filter(status='success', verified_at__isnull=False)
+    pending = Booking.objects.filter(status='awaiting_payment')
+    return {
+        'month': verified.filter(verified_at__date__gte=month_start)
+                  .aggregate(total=Sum('amount'))['total'] or 0,
+        'today': verified.filter(verified_at__date=day)
+                 .aggregate(total=Sum('amount'))['total'] or 0,
+        'payments': verified.filter(verified_at__date__gte=month_start).count(),
+        'pending': pending.aggregate(total=Sum('total'))['total'] or 0,
+        'pending_count': pending.count(),
+    }
+
+
+def _approval_summary(user):
+    pending = WorkflowTask.objects.filter(status='pending').select_related(
+        'instance', 'step', 'role', 'assignee')
+    mine = pending.filter(Q(role=user.role) | Q(assignee=user))
+    return {
+        'pending': pending.count(),
+        'mine': mine.count(),
+        'desk': pending.filter(role=user.role).count() if user.role else 0,
+        'overdue': pending.filter(due_at__lt=timezone.now()).count(),
+        'waiting': list(mine.order_by('due_at')[:3]),
+    }
+
+
+def _application_summary(day):
+    confirmed = Booking.objects.filter(status__in=('paid', 'completed'))
+    return {
+        'arrivals': list(confirmed.filter(check_in=day).select_related(
+            'facility', 'unit')[:3]),
+        'departures': list(confirmed.filter(check_out=day).select_related(
+            'facility', 'unit')[:3]),
+        'arrival_count': confirmed.filter(check_in=day).count(),
+        'departure_count': confirmed.filter(check_out=day).count(),
+        'in_house': confirmed.filter(check_in__lt=day, check_out__gt=day).count(),
+        'new_today': Booking.objects.filter(created_at__date=day).count(),
+        'recent': Booking.objects.select_related('facility', 'unit', 'applicant')[:3],
+    }
+
+
+def _admin_summary():
+    return {
+        'users': User.objects.count(),
+        'active_users': User.objects.filter(is_active=True).count(),
+        'roles': Role.objects.count(),
+        'backup': BackupRecord.objects.order_by('-created_at').first(),
+        'health': list(HealthEvent.objects.order_by('-created_at')[:3]),
+        'audit': list(AuditEntry.objects.select_related('actor').order_by(
+            '-created_at')[:3]),
+        'settings_changed': AppSetting.objects.order_by('-updated_at')[:3],
+    }
+
+
+def _dashboard_alerts(user):
     alerts = []
     stale = Booking.objects.filter(
         status='awaiting_payment', payment_deadline__lt=timezone.now()).count()
     if stale:
         alerts.append({
             'level': 'warning',
-            'text': f'{stale} approved booking(s) passed the payment window and are awaiting release.',
+            'count': stale,
+            'text_key': 'approved booking(s) passed the payment window.',
             'url': '/app/bookings/?status=awaiting_payment',
         })
-    unmatched = Booking.objects.filter(refund_status='requested').count()
-    if unmatched and request.user.can('payments.refund'):
+    refunds = Booking.objects.filter(refund_status='requested').count()
+    if refunds and user.can('payments.refund'):
         alerts.append({
             'level': 'info',
-            'text': f'{unmatched} refund request(s) awaiting finance action.',
+            'count': refunds,
+            'text_key': 'refund request(s) awaiting finance action.',
             'url': '/app/refunds/',
         })
+    overdue = WorkflowTask.objects.filter(
+        status='pending', due_at__lt=timezone.now()).count()
     if overdue:
         alerts.append({
             'level': 'danger',
-            'text': f'{overdue.count()} workflow task(s) are overdue and need escalation review.',
+            'count': overdue,
+            'text_key': 'approval task(s) are overdue.',
             'url': '/app/tasks/?status=overdue',
         })
+    return alerts
 
-    by_facility = Facility.objects.filter(is_active=True).annotate(
-        total=Count('bookings'),
-        confirmed=Count('bookings', filter=Q(bookings__status__in=('paid', 'completed'))),
-    )
-    return render(request, 'core/dashboard.html', {
-        'status_counts': status_counts,
-        'status_rows': [(code, label, status_counts.get(code, 0))
-                        for code, label in STATUSES],
-        'total_bookings': Booking.objects.count(),
-        'collection': collection,
-        'upcoming': upcoming,
-        'recent': recent,
-        'pending_tasks': pending_all.count(),
-        'my_pending': my_tasks.count(),
-        'overdue_tasks': overdue.count(),
-        'by_facility': by_facility,
-        'alerts': alerts,
-        'page_title': 'Dashboard',
-        'today': today(),
+
+def _role_focus(user, day, approvals, meetings):
+    facility = user.facility
+    if user.can('bookings.reception'):
+        rows = Booking.objects.filter(
+            status__in=('paid', 'completed'), check_in=day)
+        if facility:
+            rows = rows.filter(facility=facility)
+        return {
+            'label': 'Arrivals today', 'value': rows.count(),
+            'hint': 'Guests to check in at the desk', 'url': '/app/reception/',
+            'icon': 'box-arrow-in-right',
+        }
+    if user.can('payments.refund'):
+        count = Refund.objects.filter(status='requested').count()
+        return {
+            'label': 'Refunds to process', 'value': count,
+            'hint': 'Requests waiting for finance', 'url': '/app/refunds/',
+            'icon': 'arrow-counterclockwise',
+        }
+    if user.can('hr.attendance'):
+        rows = Attendance.objects.filter(date=day)
+        present = rows.filter(status__in=('present', 'late')).count()
+        return {
+            'label': 'Staff present today',
+            'value': f'{present}/{Employee.objects.filter(status="active").count()}',
+            'hint': 'Marked on the attendance register',
+            'url': '/app/hr/attendance/', 'icon': 'calendar2-check',
+        }
+    if user.can('meetings.manage'):
+        return {
+            'label': 'Meetings today', 'value': meetings['count'],
+            'hint': 'Scheduled for today', 'url': '/app/meetings/',
+            'icon': 'calendar-event',
+        }
+    return {
+        'label': 'Approvals waiting', 'value': approvals['desk'],
+        'hint': 'Waiting at your desk', 'url': '/app/tasks/?status=open',
+        'icon': 'inbox',
+    }
+
+
+@staff_required
+def dashboard(request):
+    user = request.user
+    day = today()
+    mail = _mail_summary(user, day)
+    attendance = _attendance_summary(day)
+    meetings = _meeting_summary(day)
+    revenue = _revenue_summary(day)
+    approvals = _approval_summary(user)
+    applications = _application_summary(day)
+    route = booking_route(user)
+    my_step = next((step for step in route if step['is_mine']), None)
+    my_tasks = WorkflowTask.objects.select_related(
+        'instance', 'step').filter(
+            Q(role=user.role) | Q(assignee=user), status='pending'
+        ).order_by('due_at')[:3]
+
+    context = {
+        'today': day,
+        'alerts': _dashboard_alerts(user),
+        'mail': mail,
+        'attendance': attendance,
+        'meetings': meetings,
+        'revenue': revenue,
+        'approvals': approvals,
+        'applications': applications,
+        'route': route,
+        'my_step': my_step,
+        'my_tasks_list': my_tasks,
+        'asset_status': asset_status(day),
+        'my_pending': approvals['mine'],
+        'overdue_tasks': approvals['overdue'],
+        'pending_tasks': approvals['pending'],
+    }
+    if user.can('bookings.approve_ceo'):
+        context['page_title'] = 'CEO dashboard'
+        return render(request, 'core/dashboard_ceo.html', context)
+    if user.can('accounts.manage_settings'):
+        context.update({'admin_info': _admin_summary(), 'page_title': 'Administrator dashboard'})
+        return render(request, 'core/dashboard_admin.html', context)
+    context.update({
+        'focus': _role_focus(user, day, approvals, meetings),
+        'page_title': 'My dashboard',
     })
+    return render(request, 'core/dashboard_role.html', context)
 
 
 @perm_required('accounts.manage_settings')
@@ -195,7 +369,8 @@ def settings_page(request):
         })
     return render(request, 'core/settings.html', {
         'groups': groups,
-        'history': AppSetting.objects.exclude(updated_at__isnull=True).order_by('-updated_at')[:20],
+        'history': paginate(request, AppSetting.objects.exclude(
+            updated_at__isnull=True).order_by('-updated_at', 'pk'), 20),
         'page_title': 'Settings and master data',
     })
 
@@ -298,7 +473,7 @@ def security_page(request):
     ]
     return render(request, 'core/security.html', {
         'controls': controls,
-        'backups': BackupRecord.objects.select_related('created_by')[:20],
+        'backups': paginate(request, BackupRecord.objects.select_related('created_by'), 20),
         'page_title': 'Security and backup',
     })
 
@@ -312,7 +487,7 @@ def health_page(request):
             cursor.fetchone()
     except Exception as exc:  # pragma: no cover - diagnostic only
         db_ok, db_note = False, str(exc)
-    events = HealthEvent.objects.all()[:30]
+    events = paginate(request, HealthEvent.objects.all(), 30)
     counts = {kind: HealthEvent.objects.filter(kind=kind).count()
               for kind, _ in HealthEvent.KIND}
     last_backup = BackupRecord.objects.order_by('-created_at').first()

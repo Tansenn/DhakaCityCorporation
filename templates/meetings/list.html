@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Meetings{% endblock %}
+{% block title %}{% t "Meetings" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -13,7 +13,7 @@
 
 <div class="stat-grid mb-3">
   <div class="stat"><div class="label">Scheduled</div><div class="value">{{ page_obj.paginator.count }}</div><div class="hint">Matching the filter</div><div class="ic"><i class="bi bi-calendar-event"></i></div></div>
-  <div class="stat"><div class="label">Today</div><div class="value">{{ today|date:"d M" }}</div><div class="hint">{{ today|date:"l" }}</div><div class="ic"><i class="bi bi-clock"></i></div></div>
+  <div class="stat"><div class="label">Today</div><div class="value">{{ today|d:"d M" }}</div><div class="hint">{{ today|d:"l" }}</div><div class="ic"><i class="bi bi-clock"></i></div></div>
   <div class="stat accent"><div class="label">Open actions</div><div class="value">{{ open_actions }}</div><div class="hint">Across all meetings</div><div class="ic"><i class="bi bi-list-check"></i></div></div>
 </div>
 

@@ -1,0 +1,22 @@
+{% load gzp %}
+<div class="route-strip">
+  {% for step in route %}
+    <div class="route-step {% if step.is_mine %}mine{% endif %}">
+      <div class="route-num">{{ step.order|bnnum }}</div>
+      <div class="route-main">
+        <div class="route-title">{{ step.label|tr:lang }}</div>
+        <div class="route-role">{{ step.role_short|tr:lang }}</div>
+        <div class="route-duty">{{ step.duty|tr:lang }}</div>
+        <div class="route-sla">{{ step.sla_hours|bnnum }} {% t "hours to decide" %}</div>
+        {% if step.is_mine %}<span class="route-mine">{% t "Your desk" %}</span>{% endif %}
+      </div>
+    </div>
+  {% endfor %}
+  <div class="route-step after">
+    <div class="route-num"><i class="bi bi-credit-card"></i></div>
+    <div class="route-main">
+      <div class="route-title">{% t "Payment" %}</div>
+      <div class="route-duty">{% t "The applicant pays after final approval" %}</div>
+    </div>
+  </div>
+</div>

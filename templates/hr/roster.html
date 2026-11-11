@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Duty roster{% endblock %}
+{% block title %}{% t "Duty roster" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -8,8 +8,8 @@
     <div class="sub">Week of {{ days.0|d }} to {{ days.6|d }}. One shift per employee per day.</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-sm btn-outline-primary" href="/app/hr/roster/?start={{ start|date:'Y-m-d' }}">This week</a>
-  <a class="btn btn-sm btn-outline-primary" href="/app/hr/roster/?start={{ days.6|date:'Y-m-d' }}">Next week</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/hr/roster/?start={{ start|d:'Y-m-d' }}">This week</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/hr/roster/?start={{ days.6|d:'Y-m-d' }}">Next week</a>
 </div>
 
 <div class="card">
@@ -18,11 +18,11 @@
       <thead>
         <tr>
           <th>Employee</th>
-          {% for day in days %}<th>{{ day|date:"D d M" }}</th>{% endfor %}
+          {% for day in days %}<th>{{ day|d:"D d M" }}</th>{% endfor %}
         </tr>
       </thead>
       <tbody>
-      {% for employee in employees %}
+      {% for employee in page_obj %}
         <tr>
           <td><b>{{ employee.name }}</b><div class="note-inline">{{ employee.department.name|default:"-" }}</div></td>
           {% for day in days %}
@@ -44,6 +44,8 @@
     </table>
   </div>
 </div>
+
+{% include 'partials/pagination.html' %}
 
 <div class="card mt-3">
   <div class="card-header"><strong>Assign a shift</strong><span class="note-inline">Saving the same employee and date replaces the existing shift</span></div>

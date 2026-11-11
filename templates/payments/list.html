@@ -1,17 +1,17 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Payments and reconciliation{% endblock %}
+{% block title %}{% t "Payments and reconciliation" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Payments and reconciliation</h1>
-    <div class="sub">Demand versus collection, gateway references, failed and duplicate callbacks and refunds.</div>
+    <h1>{% t "Payments and reconciliation" %}</h1>
+    <div class="sub">{% t "Demand versus collection, gateway references, failed and duplicate callbacks and refunds." %}</div>
   </div>
   <div class="spacer"></div>
   <form method="post" action="/app/payments/release-holds/">
     {% csrf_token %}<input type="hidden" name="next" value="/app/payments/">
     <button class="btn btn-sm btn-outline-primary" type="submit">
-      <i class="bi bi-arrow-clockwise me-1"></i>Release expired holds &amp; payment windows
+      <i class="bi bi-arrow-clockwise me-1"></i>{% t "Release expired holds" %} &amp; {% t "payment windows" %}
     </button>
   </form>
   <a class="btn btn-sm btn-outline-primary" href="/app/payments/export.csv"><i class="bi bi-download me-1"></i>Export CSV</a>

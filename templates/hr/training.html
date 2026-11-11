@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Training and expiry{% endblock %}
+{% block title %}{% t "Training and expiry" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -36,6 +36,8 @@
     </table>
   </div>
 </div>
+
+{% include 'partials/pagination.html' %}
 
 <div class="card mt-3">
   <div class="card-header"><strong>Add training record</strong></div>

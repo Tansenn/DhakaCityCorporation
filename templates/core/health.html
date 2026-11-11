@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}System health{% endblock %}
+{% block title %}{% t "System health" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -77,7 +77,7 @@
       {% for event in events %}
         <tr>
           <td class="small">{{ event.created_at|dt }}</td>
-          <td><span class="chip chip-{% if event.kind == 'error' %}danger{% elif event.kind == 'warning' %}warning{% else %}info{% endif %}">{{ event.get_kind_display }}</span></td>
+          <td><span class="chip chip-{% if event.kind == 'error' %}danger{% elif event.kind == 'warning' %}warning{% else %}info{% endif %}">{{ event.get_kind_display|tr:lang }}</span></td>
           <td>{{ event.message }}</td>
           <td class="small">{{ event.path|default:"-" }}</td>
         </tr>
@@ -88,4 +88,5 @@
     </table>
   </div>
 </div>
+{% include 'partials/pagination.html' with page_obj=events %}
 {% endblock %}

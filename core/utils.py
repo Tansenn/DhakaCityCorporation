@@ -25,7 +25,11 @@ def money(value, symbol='৳'):
         amount = Decimal(str(value or 0))
     except (InvalidOperation, TypeError, ValueError):
         amount = Decimal('0')
-    return f'{symbol}{amount:,.2f}'
+    text = f'{symbol}{amount:,.2f}'
+    from core.i18n import BN_DIGITS, CURRENT_LANG
+    if CURRENT_LANG.get() == 'bn':
+        text = text.translate(BN_DIGITS)
+    return text
 
 
 def parse_date(value, default=None):
@@ -203,5 +207,6 @@ def initials(name):
 def paginate(request, queryset, per_page=25):
     from django.core.paginator import Paginator
 
-    paginator = Paginator(queryset, per_page)
+    page_size = per_page if request.GET.get('view') == 'all' else 3
+    paginator = Paginator(queryset, page_size)
     return paginator.get_page(request.GET.get('page'))

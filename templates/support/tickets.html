@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Support tickets{% endblock %}
+{% block title %}{% t "Support tickets" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <h1>{% t "Support tickets" %}</h1>
-    <div class="sub">Incidents and service requests with the sample support targets:
-      Critical {{ targets.Critical }}h, High {{ targets.High }}h, Medium {{ targets.Medium }}h, Low {{ targets.Low }}h
-      (business hours).</div>
+    <div class="sub">{% t "Incidents and service requests with the sample support targets:" %}
+      {% t "Critical" %} {{ targets.Critical|bnnum }}h, {% t "High" %} {{ targets.High|bnnum }}h, {% t "Medium" %} {{ targets.Medium|bnnum }}h, {% t "Low" %} {{ targets.Low|bnnum }}h
+      ({% t "business hours" %}).</div>
   </div>
   <div class="spacer"></div>
   <a class="btn btn-sm btn-outline-primary" href="/app/acceptance/"><i class="bi bi-calendar3-range me-1"></i>45-day plan</a>
@@ -60,6 +60,8 @@
     </table>
   </div>
 </div>
+
+{% include 'partials/pagination.html' %}
 
 <div class="card mt-3">
   <div class="card-header"><strong>Log a ticket</strong></div>

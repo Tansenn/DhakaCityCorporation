@@ -8,13 +8,14 @@ from django.utils import timezone
 from accounts.decorators import perm_required
 from accounts.models import User
 from audit.models import log
-from core.utils import parse_date, today
+from core.utils import paginate, parse_date, today
 from meetings.models import ActionItem, Attendee, Meeting
 
 
 @perm_required('meetings.view')
 def meeting_list(request):
-    rows = Meeting.objects.select_related('chair', 'secretary')
+    rows = Meeting.objects.select_related('chair', 'secretary').order_by(
+        '-date', '-start_time', 'pk')
     status = request.GET.get('status', '')
     if status:
         rows = rows.filter(status=status)
@@ -38,7 +39,7 @@ def meeting_list(request):
         return redirect('meetings_list')
 
     return render(request, 'meetings/list.html', {
-        'page_obj': rows,
+        'page_obj': paginate(request, rows),
         'statuses': Meeting.STATUS,
         'users': User.objects.filter(is_active=True, role__isnull=False).select_related('role'),
         'today': today(),
@@ -131,8 +132,10 @@ def actions(request):
         messages.success(request, 'Action item updated.')
         return redirect('meetings_actions')
 
+    page_obj = paginate(request, rows)
     return render(request, 'meetings/actions.html', {
-        'rows': rows,
+        'rows': page_obj,
+        'page_obj': page_obj,
         'status': status,
         'statuses': ActionItem.STATUS,
         'page_title': 'Action follow-up',

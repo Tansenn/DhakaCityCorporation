@@ -1,14 +1,14 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Users & roles{% endblock %}
+{% block title %}{% t "Users & roles" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
-    <h1>Users & roles</h1>
-    <div class="sub">Accounts, role display names and the server-enforced permission matrix.</div>
+    <h1>{% t "Users & roles" %}</h1>
+    <div class="sub">{% t "Accounts, role display names and the server-enforced permission matrix." %}</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-outline-primary btn-sm" href="/app/roles/"><i class="bi bi-grid-3x3-gap me-1"></i> Role permissions</a>
+  <a class="btn btn-outline-primary btn-sm" href="/app/roles/"><i class="bi bi-grid-3x3-gap me-1"></i> {% t "Role permissions" %}</a>
   {% if "accounts.manage_users"|can:user %}
     <a class="btn btn-primary btn-sm" href="/app/users/new/"><i class="bi bi-plus-lg me-1"></i> New account</a>
   {% endif %}
@@ -17,9 +17,8 @@
 <div class="alert alert-lime d-flex gap-2 align-items-start">
   <i class="bi bi-info-circle mt-1"></i>
   <div>
-    Demo accounts and password <span class="mono">Demo@12345</span> are created by
-    <span class="mono">python manage.py seed_demo --reset</span>. Role names are editable
-    in the matrix; permissions are enforced on the server for every page and file.
+    {% t "Demo accounts and the password" %} <span class="mono">Demo@12345</span> {% t "are created by" %}
+    <span class="mono">python manage.py seed_demo --reset</span>{% t ". Role names are editable in the matrix; permissions are enforced on the server for every page and file." %}
   </div>
 </div>
 

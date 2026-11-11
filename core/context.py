@@ -1,7 +1,10 @@
 from django.conf import settings
 
+from core import i18n
+
 
 def global_context(request):
+    from core.assets import ASSETS
     from accounts.nav import build_nav
     from accounts.demo import demo_accounts
     from core.models import get_setting
@@ -28,8 +31,8 @@ def global_context(request):
 
     return {
         'APP_NAME': app_name,
-        'APP_NAME_MAIN': app_main.strip() or app_name,
-        'APP_NAME_SUB': app_sub.strip() or 'Integrated Digital Platform',
+        'APP_NAME_MAIN': i18n.translate(app_main.strip() or app_name, lang),
+        'APP_NAME_SUB': i18n.translate(app_sub.strip() or 'Integrated Digital Platform', lang),
         'ORG_NAME': settings.ORGANISATION,
         'SUPPLIER': settings.SUPPLIER,
         'DEMO_MODE': settings.DEMO_MODE,
@@ -39,4 +42,5 @@ def global_context(request):
         'unread_count': unread,
         'demo_accounts': demo_accounts() if settings.DEMO_MODE else [],
         'global_today': None,
+        'asset_categories': ASSETS,
     }

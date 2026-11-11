@@ -1,31 +1,31 @@
 {% extends 'base.html' %}
 {% load static gzp %}
-{% block title %}{{ facility.name }}{% endblock %}
+{% block title %}{{ facility.name|tr:lang }}{% endblock %}
 {% block content %}
 <a class="btn btn-sm btn-outline-secondary mb-3" href="/"><i class="bi bi-arrow-left me-1"></i> All facilities</a>
 
 <div class="facility-hero mb-3">
   <div class="facility-photo">
     {% if facility.photo %}
-      <img src="{{ facility.photo.url }}" alt="{{ facility.name }}">
+      <img src="{{ facility.photo.url }}" alt="{{ facility.name|tr:lang }}">
     {% else %}
-      <img src="{% static 'img/facility-placeholder.svg' %}" alt="{{ facility.name }}">
+      <img src="{% static 'img/facility-placeholder.svg' %}" alt="{{ facility.name|tr:lang }}">
     {% endif %}
   </div>
   <div class="card"><div class="card-body">
     <span class="chip chip-lime mb-2">Sample facility</span>
-    <h2 style="margin-top:8px">{{ facility.name }}</h2>
+    <h2 style="margin-top:8px">{{ facility.name|tr:lang }}</h2>
     <div class="meta-row mb-3">
-      <span><i class="bi bi-geo-alt"></i> {{ facility.location }}</span>
+      <span><i class="bi bi-geo-alt"></i> {{ facility.location|tr:lang }}</span>
       <span><i class="bi bi-telephone"></i> {{ facility.contact|default:"Parishad office" }}</span>
-      <span><i class="bi bi-door-open"></i> {{ units|length }} room(s) / hall(s)</span>
+      <span><i class="bi bi-door-open"></i> {{ units|length|bnnum }} {% t "room(s) / hall(s)" %}</span>
     </div>
     <p style="font-size:.86rem;color:#555a70">{{ facility.description }}</p>
     <div class="d-flex flex-wrap gap-2 mb-3">
       {% for amenity in facility.amenity_list %}<span class="chip chip-muted">{{ amenity }}</span>{% endfor %}
     </div>
     <div class="alert-inline info mb-3">
-      <b>Permitted booking types:</b> {{ facility.booking_types|default:"Individual stay and official meetings" }}
+      <b>{% t "Permitted booking types:" %}</b> {{ facility.booking_types|default:"Individual stay and official meetings"|tr:lang }}
     </div>
     {% if user.is_authenticated %}
       <a class="btn btn-accent" href="/book/{{ facility.code }}/"><i class="bi bi-calendar-plus me-1"></i> Apply for this facility</a>
@@ -50,17 +50,17 @@
             <tbody>
             {% for unit in units %}
               <tr>
-                <td><b>{{ unit.name }}</b><br><span class="note-inline">{{ unit.description }}</span></td>
-                <td><span class="chip {% if unit.is_hall %}chip-teal{% elif unit.is_suite %}chip-primary{% else %}chip-muted{% endif %}">{{ unit.get_kind_display }}</span></td>
-                <td>{{ unit.capacity }}</td>
+                <td><b>{{ unit.name|tr:lang }}</b><br><span class="note-inline">{{ unit.get_kind_display|tr:lang }}</span></td>
+                <td><span class="chip {% if unit.is_hall %}chip-teal{% elif unit.is_suite %}chip-primary{% else %}chip-muted{% endif %}">{{ unit.get_kind_display|tr:lang }}</span></td>
+                <td>{{ unit.capacity|bnnum }}</td>
                 {% for code, label in facility.tariff_categories %}
                   <td class="num">
                     {% for tariff in unit.tariffs.all %}{% if tariff.category == code %}
-                      ৳{{ tariff.amount|floatformat:0 }}<br><span class="note-inline">holiday ৳{{ tariff.holiday_amount|floatformat:0 }}</span>
+                      ৳{{ tariff.amount|floatformat:0|bnnum }}<br><span class="note-inline">{% t "Holiday" %} ৳{{ tariff.holiday_amount|floatformat:0|bnnum }}</span>
                     {% endif %}{% endfor %}
                   </td>
                 {% endfor %}
-                <td class="num">{% for tariff in unit.tariffs.all %}{% if forloop.first %}৳{{ tariff.deposit|floatformat:0 }}{% endif %}{% endfor %}</td>
+                <td class="num">{% for tariff in unit.tariffs.all %}{% if forloop.first %}৳{{ tariff.deposit|floatformat:0|bnnum }}{% endif %}{% endfor %}</td>
               </tr>
             {% endfor %}
             </tbody>
@@ -91,13 +91,13 @@
           {% for _ in calendar_leading %}<div class="cal-day blank"></div>{% endfor %}
           {% for day in calendar %}
             <div class="cal-day {% if day.is_blackout %}blackout{% elif day.is_past %}past{% endif %}">
-              <div class="n">{{ day.date|date:"j" }}</div>
+              <div class="n">{{ day.date|d:"j" }}</div>
               {% if day.is_blackout %}
-                <div class="free none">Closed</div>
+                <div class="free none">{% t "Closed" %}</div>
               {% elif day.free %}
-                <div class="free">{{ day.free }} free</div>
+                <div class="free">{{ day.free|bnnum }} {% t "free" %}</div>
               {% else %}
-                <div class="free none">Full</div>
+                <div class="free none">{% t "Full" %}</div>
               {% endif %}
             </div>
           {% endfor %}

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}45-day plan{% endblock %}
+{% block title %}{% t "45-day plan" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -15,7 +15,7 @@
 <div class="card mb-3">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-1">
-      <strong>Plan progress</strong><span>{{ done }} of {{ total }} phases complete</span>
+      <strong>{% t "Plan progress" %}</strong><span>{{ done }} / {{ total }} {% t "phases complete" %}</span>
     </div>
     <div class="progress-thin"><span style="width:{{ percent }}%"></span></div>
   </div>
@@ -54,4 +54,5 @@
     </table>
   </div>
 </div>
+{% include 'partials/pagination.html' %}
 {% endblock %}

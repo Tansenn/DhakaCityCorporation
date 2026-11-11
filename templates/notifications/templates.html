@@ -1,37 +1,36 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Notification templates{% endblock %}
+{% block title %}{% t "Notification templates" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <h1>{% t "Notification templates" %}</h1>
-    <div class="sub">Editable templates. Placeholders like <span class="mono">&#123;&#123; user &#125;&#125;</span> and <span class="mono">&#123;&#123; reference &#125;&#125;</span> are filled
-      when a message is generated.</div>
+    <div class="sub">{% t "Editable templates. Placeholders like" %} <span class="mono">&#123;&#123; user &#125;&#125;</span> {% t "and" %} <span class="mono">&#123;&#123; reference &#125;&#125;</span> {% t "are filled when a message is generated." %}</div>
   </div>
   <div class="spacer"></div>
-  <a class="btn btn-sm btn-outline-primary" href="/app/outbox/">Demo outbox</a>
+  <a class="btn btn-sm btn-outline-primary" href="/app/outbox/">{% t "Demo outbox" %}</a>
 </div>
 
 {% for tpl in templates %}
   <div class="card mb-3">
     <div class="card-header">
-      <strong>{{ tpl.name }}</strong>
-      <span class="mono note-inline">{{ tpl.code }} · {{ tpl.get_channel_display }}</span>
+      <strong>{{ tpl.name|tr:lang }}</strong>
+      <span class="mono note-inline">{{ tpl.code }} · {{ tpl.get_channel_display|tr:lang }}</span>
     </div>
     <div class="card-body">
       <form method="post">
         {% csrf_token %}
         <input type="hidden" name="id" value="{{ tpl.pk }}">
-        <div class="mb-3"><label class="form-label">Subject</label>
+        <div class="mb-3"><label class="form-label">{% t "Subject" %}</label>
           <input class="form-control" name="subject" value="{{ tpl.subject }}"></div>
-        <div class="mb-3"><label class="form-label">Body</label>
+        <div class="mb-3"><label class="form-label">{% t "Body" %}</label>
           <textarea class="form-control" name="body" rows="4">{{ tpl.body }}</textarea></div>
-        <button class="btn btn-primary btn-sm" type="submit">Save template</button>
-        <span class="note-inline ms-2">{{ tpl.description }}</span>
+        <button class="btn btn-primary btn-sm" type="submit">{% t "Save template" %}</button>
+        <span class="note-inline ms-2">{{ tpl.description|tr:lang }}</span>
       </form>
     </div>
   </div>
 {% empty %}
-  <div class="card"><div class="card-body table-empty">No templates seeded.</div></div>
+  <div class="card"><div class="card-body table-empty">{% t "No templates seeded." %}</div></div>
 {% endfor %}
 {% endblock %}

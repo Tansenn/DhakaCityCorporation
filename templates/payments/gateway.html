@@ -1,135 +1,229 @@
 {% extends 'base.html' %}
-{% load gzp %}
-{% block title %}Demo payment gateway{% endblock %}
+{% load static gzp %}
+{% block title %}{% t "Payment checkout" %} · {% t "Gazipur Zila Parishad" %}{% endblock %}
+{% block body_class %}gateway-body{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/gateway-refresh.css' %}">{% endblock %}
 {% block content %}
-<div class="gateway-page">
-  <div class="page-head">
-    <div>
-      <h1>Demo payment gateway</h1>
-      <div class="sub">Simulated checkout in the style of a local aggregator. No real money moves.</div>
+<div class="checkout-page">
+  <nav class="checkout-nav" aria-label="{% t 'Payment navigation' %}">
+    <a href="/bookings/{{ booking.pk }}/"><i class="bi bi-arrow-left" aria-hidden="true"></i> {% t "Back to application" %}</a>
+    <div class="lang-switch" role="group" aria-label="{% t 'Language' %}">
+      <a class="{% if lang == 'en' %}on{% endif %}" href="/lang/en/?next={{ request.get_full_path|urlencode }}">{% t "EN" %}</a>
+      <a class="{% if lang == 'bn' %}on{% endif %}" href="/lang/bn/?next={{ request.get_full_path|urlencode }}">{% t "বাংলা" %}</a>
+      <a class="{% if lang == 'bng' %}on{% endif %}" href="/lang/bng/?next={{ request.get_full_path|urlencode }}">{% t "Banglish" %}</a>
     </div>
-    <div class="spacer"></div>
-    <a class="btn btn-sm btn-outline-secondary" href="/bookings/{{ booking.pk }}/">Back to booking</a>
-  </div>
+  </nav>
 
-  <div class="alert alert-warning">
-    <b><i class="bi bi-cone-striped me-1"></i>Demo:</b> this page imitates a hosted gateway. It produces
-    HMAC-signed callbacks that the application verifies server-side. The buttons below let you exercise
-    every outcome, including a duplicate and a forged callback.
-  </div>
+  <div class="checkout-sheet">
+    <div class="checkout-simulation"><i class="bi bi-info-circle" aria-hidden="true"></i> {% t "Simulated payment · No money is transferred" %}</div>
+    <div class="checkout-columns">
+      <section class="checkout-summary" aria-labelledby="merchant-title">
+        <header class="checkout-merchant">
+          <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="{% t 'Gazipur Zila Parishad' %}" width="52" height="52">
+          <div><h2 id="merchant-title">{% t "Gazipur Zila Parishad" %}</h2><p>{% t "Dakbungalow booking" %}</p></div>
+          <img class="checkout-govt" src="{% static 'img/bd_govt_logo.png' %}" alt="{% t 'Government of Bangladesh' %}" width="40" height="40">
+        </header>
+        <div class="checkout-transaction"><span>{% t "Transaction ID" %}</span><b>{{ payment.txn_id|tr:lang }}</b></div>
 
-  <div class="pay-card">
-    <div class="pay-head">
-      <i class="bi bi-credit-card-2-front"></i>
-      <div class="grow">{{ provider }}</div>
-      <span class="badge">DEMO</span>
-    </div>
-    <div class="card-body">
-      <div class="gateway-brand mb-2">
-        <span class="chip chip-lime">Sandbox</span>
-        <span class="note-inline">Merchant: Gazipur Zila Parishad (sample)</span>
-      </div>
-      <div class="d-flex justify-content-between align-items-end mb-3">
-        <div>
-          <div class="note-inline">Amount to pay</div>
-          <div class="gateway-total">{{ payment.amount|money }}</div>
+        <div class="checkout-amount">
+          <span>{% if is_paid %}{% t "Amount paid" %}{% else %}{% t "You are paying" %}{% endif %}</span>
+          <strong>{{ payment.amount|money }}</strong>
+          <small>{% t "Payable to" %} {% t "Gazipur Zila Parishad" %}</small>
         </div>
-        <div class="text-end">
-          <div class="note-inline">Transaction</div>
-          <div class="mono">{{ payment.txn_id }}</div>
-        </div>
-      </div>
+        <dl class="checkout-totals">
+          <div><dt>{% t "Booking charges" %}</dt><dd>{{ booking.amount|money }}</dd></div>
+          <div><dt>{% t "Security deposit" %}</dt><dd>{{ booking.deposit|money }}</dd></div>
+          <div><dt>{% t "Gateway charge" %}</dt><dd>{{ booking.gateway_charge|money }}</dd></div>
+          <div class="checkout-total"><dt>{% t "Total amount" %}</dt><dd>{{ payment.amount|money }}</dd></div>
+        </dl>
 
-      <div class="summary-box mb-3">
-        <div class="summary-row"><span>Booking</span><b>{{ booking.reference }}</b></div>
-        <div class="summary-row"><span>Facility</span><b>{{ booking.facility.name }} / {{ booking.unit.name }}</b></div>
-        <div class="summary-row"><span>Charges</span><span>{{ booking.amount|money }}</span></div>
-        <div class="summary-row"><span>Security deposit</span><span>{{ booking.deposit|money }}</span></div>
-        {% if booking.gateway_charge %}
-          <div class="summary-row"><span>Gateway charge (paid by user)</span><span>{{ booking.gateway_charge|money }}</span></div>
+        <dl class="checkout-booking">
+          <div><dt>{% t "Booking reference" %}</dt><dd class="checkout-mono">{{ booking.reference|tr:lang }}</dd></div>
+          <div><dt>{% t "Facility" %}</dt><dd>{{ booking.facility.name|tr:lang }}</dd></div>
+          <div><dt>{% t "Room / hall" %}</dt><dd>{{ booking.unit.name|tr:lang }}</dd></div>
+          <div><dt>{% t "Dates" %}</dt><dd>{{ booking.check_in|d:"d M" }} – {{ booking.check_out|d:"d M Y" }}</dd></div>
+          {% if booking.payment_deadline and not is_paid %}
+            <div><dt>{% t "Pay before" %}</dt><dd>{{ booking.payment_deadline|dt }}</dd></div>
+          {% endif %}
+        </dl>
+
+        <aside class="checkout-slip" aria-labelledby="slip-title">
+          <div class="checkout-slip-heading"><i class="bi bi-receipt" aria-hidden="true"></i><h3 id="slip-title">{% t "Payment slip" %}</h3><span>{% t "Demo" %}</span></div>
+          <div class="checkout-slip-body">
+            <a class="checkout-qr" href="{% url 'verify_permit' booking.permit_token %}" aria-label="{% t 'Check booking status' %}">
+              <img src="/bookings/{{ booking.pk }}/qr.png" alt="{% t 'Booking verification QR code' %}" width="90" height="90">
+            </a>
+            <div><b>{% t "Scan to check booking status" %}</b><p>{% t "This QR checks your booking. It does not make a payment or replace a permit." %}</p><span class="checkout-mono">{{ booking.reference|tr:lang }}</span></div>
+          </div>
+        </aside>
+      </section>
+
+      <section class="checkout-payment" aria-labelledby="checkout-title">
+        <header class="checkout-welcome">
+          <div><p>{% t "Welcome back" %}, {{ user.display_name|tr:lang }}</p><h1 id="checkout-title">{% if is_paid %}{% t "Payment received" %}{% else %}{% t "Choose how to pay" %}{% endif %}</h1></div>
+          <a href="/user/" aria-label="{% t 'User portal' %}" class="checkout-user"><i class="bi bi-person" aria-hidden="true"></i></a>
+        </header>
+
+        {% if is_paid %}
+          <div class="checkout-success">
+            <span class="checkout-success-icon"><i class="bi bi-check-lg" aria-hidden="true"></i></span>
+            <span class="checkout-status">{% t "Simulated payment received" %}</span>
+            <strong>{{ payment.amount|money }}</strong>
+            <p>{{ payment.receipt_no|default:payment.txn_id|tr:lang }}{% if payment.verified_at %}<br>{{ payment.verified_at|dt }}{% endif %}</p>
+          </div>
+          <div class="checkout-approval">
+            {% if booking.permit_issued_at %}
+              <i class="bi bi-file-earmark-check" aria-hidden="true"></i><div><b>{% t "Permit available" %}</b><p>{% t "Your permit is available as a separate document." %}</p></div>
+            {% else %}
+              <i class="bi bi-hourglass-split" aria-hidden="true"></i><div><b>{% t "Pending approval" %}</b><p>{% t "Payment received. Your booking still requires approval. You can download your receipt now; the permit will be available after approval." %}</p></div>
+            {% endif %}
+          </div>
+          <div class="checkout-paid-actions">
+            <a class="checkout-primary" href="/bookings/{{ booking.pk }}/receipt.pdf"><i class="bi bi-download" aria-hidden="true"></i> {% t "Download receipt" %}</a>
+            {% if booking.permit_issued_at %}<a class="checkout-secondary" href="/bookings/{{ booking.pk }}/permit.pdf"><i class="bi bi-file-earmark-check" aria-hidden="true"></i> {% t "Download permit" %}</a>{% endif %}
+            <a class="checkout-secondary" href="/bookings/{{ booking.pk }}/">{% t "Back to application" %}<i class="bi bi-arrow-right" aria-hidden="true"></i></a>
+          </div>
+        {% else %}
+          {% if payment.status == 'failed' or payment.status == 'cancelled' %}
+            <div class="checkout-retry" role="status"><b>{{ payment.get_status_display|tr:lang }}</b><span>{% t "No payment was completed. You can try another simulated payment." %}</span></div>
+          {% endif %}
+          <form method="post" action="/pay/{{ payment.txn_id }}/callback/" id="gw-form" autocomplete="off">
+            {% csrf_token %}
+            <input type="hidden" name="outcome" value="pay">
+            <div class="checkout-tabs" role="tablist" aria-label="{% t 'Payment methods' %}" hidden>
+              <button type="button" id="tab-card" role="tab" aria-selected="true" aria-controls="panel-card" data-panel="card"><i class="bi bi-credit-card-2-front" aria-hidden="true"></i><span>{% t "Card" %}</span></button>
+              <button type="button" id="tab-mobile" role="tab" aria-selected="false" aria-controls="panel-mobile" tabindex="-1" data-panel="mobile"><i class="bi bi-phone" aria-hidden="true"></i><span>{% t "Mobile banking" %}</span></button>
+              <button type="button" id="tab-internet" role="tab" aria-selected="false" aria-controls="panel-internet" tabindex="-1" data-panel="internet"><i class="bi bi-bank" aria-hidden="true"></i><span>{% t "Internet banking" %}</span></button>
+            </div>
+
+            <div class="checkout-panel" id="panel-card" role="tabpanel" aria-labelledby="tab-card" data-panel="card">
+              <h2>{% t "Pay with cards" %}</h2>
+              <label class="checkout-choice checkout-card-choice">
+                <input type="radio" name="channel" value="card" data-label="{% t 'Card' %}" checked>
+                <span><i class="bi bi-credit-card" aria-hidden="true"></i><b>{% t "Demo card" %}</b><small>{% t "Ready to simulate" %}</small></span>
+              </label>
+              <div class="checkout-demo-card" aria-hidden="true">
+                <div><span>{% t "Demo card" %}</span><i class="bi bi-credit-card-2-front" aria-hidden="true"></i></div>
+                <b>•••• &nbsp; •••• &nbsp; •••• &nbsp; 4242</b>
+                <small>{% t "For simulation only" %}</small>
+              </div>
+              <p class="checkout-help"><i class="bi bi-info-circle" aria-hidden="true"></i>{% t "A sample card is ready. No card details are needed." %}</p>
+            </div>
+
+            <div class="checkout-panel" id="panel-mobile" role="tabpanel" aria-labelledby="tab-mobile" data-panel="mobile">
+              <h2>{% t "Choose a mobile wallet" %}</h2>
+              <div class="checkout-wallets">
+                <label class="checkout-choice checkout-wallet"><input type="radio" name="channel" value="bkash" data-label="{% t 'bKash' %}"><span><img src="{% static 'img/payment-bkash.png' %}" alt="{% t 'bKash' %}" width="112" height="66"><b>{% t "bKash" %}</b></span></label>
+                <label class="checkout-choice checkout-wallet"><input type="radio" name="channel" value="nagad" data-label="{% t 'Nagad' %}"><span><img src="{% static 'img/payment-nagad.png' %}" alt="{% t 'Nagad' %}" width="112" height="66"><b>{% t "Nagad" %}</b></span></label>
+                <label class="checkout-choice checkout-wallet"><input type="radio" name="channel" value="rocket" data-label="{% t 'Rocket' %}"><span><img src="{% static 'img/payment-rocket.png' %}" alt="{% t 'Rocket' %}" width="112" height="66"><b>{% t "Rocket" %}</b></span></label>
+              </div>
+              <p class="checkout-help"><i class="bi bi-info-circle" aria-hidden="true"></i>{% t "No wallet number, PIN or verification code is needed. This does not connect to your wallet." %}</p>
+            </div>
+
+            <div class="checkout-panel" id="panel-internet" role="tabpanel" aria-labelledby="tab-internet" data-panel="internet">
+              <h2>{% t "Choose a bank payment method" %}</h2>
+              <div class="checkout-bank-options">
+                <label class="checkout-choice"><input type="radio" name="channel" value="bank" data-label="{% t 'Bank' %}"><span><i class="bi bi-bank" aria-hidden="true"></i><b>{% t "Bank" %}</b><small>{% t "Simulated bank transfer" %}</small></span></label>
+                <label class="checkout-choice"><input type="radio" name="channel" value="netbanking" data-label="{% t 'Net banking' %}"><span><i class="bi bi-laptop" aria-hidden="true"></i><b>{% t "Net banking" %}</b><small>{% t "Simulated internet banking" %}</small></span></label>
+                <label class="checkout-choice checkout-ekpay"><input type="radio" name="channel" value="ekpay" data-label="{% t 'ekpay' %}"><span><img src="{% static 'img/payment-ekpay.png' %}" alt="{% t 'ekpay' %}" width="66" height="48"><b>{% t "ekpay" %}</b><small>{% t "Simulated payment" %}</small></span></label>
+              </div>
+              <p class="checkout-help"><i class="bi bi-info-circle" aria-hidden="true"></i>{% t "No bank account or login details are needed. This does not connect to your bank." %}</p>
+            </div>
+
+            <div class="checkout-pay-summary" aria-live="polite"><span>{% t "Selected method" %}</span><b id="gw-selected-method">{% t "Card" %}</b></div>
+            <button class="checkout-primary" type="submit" id="gw-pay-btn"><span>{% t "Simulate payment" %} <b>{{ payment.amount|money }}</b></span><i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+            <p class="checkout-terms">{% t "Only the selected method is submitted. Do not enter real payment details." %}</p>
+          </form>
         {% endif %}
-        <div class="summary-row total"><span>Total</span><span>{{ payment.amount|money }}</span></div>
-      </div>
 
-      <div class="alert-inline info mb-3">
-        <b>Payment protection:</b> a payment is confirmed only when the server verifies the
-        HMAC-SHA256 signature on the gateway callback. Callbacks with a wrong signature, wrong amount
-        or duplicate transaction are stored and rejected.
-      </div>
-
-      {% if is_paid %}
-        <div class="alert alert-success">
-          <b><i class="bi bi-check-circle-fill me-1"></i>Payment verified.</b>
-          Receipt {{ payment.receipt_no }} at {{ payment.verified_at|dt }}. A permit has been issued.
-        </div>
-        <div class="d-flex gap-2 flex-wrap">
-          <a class="btn btn-accent" href="/bookings/{{ booking.pk }}/permit.pdf"><i class="bi bi-qr-code me-1"></i>Download permit</a>
-          <a class="btn btn-outline-primary" href="/bookings/{{ booking.pk }}/receipt.pdf"><i class="bi bi-receipt me-1"></i>Download receipt</a>
-          <a class="btn btn-outline-secondary" href="/bookings/{{ booking.pk }}/">Back to application</a>
-        </div>
-        <div class="mt-3">
-          <form method="post" action="/pay/{{ payment.txn_id }}/callback/" class="d-inline">
-            {% csrf_token %}<input type="hidden" name="outcome" value="duplicate">
-            <button class="btn btn-sm btn-outline-secondary" type="submit">Send duplicate callback</button>
-          </form>
-        </div>
-      {% else %}
-        <div class="d-grid gap-2">
-          <form method="post" action="/pay/{{ payment.txn_id }}/callback/">
-            {% csrf_token %}<input type="hidden" name="outcome" value="pay">
-            <button class="btn btn-accent w-100" type="submit"><i class="bi bi-shield-lock me-1"></i>Pay {{ payment.amount|money }}</button>
-          </form>
-          <div class="d-flex gap-2">
-            <form method="post" action="/pay/{{ payment.txn_id }}/callback/" class="w-50">
-              {% csrf_token %}<input type="hidden" name="outcome" value="fail">
-              <button class="btn btn-outline-danger w-100" type="submit">Simulate failure</button>
-            </form>
-            <form method="post" action="/pay/{{ payment.txn_id }}/callback/" class="w-50">
-              {% csrf_token %}<input type="hidden" name="outcome" value="cancel">
-              <button class="btn btn-outline-secondary w-100" type="submit">Cancel payment</button>
-            </form>
-          </div>
-          <div class="d-flex gap-2">
-            <form method="post" action="/pay/{{ payment.txn_id }}/callback/" class="w-50">
-              {% csrf_token %}<input type="hidden" name="outcome" value="duplicate">
-              <button class="btn btn-outline-secondary w-100" type="submit">Send duplicate callback</button>
-            </form>
-            <form method="post" action="/pay/{{ payment.txn_id }}/callback/" class="w-50">
-              {% csrf_token %}<input type="hidden" name="outcome" value="invalid">
-              <button class="btn btn-outline-secondary w-100" type="submit">Send forged callback</button>
-            </form>
-          </div>
-        </div>
-        <div class="gateway-note mt-3">
-          Payment window: {% if booking.payment_deadline %}{{ booking.payment_deadline|dt }}{% else %}open{% endif %}.
-          Gateway charge paid by user: <b>{% if gateway_charge_paid_by_user %}Yes{% else %}No, absorbed{% endif %}</b>.
-        </div>
-      {% endif %}
+        <footer class="checkout-service-links"><a href="/citizen/">{% t "My applications" %}</a><a href="/user/">{% t "User portal" %} <i class="bi bi-arrow-up-right" aria-hidden="true"></i></a></footer>
+      </section>
     </div>
-  </div>
 
-  <div class="card mt-3">
-    <div class="card-header"><i class="bi bi-shield-check me-1"></i> Callback log for this transaction</div>
-    <div class="card-body p-0">
-      <div class="table-wrap">
-        <table class="table-gzp">
-          <thead><tr><th>Received</th><th>Gateway status</th><th>Signature</th><th>Result</th></tr></thead>
-          <tbody>
-          {% for callback in callbacks %}
-            <tr>
-              <td>{{ callback.created_at|dt }}</td>
-              <td class="mono">{{ callback.kind }}</td>
-              <td>{% if callback.signature_valid %}<span class="chip chip-success">Valid</span>{% else %}<span class="chip chip-danger">Invalid</span>{% endif %}</td>
-              <td><span class="chip chip-{{ callback.result|chip }}">{{ callback.get_result_display }}</span></td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="4" class="text-muted small">No callbacks yet. Choose an outcome above.</td></tr>
-          {% endfor %}
-          </tbody>
-        </table>
+    <details class="checkout-tests">
+      <summary><i class="bi bi-tools" aria-hidden="true"></i> {% t "Gateway test controls" %}<i class="bi bi-chevron-down" aria-hidden="true"></i></summary>
+      <div class="checkout-test-body">
+        <p>{% t "These controls test local simulated callbacks. Duplicate callbacks are ignored; forged callbacks are rejected." %}</p>
+        <div class="checkout-test-buttons">
+          <form method="post" action="/pay/{{ payment.txn_id }}/callback/">{% csrf_token %}<input type="hidden" name="outcome" value="fail"><input type="hidden" name="channel" value="card"><button type="submit">{% t "Simulate failure" %}</button></form>
+          <form method="post" action="/pay/{{ payment.txn_id }}/callback/">{% csrf_token %}<input type="hidden" name="outcome" value="cancel"><input type="hidden" name="channel" value="card"><button type="submit">{% t "Cancel payment" %}</button></form>
+          <form method="post" action="/pay/{{ payment.txn_id }}/callback/">{% csrf_token %}<input type="hidden" name="outcome" value="duplicate"><button type="submit">{% t "Duplicate callback" %}</button></form>
+          <form method="post" action="/pay/{{ payment.txn_id }}/callback/">{% csrf_token %}<input type="hidden" name="outcome" value="invalid"><button type="submit">{% t "Forged callback" %}</button></form>
+        </div>
+        {% if callbacks %}
+          <div class="checkout-log-wrap" role="region" aria-label="{% t 'Callback history' %}" tabindex="0">
+            <table class="checkout-log"><thead><tr><th scope="col">{% t "Received" %}</th><th scope="col">{% t "Gateway" %}</th><th scope="col">{% t "Signature" %}</th><th scope="col">{% t "Result" %}</th></tr></thead>
+              <tbody>{% for callback in callbacks %}<tr><td>{{ callback.created_at|d:"d M H:i" }}</td><td>{{ callback.kind|tr:lang }}</td><td>{% if callback.signature_valid %}{% t "Valid" %}{% else %}{% t "Invalid" %}{% endif %}</td><td>{{ callback.get_result_display|tr:lang }}</td></tr>{% endfor %}</tbody>
+            </table>
+          </div>
+        {% endif %}
       </div>
-    </div>
+    </details>
   </div>
-  <div class="note-inline text-center mt-3">Demo version - sample data. This page is not a real payment gateway.</div>
+  <p class="checkout-foot">{% t "Gazipur Zila Parishad" %} · {% t "Demo checkout" %}</p>
 </div>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  'use strict';
+  var form = document.getElementById('gw-form');
+  if (!form) return;
+  var tablist = form.querySelector('[role="tablist"]');
+  var tabs = Array.from(tablist.querySelectorAll('[role="tab"]'));
+  var panels = Array.from(form.querySelectorAll('[role="tabpanel"]'));
+  var selectedLabel = document.getElementById('gw-selected-method');
+  var remembered = {};
+
+  function updateMethod() {
+    var selected = form.querySelector('input[name="channel"]:checked');
+    if (!selected) return;
+    remembered[selected.closest('[role="tabpanel"]').dataset.panel] = selected.value;
+    selectedLabel.textContent = selected.dataset.label;
+    document.querySelectorAll('.checkout-test-buttons input[name="channel"]').forEach(function (input) {
+      input.value = selected.value;
+    });
+  }
+
+  function activate(tab, focus) {
+    tabs.forEach(function (item) {
+      var active = item === tab;
+      item.setAttribute('aria-selected', active ? 'true' : 'false');
+      item.tabIndex = active ? 0 : -1;
+    });
+    panels.forEach(function (panel) {
+      panel.hidden = panel.id !== tab.getAttribute('aria-controls');
+      if (!panel.hidden) {
+        var choices = Array.from(panel.querySelectorAll('input[name="channel"]'));
+        var selected = choices.find(function (input) { return input.value === remembered[panel.dataset.panel]; });
+        (selected || choices[0]).checked = true;
+      }
+    });
+    updateMethod();
+    if (focus) tab.focus();
+  }
+
+  tabs.forEach(function (tab, index) {
+    tab.addEventListener('click', function () { activate(tab, false); });
+    tab.addEventListener('keydown', function (event) {
+      var next;
+      if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+      else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
+      else if (event.key === 'Home') next = 0;
+      else if (event.key === 'End') next = tabs.length - 1;
+      else return;
+      event.preventDefault();
+      activate(tabs[next], true);
+    });
+  });
+  form.querySelectorAll('input[name="channel"]').forEach(function (input) {
+    input.addEventListener('change', updateMethod);
+  });
+  tablist.hidden = false;
+  var restored = form.querySelector('input[name="channel"]:checked');
+  updateMethod();
+  var initialPanel = restored ? restored.closest('[role="tabpanel"]').dataset.panel : 'card';
+  activate(tabs.find(function (tab) { return tab.dataset.panel === initialPanel; }) || tabs[0], false);
+})();
+</script>
 {% endblock %}

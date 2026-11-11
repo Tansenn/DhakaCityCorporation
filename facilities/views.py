@@ -10,6 +10,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.decorators import perm_required
 from audit.models import log
+from core.assets import ASSETS
 from core.utils import today, validate_upload
 from facilities import availability
 from facilities.forms import BlackoutForm, FacilityForm, TariffForm, UnitForm
@@ -34,9 +35,12 @@ def facility_list(request):
         cards.append({'facility': facility, 'units': units, 'calendar': calendar})
     return render(request, 'facilities/list.html', {
         'cards': cards,
+        'assets': ASSETS,
+        'rest_houses': len(cards),
+        'unit_count': sum(len(card['units']) for card in cards),
         'expired_holds': InventoryLock.objects.filter(
             released=False, hold_expires_at__lt=timezone.now()).count(),
-        'page_title': 'Facilities and availability',
+        'page_title': 'Assets',
     })
 
 

@@ -1,12 +1,11 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Audit log{% endblock %}
+{% block title %}{% t "Audit log" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <h1>{% t "Audit log" %}</h1>
-    <div class="sub">{{ total }} matching entr{{ total|pluralize:"y,ies" }}. Logins, decisions, settings changes,
-      payments, exports and backups are recorded.</div>
+    <div class="sub">{{ total }} {% t "matching entries" %}. {% t "Logins, decisions, settings changes, payments, exports and backups are recorded." %}</div>
   </div>
   <div class="spacer"></div>
   {% if "audit.export"|can:user %}
@@ -43,11 +42,11 @@
         <tr>
           <td class="small">{{ row.created_at|dt:"d M Y H:i:s" }}</td>
           <td>{{ row.actor_label }}</td>
-          <td><span class="chip chip-{% if row.action == 'delete' or row.action == 'reject' %}danger{% elif row.action == 'decision' or row.action == 'payment' %}success{% elif row.action == 'settings' or row.action == 'backup' %}warning{% else %}info{% endif %}">{{ row.get_action_display }}</span></td>
+          <td><span class="chip chip-{% if row.action == 'delete' or row.action == 'reject' %}danger{% elif row.action == 'decision' or row.action == 'payment' %}success{% elif row.action == 'settings' or row.action == 'backup' %}warning{% else %}info{% endif %}">{{ row.get_action_display|tr:lang }}</span></td>
           <td class="mono small">{{ row.module|default:"-" }}</td>
-          <td class="small">{{ row.object_repr|default:"-" }}
+          <td class="small">{{ row.object_repr|default:"-"|tr:lang }}
             <div class="note-inline">{{ row.model }}{% if row.object_id %} #{{ row.object_id }}{% endif %}</div></td>
-          <td class="small">{{ row.changes|truncatechars:120 }}</td>
+          <td class="small">{{ row.changes|tr:lang|truncatechars:120 }}</td>
           <td class="mono small">{{ row.ip|default:"-" }}</td>
         </tr>
       {% empty %}

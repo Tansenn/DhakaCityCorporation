@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Change requests{% endblock %}
+{% block title %}{% t "Change requests" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -46,6 +46,8 @@
     </table>
   </div>
 </div>
+
+{% include 'partials/pagination.html' %}
 
 {% if "support.change"|can:user %}
   <div class="card mt-3">

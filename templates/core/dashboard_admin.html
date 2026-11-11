@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load gzp %}
+{% block title %}{% t "Administrator dashboard" %}{% endblock %}
+{% block content %}
+<div class="gov-page-head">
+  <div>
+    <div class="gov-eyebrow">{% t "System administration" %}</div>
+    <h1>{% t "Administrator dashboard" %}</h1>
+    <div class="sub">{{ today|d:"l, d F Y" }} · {{ user.display_name }}</div>
+  </div>
+  <div class="spacer"></div>
+  <a class="btn btn-outline-primary btn-sm" href="/app/settings/"><i class="bi bi-sliders me-1"></i>{% t "Settings" %}</a>
+  <a class="btn btn-primary btn-sm" href="/app/users/"><i class="bi bi-person-gear me-1"></i>{% t "Users & roles" %}</a>
+</div>
+
+{% for alert in alerts %}
+  <div class="alert alert-{{ alert.level }} d-flex align-items-center gap-2 py-2">
+    <i class="bi bi-exclamation-triangle"></i>
+    <div class="flex-grow-1">{{ alert.count|bnnum }} {% t alert.text_key %}</div>
+    <a class="btn btn-sm btn-outline-primary" href="{{ alert.url }}">{% t "Open" %}</a>
+  </div>
+{% endfor %}
+
+<div class="gov-grid">
+  <a class="gov-box" href="/app/notifications/" data-tour="mail">
+    <div class="gov-box-icon"><i class="bi bi-envelope"></i></div>
+    <div class="gov-box-label">{% t "Mail & notices" %}</div>
+    <div class="gov-box-value">{{ mail.unread|bnnum }}</div>
+    <div class="gov-box-foot">{{ mail.today|bnnum }} {% t "received today" %}</div>
+  </a>
+  <a class="gov-box" href="/app/hr/attendance/" data-tour="staff">
+    <div class="gov-box-icon"><i class="bi bi-people"></i></div>
+    <div class="gov-box-label">{% t "Staff present today" %}</div>
+    <div class="gov-box-value">{{ attendance.present|bnnum }}<small>/{{ attendance.total|bnnum }}</small></div>
+    <div class="gov-box-foot">{{ attendance.absent|bnnum }} {% t "absent" %} · {{ attendance.not_marked|bnnum }} {% t "not marked" %}</div>
+  </a>
+  <a class="gov-box" href="/app/tasks/" data-tour="approvals">
+    <div class="gov-box-icon"><i class="bi bi-diagram-3"></i></div>
+    <div class="gov-box-label">{% t "Approvals in the system" %}</div>
+    <div class="gov-box-value">{{ approvals.pending|bnnum }}</div>
+    <div class="gov-box-foot">{{ approvals.overdue|bnnum }} {% t "overdue" %}</div>
+  </a>
+  <a class="gov-box" href="/app/mis/bookings/" data-tour="revenue">
+    <div class="gov-box-icon"><i class="bi bi-cash-coin"></i></div>
+    <div class="gov-box-label">{% t "Revenue this month" %}</div>
+    <div class="gov-box-value">{{ revenue.month|money }}</div>
+    <div class="gov-box-foot">{% t "Today" %}: {{ revenue.today|money }} · {{ revenue.payments|bnnum }} {% t "payments" %}</div>
+  </a>
+</div>
+
+<div class="card gov-card mb-3" data-tour="quick">
+  <div class="card-header">
+    <strong><i class="bi bi-grid me-1"></i>{% t "Common tasks" %}</strong>
+    <span class="note-inline">{% t "Everything the administrator needs, in one place." %}</span>
+  </div>
+  <div class="card-body">
+    <div class="quick-grid">
+      <a class="quick-tile" href="/app/users/"><i class="bi bi-people"></i><span>{% t "Users & roles" %}</span></a>
+      <a class="quick-tile" href="/app/workflow/"><i class="bi bi-diagram-3"></i><span>{% t "Approval status" %}</span></a>
+      <a class="quick-tile" href="/app/workflow/matrix/"><i class="bi bi-shield-check"></i><span>{% t "Pending approval" %}</span></a>
+      <a class="quick-tile" href="/app/settings/"><i class="bi bi-sliders"></i><span>{% t "Settings" %}</span></a>
+      <a class="quick-tile" href="/app/facilities/"><i class="bi bi-building"></i><span>{% t "Assets" %}</span></a>
+      <a class="quick-tile" href="/app/audit/"><i class="bi bi-shield-lock"></i><span>{% t "Activity log" %}</span></a>
+      <a class="quick-tile" href="/app/security/"><i class="bi bi-lock"></i><span>{% t "Security & backup" %}</span></a>
+      <a class="quick-tile" href="/app/health/"><i class="bi bi-heart-pulse"></i><span>{% t "System status" %}</span></a>
+    </div>
+  </div>
+</div>
+
+<div class="gov-two">
+  {% include 'core/_mail_box.html' %}
+  {% include 'core/_meeting_box.html' %}
+</div>
+
+<div class="gov-two mt-3">
+  {% include 'core/_attendance_box.html' %}
+  <div class="card gov-card h-100" data-tour="status">
+    <div class="card-header">
+      <strong><i class="bi bi-heart-pulse me-1"></i>{% t "System status" %}</strong>
+      <span class="spacer"></span>
+      <a class="note-inline" href="/app/health/">{% t "Open system status" %}</a>
+    </div>
+    <div class="card-body">
+      <div class="mini-grid">
+        <div><b>{{ admin_info.active_users|bnnum }}</b><span>{% t "Active users" %}</span></div>
+        <div><b>{{ admin_info.users|bnnum }}</b><span>{% t "All users" %}</span></div>
+        <div><b>{{ admin_info.roles|bnnum }}</b><span>{% t "Roles" %}</span></div>
+        <div><b>{{ approvals.pending|bnnum }}</b><span>{% t "Open approvals" %}</span></div>
+      </div>
+      <div class="list-subhead">{% t "Recent health notices" %}</div>
+      <div class="list-rows">
+        {% for event in admin_info.health %}
+          <div class="list-row">
+            <div class="grow">
+              <b>{{ event.message|tr:lang }}</b>
+              <div class="note-inline">{{ event.path }}</div>
+            </div>
+            <span class="chip chip-{{ event.kind|chip }}">{{ event.get_kind_display|tr:lang }}</span>
+          </div>
+        {% empty %}
+          <div class="table-empty py-2">{% t "No health notices." %}</div>
+        {% endfor %}
+      </div>
+      <div class="gov-foot-note">
+        <i class="bi bi-hdd me-1"></i>
+        {% if admin_info.backup %}
+          {% t "Last backup" %}: {{ admin_info.backup.created_at|dt }}
+          {% if admin_info.backup.verified %}<span class="chip chip-success ms-1">{% t "Verified" %}</span>{% endif %}
+        {% else %}
+          {% t "No backup recorded yet." %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'partials/asset_status.html' %}
+
+<div class="card gov-card mt-3" data-tour="audit">
+  <div class="card-header">
+    <strong><i class="bi bi-shield-lock me-1"></i>{% t "Recent activity" %}</strong>
+    <span class="spacer"></span>
+    <a class="note-inline" href="/app/audit/">{% t "Open activity log" %}</a>
+  </div>
+  <div class="table-wrap">
+    <table class="table-gzp">
+      <thead><tr><th>{% t "When" %}</th><th>{% t "User" %}</th><th>{% t "Action" %}</th><th>{% t "Detail" %}</th></tr></thead>
+      <tbody>
+      {% for entry in admin_info.audit %}
+        <tr>
+          <td>{{ entry.created_at|dt }}</td>
+          <td>{{ entry.actor_label|default:entry.actor.display_name|default:"System" }}</td>
+          <td><span class="chip chip-muted">{{ entry.get_action_display|tr:lang }}</span></td>
+          <td>{{ entry.object_repr|default:entry.module }}<div class="note-inline">{{ entry.module }}</div></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="4"><div class="table-empty py-3">{% t "No activity yet." %}</div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% include 'core/_tour.html' with tour='admin' %}
+{% endblock %}

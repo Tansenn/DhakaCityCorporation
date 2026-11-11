@@ -1,9 +1,9 @@
 {% extends 'accounts/auth_base.html' %}
 {% load gzp %}
-{% block title %}Verify account{% endblock %}
+{% block title %}{% t "Verify account" %}{% endblock %}
 {% block auth_content %}
   <h2>Verify your email and mobile</h2>
-  <div class="sub">A six-digit one-time code was generated for {{ user.email }} and {{ user.phone }}.</div>
+  <div class="sub">{% t "A six-digit one-time code was generated for" %} {{ user.email }} {% t "and" %} {{ user.phone }}.</div>
 
   {% if DEMO_MODE and demo_code %}
     <div class="alert alert-lime">

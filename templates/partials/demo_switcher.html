@@ -6,7 +6,7 @@
   <div class="dropdown-menu dropdown-menu-end shadow role-switch p-2" style="min-width: 280px">
     <div class="px-2 pb-1">
       <div class="form-section-title mb-1">{% t "Demo accounts" %}</div>
-      <div class="note-inline">Quick login as any demo account. Password: <span class="mono">Demo@12345</span></div>
+      <div class="note-inline">{% t "Quick login as any demo account. Password:" %} <span class="mono">Demo@12345</span></div>
     </div>
     {% for account in demo_accounts %}
       <form method="post" action="/demo/switch/">
@@ -15,7 +15,7 @@
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
         <button type="submit" {% if request.user.username == account.username %}class="is-current"{% endif %}>
           <span class="rs-user">{{ account.name }} <span class="badge-soft">{{ account.username }}</span></span>
-          <span class="rs-role">{{ account.label }}</span>
+          <span class="rs-role">{{ account.label|tr:lang }}</span>
         </button>
       </form>
     {% endfor %}

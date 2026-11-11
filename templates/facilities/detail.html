@@ -1,12 +1,12 @@
 {% extends 'base.html' %}
 {% load static gzp %}
-{% block title %}{{ facility.name }}{% endblock %}
+{% block title %}{{ facility.name|tr:lang }}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
     <a class="note-inline" href="/app/facilities/"><i class="bi bi-arrow-left"></i> Facilities</a>
-    <h1 class="mt-1">{{ facility.name }}</h1>
-    <div class="sub">{{ facility.location }} · {{ units|length }} unit(s) ·
+    <h1 class="mt-1">{{ facility.name|tr:lang }}</h1>
+    <div class="sub">{{ facility.location|tr:lang }} · {{ units|length }} unit(s) ·
       {% if facility.is_active %}Active{% else %}Inactive{% endif %}</div>
   </div>
   <div class="spacer"></div>
@@ -24,7 +24,7 @@
           {% for _ in calendar_leading %}<div class="cal-day blank"></div>{% endfor %}
           {% for day in calendar %}
             <div class="cal-day {% if day.is_blackout %}blackout{% elif day.is_past %}past{% endif %}">
-              <div class="n">{{ day.date|date:"j" }}</div>
+              <div class="n">{{ day.date|d:"j" }}</div>
               {% if day.is_blackout %}<div class="free none">Closed</div>
               {% elif day.free %}<div class="free">{{ day.free }} free</div>
               {% else %}<div class="free none">Full</div>{% endif %}
@@ -43,8 +43,8 @@
             <tbody>
             {% for unit in units %}
               <tr>
-                <td><b>{{ unit.name }}</b><br><span class="note-inline mono">{{ unit.code }}</span></td>
-                <td><span class="chip {% if unit.is_hall %}chip-teal{% elif unit.is_suite %}chip-primary{% else %}chip-muted{% endif %}">{{ unit.get_kind_display }}</span></td>
+                <td><b>{{ unit.name|tr:lang }}</b><br><span class="note-inline mono">{{ unit.code }}</span></td>
+                <td><span class="chip {% if unit.is_hall %}chip-teal{% elif unit.is_suite %}chip-primary{% else %}chip-muted{% endif %}">{{ unit.get_kind_display|tr:lang }}</span></td>
                 <td>{{ unit.capacity }}</td>
                 <td class="small">{{ unit.amenities }}</td>
                 <td>{% if unit.is_active %}<span class="chip chip-success">Active</span>{% else %}<span class="chip chip-muted">Inactive</span>{% endif %}</td>
@@ -76,7 +76,7 @@
             <tbody>
             {% for tariff in tariffs %}
               <tr>
-                <td>{{ tariff.unit.name }}</td>
+                <td>{{ tariff.unit.name|tr:lang }}</td>
                 <td><span class="chip chip-muted">{{ tariff.get_category_display }}</span></td>
                 <td class="num">{{ tariff.amount|money }}</td>
                 <td class="num">{{ tariff.holiday_amount|money }}</td>
@@ -159,7 +159,7 @@
                 <div class="accordion-body">
                   <ul class="list-clean mb-3">
                     {% for blackout in blackouts %}
-                      <li><span class="grow"><b>{{ blackout.date|date:"d M Y" }}</b> · {{ blackout.reason }}</span>
+                      <li><span class="grow"><b>{{ blackout.date|d:"d M Y" }}</b> · {{ blackout.reason }}</span>
                         <form method="post" action="">{% csrf_token %}
                           <input type="hidden" name="action" value="delete_blackout">
                           <input type="hidden" name="blackout" value="{{ blackout.pk }}">
@@ -188,7 +188,7 @@
       <div class="card-body">
         <div class="kv">
           <dt>Code</dt><dd class="mono">{{ facility.code }}</dd>
-          <dt>Location</dt><dd>{{ facility.location }}</dd>
+          <dt>Location</dt><dd>{{ facility.location|tr:lang }}</dd>
           <dt>Contact</dt><dd>{{ facility.contact|default:"-" }}</dd>
           <dt>Booking types</dt><dd>{{ facility.booking_types }}</dd>
           <dt>Amenities</dt><dd>{{ facility.amenities }}</dd>

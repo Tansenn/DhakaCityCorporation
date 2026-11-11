@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Settings{% endblock %}
+{% block title %}{% t "Settings" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -69,4 +69,5 @@
     </table>
   </div>
 </div>
+{% include 'partials/pagination.html' with page_obj=history %}
 {% endblock %}

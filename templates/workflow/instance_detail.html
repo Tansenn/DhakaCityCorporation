@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Workflow {{ instance.tracking_id }}{% endblock %}
+{% block title %}{% t "Workflow" %} {{ instance.tracking_id }}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -64,7 +64,7 @@
       <div class="card-header"><strong>Request data</strong></div>
       <div class="card-body">
         <div class="detail-grid">
-          <div><div class="k">Subject</div><div class="v">{{ instance.subject }}</div></div>
+          <div><div class="k">Subject</div><div class="v">{{ instance.subject|tr:lang }}</div></div>
           <div><div class="k">Amount</div><div class="v">{{ instance.amount|money }}</div></div>
           <div><div class="k">Record type</div><div class="v">{{ instance.object_type }}</div></div>
           <div><div class="k">Record id</div><div class="v">{{ instance.object_id }}</div></div>

@@ -16,6 +16,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from accounts.decorators import perm_required
+from accounts.demo import demo_accounts
 from accounts.forms import StaffUserForm
 from accounts.models import LoginAttempt, Permission, Role, User
 from accounts.permissions import ROLE_PERMISSIONS
@@ -40,6 +41,23 @@ def _safe_next(request, candidate, fallback):
     return fallback
 
 
+def _portal_target(user, target):
+    """Drop a redirect that belongs to the other portal."""
+    if not target:
+        return ''
+    staff_only = target.startswith('/app/')
+    citizen_only = target.startswith(('/citizen/', '/bookings/', '/book/'))
+    if staff_only and not user.is_staff_portal_user:
+        return ''
+    if citizen_only and user.is_staff_portal_user:
+        return ''
+    return target
+
+
+def _post_login_target(request, user, candidate):
+    return _safe_next(request, _portal_target(user, candidate), landing_for(user))
+
+
 def _login_locked(username, ip):
     since = timezone.now() - timedelta(minutes=15)
     failures = LoginAttempt.objects.filter(
@@ -49,9 +67,16 @@ def _login_locked(username, ip):
 
 
 def login_view(request):
-    if request.user.is_authenticated:
-        return redirect(landing_for(request.user))
     next_url = request.GET.get('next') or request.POST.get('next') or ''
+    portal = request.GET.get('portal') or request.POST.get('portal') or ''
+    if portal not in ('user', 'citizen', 'official'):
+        portal = ''
+    if not next_url and portal == 'user':
+        next_url = '/user/'
+    if request.user.is_authenticated:
+        matching = (portal == 'official' and request.user.is_staff_portal_user) or (portal in ('user', 'citizen') and request.user.is_citizen)
+        if matching or not portal:
+            return redirect(_post_login_target(request, request.user, next_url))
     username = ''
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
@@ -74,18 +99,27 @@ def login_view(request):
             elif user.role is None:
                 messages.error(request, 'This account has no role assigned. Contact the administrator.')
             else:
+                lang = request.session.get('gzp_lang', 'en')
                 login(request, user)
+                request.session['gzp_lang'] = lang
                 log(user, 'login', request=request, module='accounts')
                 if not user.email_verified:
+                    request.session['verification_next'] = _post_login_target(request, user, next_url)
                     issue_otp(user)
                     messages.info(
                         request,
                         'For this demo the OTP is shown on the verification page and in the demo outbox.',
                     )
                     return redirect('verify_email')
-                return redirect(_safe_next(request, next_url, landing_for(user)))
+                return redirect(_post_login_target(request, user, next_url))
+    accounts = demo_accounts()
+    if portal in ('user', 'citizen'):
+        accounts = [a for a in accounts if a['role_code'] == 'citizen']
+    elif portal == 'official':
+        accounts = [a for a in accounts if a['role_code'] and a['role_code'] != 'citizen']
     return render(request, 'accounts/login.html', {
         'next': next_url, 'username': username, 'page_title': 'Sign in',
+        'portal': portal, 'demo_accounts': accounts,
     })
 
 
@@ -102,6 +136,7 @@ def logout_view(request):
 def register_view(request):
     if request.user.is_authenticated:
         return redirect(landing_for(request.user))
+    next_url = _safe_next(request, request.POST.get('next') or request.GET.get('next'), '/user/')
     values = {
         'first_name': '', 'last_name': '', 'username': '', 'email': '', 'phone': '',
     }
@@ -122,9 +157,11 @@ def register_view(request):
             errors.append('An account already exists with that email address.')
         if not values['phone']:
             errors.append('Enter a mobile number (sample numbers only).')
-        if password1 != password2:
+        if not password1:
+            errors.append('Enter a password.')
+        elif password1 != password2:
             errors.append('The two passwords do not match.')
-        elif password1:
+        else:
             try:
                 validate_password(password1)
             except ValidationError as exc:
@@ -146,6 +183,7 @@ def register_view(request):
             )
             issue_otp(user)
             login(request, user)
+            request.session['verification_next'] = _portal_target(user, next_url) or landing_for(user)
             log(user, 'create', user, 'Citizen self-registration', request)
             messages.success(
                 request,
@@ -153,7 +191,7 @@ def register_view(request):
             )
             return redirect('verify_email')
     return render(request, 'accounts/register.html', {
-        'values': values, 'page_title': 'Register',
+        'values': values, 'next': next_url, 'page_title': 'Register',
     })
 
 
@@ -162,7 +200,8 @@ def verify_email(request):
         return redirect('/login/')
     if request.user.email_verified:
         messages.info(request, 'Your account is already verified.')
-        return redirect(landing_for(request.user))
+        target = request.session.pop('verification_next', None)
+        return redirect(_safe_next(request, target, landing_for(request.user)))
     if request.method == 'POST':
         code = request.POST.get('code', '').strip()
         ok, message = verify_otp(request.user, code)
@@ -170,7 +209,8 @@ def verify_email(request):
             log(request.user, 'update', request.user, 'Email and mobile verified',
                 request)
             messages.success(request, message)
-            return redirect(landing_for(request.user))
+            target = request.session.pop('verification_next', None)
+            return redirect(_safe_next(request, target, landing_for(request.user)))
         messages.error(request, message)
     return render(request, 'accounts/verify.html', {
         'page_title': 'Verify your account',
@@ -200,13 +240,16 @@ def demo_switch(request):
     if user is None or user.role is None:
         messages.error(request, 'That demo account is not available. Run seed_demo first.')
         return redirect('/login/')
+    lang = request.session.get('gzp_lang', 'en')
     login(request, user)
+    request.session['gzp_lang'] = lang
     log(user, 'login', request=request, module='accounts')
     messages.success(
         request,
         f'You are now signed in as {user.display_name} ({user.role.name}).',
     )
-    return redirect(_safe_next(request, request.POST.get('next'), landing_for(user)))
+    target = request.POST.get('next')
+    return redirect(_safe_next(request, _portal_target(user, target), landing_for(user)))
 
 
 def profile_view(request):

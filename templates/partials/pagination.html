@@ -1,13 +1,18 @@
 {% load gzp %}
-{% if page_obj and page_obj.paginator.num_pages > 1 %}
+{% if page_obj.paginator %}
   <nav class="pagination" aria-label="Pagination">
     {% if page_obj.has_previous %}
-      <a href="?{% querystring page=page_obj.previous_page_number %}">&laquo; {% t "Previous" %}</a>
+      <a href="{% querystring page=page_obj.previous_page_number %}">&laquo; {% t "Previous" %}</a>
     {% endif %}
     <span class="cur">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-      <a href="?{% querystring page=page_obj.next_page_number %}">{% t "Next" %} &raquo;</a>
+      <a href="{% querystring page=page_obj.next_page_number %}">{% t "Next" %} &raquo;</a>
     {% endif %}
-    <span class="text-muted ms-2">{{ page_obj.paginator.count }} record{{ page_obj.paginator.count|pluralize }}</span>
+    <span class="text-muted ms-2">{{ page_obj.paginator.count }} {% t "records" %}</span>
+    {% if request.GET.view == 'all' %}
+      <a href="{% querystring view=None page=1 %}">{% t "Show fewer" %}</a>
+    {% else %}
+      <a href="{% querystring view='all' page=1 %}">{% t "View all" %}</a>
+    {% endif %}
   </nav>
 {% endif %}

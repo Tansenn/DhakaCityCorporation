@@ -38,7 +38,7 @@ def gateway_checkout(request, txn_id):
         'payment': payment, 'booking': booking, 'callbacks': callbacks,
         'provider': get_setting('payment_gateway_provider', 'SSLCommerz / bKash (demo)'),
         'gateway_charge_paid_by_user': get_bool('gateway_charge_paid_by_user', False),
-        'page_title': 'Demo payment gateway',
+        'page_title': 'Secure payment',
         'is_paid': payment.status == 'success',
     })
 
@@ -58,7 +58,8 @@ def gateway_action(request, txn_id):
         forged = gateway.sign_payload(payload) + 'ff'
         result, message = gateway.handle_callback(payload, forged)
     elif outcome in ('pay', 'fail', 'cancel'):
-        payload = gateway.callback_payload(payment, outcome)
+        channel = (request.POST.get('channel') or 'card')[:24]
+        payload = gateway.callback_payload(payment, outcome, channel)
         result, message = gateway.handle_callback(
             payload, gateway.sign_payload(payload))
     else:

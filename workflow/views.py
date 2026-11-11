@@ -83,6 +83,50 @@ def _can_act(user, task):
     )
 
 
+_PAYLOAD_LABELS = {
+    'amount': 'Amount', 'nights': 'Nights', 'days': 'Days',
+    'unit_kind': 'Unit type', 'facility': 'Facility',
+    'applicant_category': 'Applicant category', 'slot': 'Slot',
+    'check_in': 'Check-in', 'check_out': 'Check-out',
+}
+_PAYLOAD_CHOICES = {
+    'unit_kind': {'room': 'Room', 'suite': 'Suite', 'hall': 'Hall'},
+    'applicant_category': {'citizen': 'Citizen', 'organization': 'Organization',
+                           'government': 'Government'},
+    'slot': {'morning': 'Morning', 'afternoon': 'Afternoon', 'evening': 'Evening',
+             'room': 'Full day'},
+}
+
+
+def _payload_rows(instance):
+    """Turn the raw workflow payload into label/value rows for the task screen."""
+    from core.i18n import localize
+    from facilities.models import Facility
+
+    facilities = {row.code: row.name for row in Facility.objects.all()}
+    rows = []
+    for key, value in instance.payload.items():
+        if key in ('url', 'subject', 'tracking_id'):
+            continue
+        label = _PAYLOAD_LABELS.get(key, key.replace('_', ' ').title())
+        if key == 'facility':
+            value = facilities.get(str(value), value)
+        elif key in _PAYLOAD_CHOICES:
+            value = _PAYLOAD_CHOICES[key].get(str(value), value)
+        elif key in ('check_in', 'check_out'):
+            parsed = parse_date(value)
+            value = localize(parsed.strftime('%d %b %Y')) if parsed else value
+        elif key == 'amount':
+            try:
+                value = localize(f'{float(value):,.2f}')
+            except (TypeError, ValueError):
+                pass
+        elif key in ('nights', 'days'):
+            value = localize(str(value))
+        rows.append((label, value))
+    return rows
+
+
 @staff_required
 def task_detail(request, pk):
     task = get_object_or_404(
@@ -98,6 +142,7 @@ def task_detail(request, pk):
         'instance': task.instance,
         'records': records,
         'allowed': task.step.decision_labels if task.status == 'pending' else [],
+        'payload_rows': _payload_rows(task.instance),
         'page_title': 'Task detail',
     })
 

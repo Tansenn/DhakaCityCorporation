@@ -13,6 +13,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.utils import timezone
 
+from core.i18n import CURRENT_LANG, localize, translate
 from core.models import get_bool, get_decimal, get_int
 from facilities.models import BlackoutDate, InventoryLock, Tariff, Unit
 
@@ -79,7 +80,7 @@ def blackout_dates(facility, start, end):
 
 
 def available_units(facility, start, end, slot=''):
-    units = list(facility.units.filter(is_active=True))
+    units = list(facility.units.filter(is_active=True, asset_category='dakbungalow'))
     out = []
     for unit in units:
         if unit.is_hall and not slot:
@@ -129,6 +130,13 @@ def is_holiday(day):
     return day.weekday() in (4, 5)
 
 
+def _rate_label(day):
+    holiday = is_holiday(day)
+    if CURRENT_LANG.get() == 'bn':
+        return 'ছুটির দিনের হার' if holiday else 'সাধারণ হার'
+    return 'holiday rate' if holiday else 'standard rate'
+
+
 def quote(unit, category, start, end, slot=''):
     """Return a transparent price breakdown. All values are sample settings."""
     tariff = tariff_for(unit, category)
@@ -137,15 +145,21 @@ def quote(unit, category, start, end, slot=''):
     lines = []
     charges = Decimal('0')
     deposit = tariff.deposit or Decimal('0')
+    bn = CURRENT_LANG.get() == 'bn'
 
     if unit.is_hall:
         rate = tariff.holiday_amount if is_holiday(start) else tariff.amount
         nights = 1
         charges = rate
+        slot_label = dict(SLOT_CHOICES).get(slot, 'Full day / overnight')
+        if bn:
+            slot_label = translate(slot_label, 'bn')
+            label = f'কনফারেন্স হল - {slot_label} ({start.strftime("%d %b %Y")})'
+        else:
+            label = (f'Conference hall - {slot_label} on '
+                     f'{start.strftime("%d %b %Y")}')
         lines.append({
-            'label': f'Conference hall - {slot or "full day"} on '
-                     f'{start.strftime("%d %b %Y")}'
-                     f'{" (holiday rate)" if is_holiday(start) else ""}',
+            'label': localize(label),
             'amount': rate,
         })
     else:
@@ -155,8 +169,7 @@ def quote(unit, category, start, end, slot=''):
             rate = tariff.holiday_amount if is_holiday(day) else tariff.amount
             charges += rate
             lines.append({
-                'label': f'{day.strftime("%d %b %Y")} - '
-                         f'{"holiday rate" if is_holiday(day) else "standard rate"}',
+                'label': localize(f'{day.strftime("%d %b %Y")} - {_rate_label(day)}'),
                 'amount': rate,
             })
             day += timedelta(days=1)
@@ -213,6 +226,10 @@ def refund_policy_text():
             except (ValueError, ArithmeticError):
                 continue
     rules.sort(reverse=True)
+    if CURRENT_LANG.get() == 'bn':
+        bits = [f'চেক-ইনের {days}+ দিন আগে বাতিলে {int(percent)}% ফেরত'
+                for days, percent in rules]
+        return localize('; '.join(bits) + ' (নমুনা নীতি)')
     bits = [f'{int(percent)}% if cancelled {days}+ day(s) before check-in'
             for days, percent in rules]
     return '; '.join(bits) + ' (sample policy)'
@@ -222,24 +239,23 @@ def hold_hours():
     return get_int('hold_hours', 48)
 
 
-def facility_calendar(facility, start, days=35):
+def facility_calendar(facility, start, days=35, asset_category=None):
     """A simple availability grid: booked and free rooms per day."""
     from django.db.models import Count
 
     from core.utils import daterange_days
 
     end = start + timedelta(days=days)
-    room_count = facility.units.filter(is_active=True).exclude(kind='hall').count()
+    units_qs = facility.units.filter(is_active=True).exclude(kind='hall')
+    locks_qs = InventoryLock.objects.filter(
+        unit__facility=facility, released=False, date__gte=start, date__lt=end,
+    ).filter(active_lock_filter()).exclude(unit__kind='hall')
+    if asset_category:
+        units_qs = units_qs.filter(asset_category=asset_category)
+        locks_qs = locks_qs.filter(unit__asset_category=asset_category)
+    room_count = units_qs.count()
     blackouts = blackout_dates(facility, start, end)
-    rows = (
-        InventoryLock.objects.filter(
-            unit__facility=facility, released=False, date__gte=start, date__lt=end,
-        )
-        .filter(active_lock_filter())
-        .exclude(unit__kind='hall')
-        .values('date')
-        .annotate(n=Count('id'))
-    )
+    rows = locks_qs.values('date').annotate(n=Count('id'))
     booked = {row['date']: row['n'] for row in rows}
     today_value = timezone.localdate()
     out = []

@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% load gzp %}
-{% block title %}Deliverables and UAT{% endblock %}
+{% block title %}{% t "Deliverables and UAT" %}{% endblock %}
 {% block content %}
 <div class="page-head">
   <div>
@@ -30,7 +30,7 @@
       <tbody>
       {% for item in rows %}
         <tr>
-          <td><span class="chip chip-{% if item.kind == 'uat' %}info{% else %}muted{% endif %}">{{ item.get_kind_display }}</span></td>
+          <td><span class="chip chip-{% if item.kind == 'uat' %}info{% else %}muted{% endif %}">{{ item.get_kind_display|tr:lang }}</span></td>
           <td>{{ item.area }}</td>
           <td>{{ item.item }}</td>
           <td><span class="chip chip-{{ item.status|chip }}">{{ item.get_status_display }}</span>
@@ -57,4 +57,5 @@
     </table>
   </div>
 </div>
+{% include 'partials/pagination.html' %}
 {% endblock %}

@@ -1,15 +1,38 @@
 {% extends 'accounts/auth_base.html' %}
 {% load gzp %}
-{% block title %}Sign in{% endblock %}
+{% block title %}{% t "Sign in" %}{% endblock %}
 {% block auth_content %}
-  <h2>{% t "Sign in" %}</h2>
-  <div class="sub">Staff and citizen access to the integrated platform.</div>
+  <nav class="portal-tabs" aria-label="{% t 'Choose your portal' %}">
+    <a class="{% if portal == 'user' %}on{% endif %}" href="/login/?portal=user&amp;next=/user/"><i class="bi bi-compass"></i> {% t "User" %}</a>
+    <a class="{% if portal == 'citizen' %}on{% endif %}" href="/login/?portal=citizen{% if next %}&next={{ next|urlencode }}{% endif %}">
+      <i class="bi bi-person-fill"></i> {% t "Citizen" %}
+    </a>
+    <a class="{% if portal == 'official' %}on{% endif %}" href="/login/?portal=official{% if next %}&next={{ next|urlencode }}{% endif %}">
+      <i class="bi bi-shield-lock-fill"></i> {% t "Officials" %}
+    </a>
+  </nav>
 
-  <form method="post" action="/login/" novalidate>
+  <h2>{% if portal == 'official' %}{% t "Officials sign-in" %}{% elif portal == 'citizen' %}{% t "Citizen sign-in" %}{% elif portal == 'user' %}{% t "Welcome to your next booking" %}{% else %}{% t "Sign in" %}{% endif %}</h2>
+  <div class="sub">{% if portal == 'official' %}{% t "Booking desk, reviewers, approvers, finance, HR and administration." %}{% elif portal == 'citizen' %}{% t "Citizens and applicants using Parishad services." %}{% else %}{% t "Citizen and staff access to the integrated platform." %}{% endif %}</div>
+
+  {% if portal == 'citizen' %}
+    <div class="portal-hint">
+      <i class="bi bi-person-vcard"></i>
+      <span>{% t "Citizen applicants need a National ID (NID) when submitting a booking. Sample numbers only in this demo." %}</span>
+    </div>
+  {% elif portal == 'official' %}
+    <div class="portal-hint">
+      <i class="bi bi-shield-check"></i>
+      <span>{% t "Officials sign in with the account issued by the system administrator. Roles are enforced on the server." %}</span>
+    </div>
+  {% endif %}
+
+  <form method="post" action="/login/" class="auth-signin-form" novalidate>
     {% csrf_token %}
     <input type="hidden" name="next" value="{{ next }}">
+    <input type="hidden" name="portal" value="{{ portal }}">
     <div class="mb-3">
-      <label class="form-label required" for="username">Username</label>
+      <label class="form-label required" for="username">{% t "Username" %}</label>
       <input class="form-control" id="username" name="username" value="{{ username }}" autocomplete="username" autofocus required>
     </div>
     <div class="mb-3">
@@ -20,13 +43,18 @@
   </form>
 
   <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:.8rem">
-    <span class="text-muted">New citizen applicant?</span>
-    <a href="/register/">{% t "Register" %}</a>
+    {% if portal == 'official' %}
+      <span class="text-muted">{% t "No official account?" %}</span>
+      <span class="text-muted">{% t "Ask the system administrator." %}</span>
+    {% else %}
+      <span class="text-muted">{% t "New citizen applicant?" %}</span>
+      <a href="/register/?next={{ next|urlencode }}">{% t "Register" %}</a>
+    {% endif %}
   </div>
 
   {% if DEMO_MODE %}
     <div class="demo-panel">
-      <div class="dp-title">Demo quick sign-in — password <span class="demo-pass">Demo@12345</span></div>
+      <div class="dp-title">{% t "Demo quick sign-in - password" %} <span class="demo-pass">Demo@12345</span></div>
       <div class="demo-accounts">
         {% for account in demo_accounts %}
           <form method="post" action="/demo/switch/">
@@ -37,7 +65,7 @@
           </form>
         {% endfor %}
       </div>
-      <div class="note-inline mt-2">All demo accounts share the same password. Roles are enforced on the server, not only in the menu.</div>
+      <div class="note-inline mt-2">{% t "All demo accounts share the same password. Roles are enforced on the server, not only in the menu." %}</div>
     </div>
   {% endif %}
 {% endblock %}
