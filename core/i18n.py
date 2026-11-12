@@ -1540,7 +1540,6 @@ BN_EXTRA = {
     'FIND YOUR SPACE': 'আপনার জায়গা খুঁজুন',
     'PLAN YOUR VISIT': 'আপনার সফর পরিকল্পনা করুন',
     'GAZIPUR ZILA PARISHAD': 'গাজীপুর জেলা পরিষদ',
-    'Banglish': 'বাংলিশ',
     'Demo': 'ডেমো',
     'Government of Bangladesh': 'বাংলাদেশ সরকার',
     'Local spaces. A simpler service.': 'স্থানীয় জায়গা। সহজ একটি সেবা।',
@@ -1883,160 +1882,6 @@ def _dynamic(text):
     return changed
 
 
-_TRANSLIT_VOWELS = {
-    'অ': 'o', 'আ': 'a', 'ই': 'i', 'ঈ': 'i', 'উ': 'u', 'ঊ': 'u',
-    'ঋ': 'ri', 'এ': 'e', 'ঐ': 'oi', 'ও': 'o', 'ঔ': 'ou',
-}
-_TRANSLIT_SIGNS = {
-    'া': 'a', 'ি': 'i', 'ী': 'i', 'ু': 'u', 'ূ': 'u', 'ৃ': 'ri',
-    'ে': 'e', 'ৈ': 'oi', 'ো': 'o', 'ৌ': 'ou',
-}
-_TRANSLIT_CONSONANTS = {
-    'ক': 'k', 'খ': 'kh', 'গ': 'g', 'ঘ': 'gh', 'ঙ': 'ng',
-    'চ': 'ch', 'ছ': 'chh', 'জ': 'j', 'ঝ': 'jh', 'ঞ': 'n',
-    'ট': 't', 'ঠ': 'th', 'ড': 'd', 'ঢ': 'dh', 'ণ': 'n',
-    'ত': 't', 'থ': 'th', 'দ': 'd', 'ধ': 'dh', 'ন': 'n',
-    'প': 'p', 'ফ': 'ph', 'ব': 'b', 'ভ': 'bh', 'ম': 'm',
-    'য': 'j', 'র': 'r', 'ল': 'l', 'শ': 'sh', 'ষ': 'sh', 'স': 's',
-    'হ': 'h', 'ৎ': 't',
-}
-_TRANSLIT_MARKS = {'ং': 'ng', 'ঃ': 'h', 'ঁ': 'n'}
-_TRANSLIT_NUKTA = {'ড': 'r', 'ঢ': 'rh', 'য': 'y'}
-_TRANSLIT_CLUSTERS = {
-    'জ্ঞ': 'gy', 'ক্ষ': 'kkh', 'ঞ্চ': 'nch', 'ঙ্গ': 'ng', 'ন্ত': 'nt',
-    'ন্দ': 'nd', 'ম্ব': 'mb', 'স্ট': 'st', 'ত্র': 'tr', 'প্র': 'pr',
-    'গ্র': 'gr', 'ব্র': 'br', 'ক্র': 'kr', 'শ্র': 'shr', 'জ্জ': 'jj',
-}
-# Familiar English words stay English in Banglish.
-_TRANSLIT_FIXES = {
-    'djashobord': 'dashboard',
-    'dyashbord': 'dashboard',
-    'dakobanglo': 'dakbanglo',
-    'dakobangla': 'dakbangla',
-    'meil': 'mail',
-    'autoboks': 'outbox',
-    'inboks': 'inbox',
-    'setings': 'settings',
-    'protibedon': 'report',
-    'siio': 'CEO',
-    'iunit': 'unit',
-    'sistem': 'system',
-    'bjoboharokari': 'users',
-    'byboharokari': 'users',
-    'kormokkhetr': 'workspace',
-    'eichar': 'HR',
-    'prokolp': 'prokolpo',
-    'somoyottirn': 'somoyottirno',
-    'iueti': 'UAT',
-    'diuti': 'Duty',
-    'phail': 'file',
-    'rajosb': 'rajoshsho',
-    'bjakap': 'backup',
-    'tikit': 'ticket',
-}
-# Whole words that read better in English (unit and facility names).
-_TRANSLIT_WORDS = {
-    'rum': 'room',
-    'stjandard': 'standard',
-    'phjamili': 'family',
-    'bhiaipi': 'VIP',
-    'suit': 'suite',
-    'sjut': 'suite',
-    'konopharens': 'conference',
-    'miting': 'meeting',
-    'hol': 'hall',
-    'pljatophorm': 'platform',
-    'dijital': 'digital',
-    'jonj': 'jonno',
-}
-_TRANSLIT_WORDS_RE = re.compile(
-    r'\b(' + '|'.join(sorted(_TRANSLIT_WORDS, key=len, reverse=True)) + r')\b',
-    re.IGNORECASE)
-# Office terms a Bangladeshi reader says in English; Banglish keeps them as they are.
-_BANGLISH_KEEP = {
-    'Assets', 'All assets', 'Land', 'Ponds', 'Markets', 'Kheyaghat',
-    'Auditorium', 'Dak Bungalow', 'Dak Bungalow details', 'Approval status',
-    'Booking status', 'Booking management', 'Booked', 'Pending approval',
-    'Available', 'Dashboard', 'CEO dashboard', 'Settings', 'Mail', 'Inbox',
-    'Outbox', 'Report', 'Reports', 'Payment', 'Payments', 'Total', 'Search',
-    'Status', 'Export CSV', 'My tasks', 'Assets & tariffs',
-    'Citizen', 'Officials', 'Citizen sign-in', 'Officials sign-in',
-    'Citizen / user portal', 'Officials portal', 'Official sign-in',
-    'Enter citizen portal', 'Secure payment', 'Card', 'Bank', 'Net banking',
-    'Pay with cards', 'Card number', 'Card holder name', 'Mobile wallet',
-    'bKash account number', 'Nagad account number', 'Rocket account number',
-    'Account number', 'Internet banking', 'User ID', 'Direct debit',
-    'Welcome back', 'Powered by', 'Secured by', 'Visa · Mastercard · Amex',
-    'Recall', 'Pay',
-}
-
-
-def transliterate(text):
-    """Write Bengali in Latin letters (Banglish), keeping digits and ASCII."""
-    chars = list(str(text))
-    out = []
-    index = 0
-    total = len(chars)
-    while index < total:
-        ch = chars[index]
-        cluster = ''
-        latin = ''
-        for size in (3, 2):
-            seq = ''.join(chars[index:index + size])
-            if seq in _TRANSLIT_CLUSTERS:
-                cluster, latin = seq, _TRANSLIT_CLUSTERS[seq]
-                break
-        if cluster:
-            out.append(latin)
-            nxt = chars[index + len(cluster)] if index + len(cluster) < total else ''
-            if nxt and (nxt in _TRANSLIT_CONSONANTS or nxt in _TRANSLIT_MARKS):
-                out.append('o')
-            index += len(cluster)
-            continue
-        if ch in _TRANSLIT_VOWELS:
-            out.append(_TRANSLIT_VOWELS[ch])
-        elif ch in _TRANSLIT_CONSONANTS:
-            out.append(_TRANSLIT_CONSONANTS[ch])
-            nxt = chars[index + 1] if index + 1 < total else ''
-            if nxt in _TRANSLIT_CONSONANTS or nxt in _TRANSLIT_MARKS:
-                out.append('o')
-        elif ch in _TRANSLIT_SIGNS:
-            out.append(_TRANSLIT_SIGNS[ch])
-        elif ch == '\u09bc' and index and chars[index - 1] in _TRANSLIT_NUKTA:
-            if out:
-                out.pop()
-            out.append(_TRANSLIT_NUKTA[chars[index - 1]])
-        elif ch in _TRANSLIT_MARKS:
-            out.append(_TRANSLIT_MARKS[ch])
-        elif ch == '\u09cd':
-            pass
-        else:
-            out.append(ch)
-        index += 1
-    text = ''.join(out).translate(str.maketrans('০১২৩৪৫৬৭৮৯', '0123456789'))
-    for wrong, right in _TRANSLIT_FIXES.items():
-        text = text.replace(wrong, right)
-    text = _TRANSLIT_WORDS_RE.sub(
-        lambda m: _TRANSLIT_WORDS[m.group(0).lower()], text)
-    return text
-
-
-def banglish(text):
-    """Bangla wording in Latin letters; untranslated strings stay English."""
-    raw = str(text)
-    if raw in _BANGLISH_KEEP:
-        return raw
-    found = BN.get(raw) or BN_EXTRA.get(raw) or _dynamic(raw)
-    if not found:
-        return raw
-    out = transliterate(found)
-    if raw[:1].isalpha() and raw[:1].islower():
-        return out[:1].lower() + out[1:]
-    if out[:1].isalpha():
-        return out[:1].upper() + out[1:]
-    return out
-
-
 def translate(text, lang='en'):
     if lang == 'bn':
         found = BN.get(text) or BN_EXTRA.get(text)
@@ -2045,8 +1890,6 @@ def translate(text, lang='en'):
         dynamic = _dynamic(str(text))
         if dynamic:
             return dynamic
-    if lang == 'bng':
-        return banglish(text)
     return text
 
 

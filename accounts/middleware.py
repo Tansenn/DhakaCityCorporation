@@ -17,6 +17,8 @@ class DemoSessionMiddleware:
     def __call__(self, request):
         if not request.session.get('gzp_lang'):
             request.session['gzp_lang'] = 'en'
+        elif request.session['gzp_lang'] == 'bng':
+            request.session['gzp_lang'] = 'bn'
 
         from core.i18n import CURRENT_LANG
         token = CURRENT_LANG.set(request.session['gzp_lang'])

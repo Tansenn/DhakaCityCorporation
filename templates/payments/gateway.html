@@ -10,7 +10,6 @@
     <div class="lang-switch" role="group" aria-label="{% t 'Language' %}">
       <a class="{% if lang == 'en' %}on{% endif %}" href="/lang/en/?next={{ request.get_full_path|urlencode }}">{% t "EN" %}</a>
       <a class="{% if lang == 'bn' %}on{% endif %}" href="/lang/bn/?next={{ request.get_full_path|urlencode }}">{% t "বাংলা" %}</a>
-      <a class="{% if lang == 'bng' %}on{% endif %}" href="/lang/bng/?next={{ request.get_full_path|urlencode }}">{% t "Banglish" %}</a>
     </div>
   </nav>
 

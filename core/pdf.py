@@ -267,6 +267,19 @@ def table_pdf(filename, title, headers, rows, subtitle='', widths=None,
     )
 
 
+def receipt_signer():
+    """Accounts officer who signs receipts; role-only text when none is seeded."""
+    from accounts.models import User
+
+    base = User.objects.select_related('designation', 'role').filter(is_active=True)
+    officer = base.filter(role__code='finance').order_by('pk').first()
+    if officer:
+        designation = (officer.designation.name if officer.designation
+                       else officer.role_name)
+        return officer.display_name, designation
+    return 'Accounts Officer', 'Finance & Accounts, Gazipur Zila Parishad'
+
+
 def receipt_pdf(booking, payment):
     """A payment record, deliberately distinct from the separately issued permit."""
     from xml.sax.saxutils import escape
@@ -292,6 +305,23 @@ def receipt_pdf(booking, payment):
         'ReceiptStamp', parent=body, alignment=TA_CENTER, textColor=GREEN,
         fontSize=17, leading=17, fontName='Helvetica-Bold',
     )
+    band_style = ParagraphStyle(
+        'ReceiptBand', parent=body, textColor=colors.white, fontSize=7.5,
+        leading=10, fontName='Helvetica-Bold',
+    )
+    band_right = ParagraphStyle('ReceiptBandRight', parent=band_style, alignment=TA_RIGHT)
+    register_label = ParagraphStyle(
+        'ReceiptRegisterLabel', parent=body, fontSize=6.8, leading=8,
+        textColor=MUTED, fontName='Helvetica-Bold',
+    )
+    register_value = ParagraphStyle(
+        'ReceiptRegisterValue', parent=body, fontSize=9.5, leading=12,
+        textColor=INK, fontName='Helvetica-Bold',
+    )
+    seal_caption = ParagraphStyle(
+        'ReceiptSealCaption', parent=body, fontSize=6.8, alignment=TA_CENTER,
+        textColor=MUTED, leading=8,
+    )
 
     def text(value, style=body):
         # Names and references are data, never ReportLab paragraph markup.
@@ -301,25 +331,66 @@ def receipt_pdf(booking, payment):
         # The receipt's built-in PDF font supports BDT, not the taka glyph.
         return f'BDT {value or 0:,.2f}'
 
-    zp = _static_image('img/zp_gazipur_logo.png', 21 * mm, 21 * mm)
-    gov = _static_image('img/bd_govt_logo.png', 20 * mm, 20 * mm)
+    zp = _static_image('img/zp_gazipur_logo.png', 18 * mm, 18 * mm)
+    gov = _static_image('img/bd_govt_logo.png', 16 * mm, 16 * mm)
+    seal = _static_image('img/bd_govt_seal.png', 21 * mm, 21 * mm)
+
+    verified_at = payment.verified_at
+    if verified_at and timezone.is_aware(verified_at):
+        verified_at = timezone.localtime(verified_at)
+
+    # Government masthead: solid navy band over a green rule.
+    band = Table([[
+        Paragraph("Government of the People's Republic of Bangladesh", band_style),
+        Paragraph('Local Government Division · Gazipur Zila Parishad', band_right),
+    ]], colWidths=[104 * mm, 70 * mm], style=TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), NAVY),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 10),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
     letterhead = Table([[
         zp or text(''),
-        [Paragraph('Gazipur Zila Parishad', sheet['GzpTitle']),
-         Paragraph('Government of Bangladesh<br/>Dakbungalow booking', sheet['GzpSub'])],
+        [Paragraph('GAZIPUR ZILA PARISHAD', sheet['GzpTitle']),
+         Paragraph('Office of the Zila Parishad, Gazipur<br/>'
+                   'Dakbungalow E-Booking · Accounts Section', sheet['GzpSub'])],
         gov or text(''),
     ]], colWidths=[25 * mm, 124 * mm, 25 * mm], style=TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
         ('LEFTPADDING', (0, 0), (-1, -1), 0),
         ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
     ]))
+
+    # Register-style reference band, like a government money receipt.
+    register = Table([[
+        [Paragraph('RECEIPT NO.', register_label), text(payment.receipt_no or payment.txn_id, register_value)],
+        [Paragraph('PAYMENT DATE', register_label),
+         text(verified_at.strftime('%d %b %Y, %H:%M') if verified_at else 'Not recorded', register_value)],
+        [Paragraph('STATUS', register_label),
+         Paragraph('<font color="#147d54">PAID</font> · SIMULATED',
+                   ParagraphStyle('ReceiptStatus', parent=register_value, fontSize=9))],
+    ]], colWidths=[74 * mm, 60 * mm, 40 * mm], style=TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#F7F8FC')),
+        ('BOX', (0, 0), (-1, -1), 0.9, NAVY),
+        ('INNERGRID', (0, 0), (-1, -1), 0.4, LINE),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('LEFTPADDING', (0, 0), (-1, -1), 9),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 9),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+    ]))
+
     stamp = Table([[Paragraph('PAID<br/><font size="8">SIMULATED</font>', stamp_style)]],
                   colWidths=[35 * mm], style=TableStyle([
                       ('BACKGROUND', (0, 0), (-1, -1), colors.white),
                       ('BOX', (0, 0), (-1, -1), 1, GREEN),
-                      ('TOPPADDING', (0, 0), (-1, -1), 7),
-                      ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+                      ('TOPPADDING', (0, 0), (-1, -1), 5),
+                      ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
                   ]))
     heading = Table([[text('Payment receipt', header_style), stamp]],
                     colWidths=[127 * mm, 47 * mm], style=TableStyle([
@@ -327,12 +398,10 @@ def receipt_pdf(booking, payment):
                         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                         ('LEFTPADDING', (0, 0), (-1, -1), 12),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 12),
-                        ('TOPPADDING', (0, 0), (-1, -1), 10),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+                        ('TOPPADDING', (0, 0), (-1, -1), 6),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                     ]))
-    verified_at = payment.verified_at
-    if verified_at and timezone.is_aware(verified_at):
-        verified_at = timezone.localtime(verified_at)
+
     channel = (payment.raw or {}).get('channel') or ''
     channel_name = {
         'card': 'Card', 'bkash': 'bKash', 'nagad': 'Nagad', 'rocket': 'Rocket',
@@ -351,12 +420,14 @@ def receipt_pdf(booking, payment):
     ]
     details = Table([[text(key, label), text(value)] for key, value in metadata],
                     colWidths=[43 * mm, 131 * mm], style=TableStyle([
+                        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#FAFBFD')),
+                        ('BOX', (0, 0), (-1, -1), 0.8, LINE),
+                        ('INNERGRID', (0, 0), (-1, -1), 0.35, LINE),
                         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
                         ('LEFTPADDING', (0, 0), (-1, -1), 10),
                         ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                        ('TOPPADDING', (0, 0), (-1, -1), 5),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                        ('LINEBELOW', (0, 0), (-1, -1), .35, LINE),
+                        ('TOPPADDING', (0, 0), (-1, -1), 3),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                     ]))
     totals = Table([
         [text('Payment summary'), text('Amount (BDT)', amount_style)],
@@ -370,23 +441,52 @@ def receipt_pdf(booking, payment):
         ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#EAF5EE')),
         ('LINEBELOW', (0, 0), (-1, -1), .4, LINE),
         ('LINEABOVE', (0, -1), (-1, -1), 1, GREEN),
+        ('BOX', (0, 0), (-1, -1), 0.8, LINE),
         ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ('LEFTPADDING', (0, 0), (-1, -1), 10),
         ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-        ('TOPPADDING', (0, 0), (-1, -1), 9),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 9),
+        ('TOPPADDING', (0, 0), (-1, -1), 5),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
     ]))
+
+    seal_box = Table([
+        [seal or text('')],
+        [Paragraph('Office seal<br/>(sample)', seal_caption)],
+    ], colWidths=[46 * mm], rowHeights=[23 * mm, 8 * mm], style=TableStyle([
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('BOX', (0, 0), (-1, -1), 0.6, LINE),
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+    ]))
+    signer_name, signer_role = receipt_signer()
+    signature = Table(
+        [[SignatureBlock(signer_name, signer_role, width=78 * mm, height=27 * mm),
+          seal_box]],
+        colWidths=[116 * mm, 58 * mm],
+        style=TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'BOTTOM'),
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]),
+    )
+
     approval = ('Permit issued separately' if booking.permit_issued_at
                 else 'Pending approval')
     note = ('Download the separately issued permit from your application.'
             if booking.permit_issued_at else
             'Payment received. Booking approval is still required before a permit can be issued.')
     story = [
-        letterhead, Spacer(1, 12), heading, Spacer(1, 16), details,
-        Spacer(1, 18), totals, Spacer(1, 16),
-        text(approval, sheet['GzpH']), text(note), Spacer(1, 9),
+        band, Spacer(1, 2), HRFlowable(width='100%', thickness=2.4, color=GREEN,
+                                       spaceBefore=0, spaceAfter=0),
+        letterhead, Spacer(1, 4), register, Spacer(1, 10), heading, Spacer(1, 10),
+        details, Spacer(1, 10), totals, Spacer(1, 8),
+        Paragraph(f'<b>{approval}</b>', body), text(note, sheet['GzpSmall']),
+        Spacer(1, 8), signature, Spacer(1, 8),
         Paragraph('<b>This receipt is not a booking permit.</b>', body),
-        Spacer(1, 5),
+        Spacer(1, 3),
         text('Simulated payment. No money was transferred. '
              'This receipt records a demo payment only.', sheet['GzpSmall']),
     ]

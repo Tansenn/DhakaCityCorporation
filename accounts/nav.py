@@ -8,7 +8,6 @@ NAV = [
     ('Approvals', [
         ('Approval status', '/app/workflow/', 'workflow.manage', 'diagram-3'),
         ('Pending approval', '/app/workflow/matrix/', 'workflow.manage', 'shield-check'),
-        ('Approval speed', '/app/mis/workflow/', 'workflow.audit', 'speedometer'),
     ]),
     ('Dakbungalow', [
         ('All bookings', '/app/bookings/', 'bookings.view', 'calendar-check'),

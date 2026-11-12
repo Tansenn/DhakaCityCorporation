@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ page_title }}{% endblock %} · Gazipur Zila Parishad</title>
-  <link rel="icon" href="{% static 'img/adcelerete_logo.png' %}">
+  <link rel="icon" href="{% static 'img/zp_gazipur_logo.png' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/gzp.css' %}">
@@ -16,7 +16,7 @@
 <div class="auth-wrap">
   <aside class="auth-side">
     <a class="brand" href="/">
-      <img src="{% static 'img/adcelerete_logo.png' %}" alt="Adcelerete logo">
+      <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="Gazipur Zila Parishad">
       <span>
         <span style="font-weight:700;color:#fff;display:block">Gazipur Zila Parishad</span>
         <span style="font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:#a7acce">{% t "Integrated Digital Platform" %}</span>
@@ -45,7 +45,6 @@
     <div class="lang-switch auth-lang" role="group" aria-label="Language">
       <a class="{% if lang == 'en' %}on{% endif %}" href="/lang/en/?next={{ request.get_full_path|urlencode }}">EN</a>
       <a class="{% if lang == 'bn' %}on{% endif %}" href="/lang/bn/?next={{ request.get_full_path|urlencode }}">বাংলা</a>
-      <a class="{% if lang == 'bng' %}on{% endif %}" href="/lang/bng/?next={{ request.get_full_path|urlencode }}">Banglish</a>
     </div>
     <div class="auth-form">
       {% include 'partials/messages.html' %}

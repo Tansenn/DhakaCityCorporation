@@ -54,11 +54,17 @@ class ReceiptDesignTests(SimpleTestCase):
         def capture_and_build(doc, story, *args, **kwargs):
             captured['text'] = story_text(story)
             captured['tables'] = [item for item in story if isinstance(item, Table)]
+            captured['signatures'] = [
+                row[0] for item in story if isinstance(item, Table)
+                for row in item._cellvalues if isinstance(row[0], pdf.SignatureBlock)
+            ]
             return original_build(doc, story, *args, **kwargs)
 
-        with patch.object(SimpleDocTemplate, 'build', new=capture_and_build):
-            with patch.object(pdf, '_static_image', wraps=pdf._static_image) as images:
-                response = pdf.receipt_pdf(self.booking, self.payment)
+        with patch.object(pdf, 'receipt_signer',
+                          return_value=('Farhana Akter', 'Accounts Officer')):
+            with patch.object(SimpleDocTemplate, 'build', new=capture_and_build):
+                with patch.object(pdf, '_static_image', wraps=pdf._static_image) as images:
+                    response = pdf.receipt_pdf(self.booking, self.payment)
         return response, captured, [call.args[0] for call in images.call_args_list]
 
     def test_branded_pdf_contract_and_tabular_totals(self):
@@ -69,14 +75,21 @@ class ReceiptDesignTests(SimpleTestCase):
         self.assertTrue(response.content.startswith(b'%PDF-'))
         self.assertIn('img/zp_gazipur_logo.png', images)
         self.assertIn('img/bd_govt_logo.png', images)
-        self.assertGreaterEqual(response.content.count(b'/Subtype /Image'), 2)
+        self.assertIn('img/bd_govt_seal.png', images)
+        self.assertGreaterEqual(response.content.count(b'/Subtype /Image'), 3)
         text = content['text']
         for value in ('Payment receipt', 'PAID', 'SIMULATED', 'Booking charges',
                       'Security deposit', 'Gateway charge', 'Total paid',
                       'BDT 5,000.00', 'BDT 1,000.00', 'BDT 30.00', 'BDT 6,030.00',
                       'GZP-DB-RECEIPT', 'GZP-TXN-RECEIPT', 'GZP-RCP-RECEIPT',
-                      'Payment channel', 'bKash'):
+                      'Payment channel', 'bKash',
+                      "Government of the People's Republic of Bangladesh",
+                      'RECEIPT NO.', 'PAYMENT DATE', 'STATUS',
+                      'Office seal'):
             self.assertIn(value, text)
+        self.assertEqual(len(content['signatures']), 1)
+        self.assertEqual(content['signatures'][0].name, 'Farhana Akter')
+        self.assertEqual(content['signatures'][0].designation, 'Accounts Officer')
         self.assertTrue(any('Total paid' in story_text([table]) and
                             'Booking charges' in story_text([table])
                             for table in content['tables']))

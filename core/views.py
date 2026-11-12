@@ -94,7 +94,9 @@ def verify_permit(request, token):
 
 
 def set_language(request, code):
-    if code not in ('en', 'bn', 'bng'):
+    if code == 'bng':
+        code = 'bn'
+    if code not in ('en', 'bn'):
         code = 'en'
     request.session['gzp_lang'] = code
     target = request.GET.get('next') or '/'
