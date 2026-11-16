@@ -4,13 +4,18 @@ from django.utils import timezone
 
 
 class Department(models.Model):
-    name = models.CharField(max_length=120, unique=True)
+    name = models.CharField(max_length=120)
     code = models.SlugField(max_length=30, unique=True)
+    organization = models.ForeignKey(
+        'organizations.Organization', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='departments',
+    )
     head = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True,
                              on_delete=models.SET_NULL, related_name='headed_departments')
 
     class Meta:
         ordering = ['name']
+        unique_together = [('organization', 'name')]
 
     def __str__(self):
         return self.name

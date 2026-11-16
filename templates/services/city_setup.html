@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="svc-band">
+  <div class="svc-band-text">
+    <p class="section-eyebrow">{{ org.emblem_text }} · {% t "ADMINISTRATION" %}</p>
+    <h1>{% t "City corporation setup" %}</h1>
+    <p>{% t "Edit the head title shown across the portal, the office address and the zone and ward master data used by the verification chain." %}</p>
+  </div>
+  <div class="svc-band-count"><b>{{ ward_total|bnnum }}</b><span>{% t "wards" %}</span></div>
+</section>
+
+<div class="city-setup-grid">
+  <div class="d-flex flex-column gap-3">
+    <div class="city-card">
+      <div class="city-card-head"><h2>{% t "Corporation details" %}</h2></div>
+      <div class="city-card-body">
+        <form class="city-setup-form" method="post" action="/app/city/setup/">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="org">
+          <div class="form-row">
+            <label>{% t "Head title" %}
+              <input class="form-control" name="head_title" value="{{ org.head_title }}" placeholder="Mayor / Administrator">
+            </label>
+            <label>{% t "Head name" %}
+              <input class="form-control" name="head_name" value="{{ org.head_name }}">
+            </label>
+          </div>
+          <div class="form-row mt-2">
+            <label>{% t "Office address" %}
+              <input class="form-control" name="address" value="{{ org.address }}">
+            </label>
+            <label>{% t "Phone" %}
+              <input class="form-control" name="phone" value="{{ org.phone }}">
+            </label>
+          </div>
+          <p class="text-muted small mt-2 mb-2">
+            {% t "The head title is editable because a corporation can be run by an elected mayor or by an appointed administrator." %}
+          </p>
+          <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> {% t "Save details" %}</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="city-card">
+      <div class="city-card-head"><h2>{% t "Add or edit a zone" %}</h2></div>
+      <div class="city-card-body">
+        <form class="city-setup-form" method="post" action="/app/city/setup/">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="zone">
+          <div class="form-row">
+            <label>{% t "Zone number" %}
+              <input class="form-control" type="number" min="1" name="number" value="{{ next_zone }}" required>
+            </label>
+            <label>{% t "Zone name" %}
+              <input class="form-control" name="name" placeholder="Zone {{ next_zone }}">
+            </label>
+            <label>{% t "Zone name (Bangla)" %}
+              <input class="form-control" name="name_bn">
+            </label>
+          </div>
+          <button class="btn btn-primary mt-2" type="submit"><i class="bi bi-plus-lg"></i> {% t "Save zone" %}</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="city-card">
+      <div class="city-card-head"><h2>{% t "Add or edit a ward" %}</h2></div>
+      <div class="city-card-body">
+        <form class="city-setup-form" method="post" action="/app/city/setup/">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="ward">
+          <div class="form-row">
+            <label>{% t "Ward number" %}
+              <input class="form-control" type="number" min="1" name="number" value="{{ next_ward }}" required>
+            </label>
+            <label>{% t "Zone" %}
+              <select class="form-select" name="zone" required>
+                <option value="">{% t "Choose a zone" %}</option>
+                {% for zone in zones %}<option value="{{ zone.pk }}">{{ zone.number }} · {{ zone.name }}</option>{% endfor %}
+              </select>
+            </label>
+          </div>
+          <div class="form-row mt-2">
+            <label>{% t "Ward name" %}
+              <input class="form-control" name="name" placeholder="Ward {{ next_ward }}">
+            </label>
+            <label>{% t "Ward name (Bangla)" %}
+              <input class="form-control" name="name_bn">
+            </label>
+            <label>{% t "Councillor name" %}
+              <input class="form-control" name="councillor_name">
+            </label>
+          </div>
+          <button class="btn btn-primary mt-2" type="submit"><i class="bi bi-plus-lg"></i> {% t "Save ward" %}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="city-card">
+    <div class="city-card-head">
+      <h2>{% t "Zones and wards" %} · {{ zones|length|bnnum }} {% t "zones" %}, {{ ward_total|bnnum }} {% t "wards" %}</h2>
+    </div>
+    <div class="city-card-body">
+      <div class="city-zone-list">
+        {% for zone in zones %}
+          <div class="city-zone">
+            <div class="city-zone-head">
+              <b>{% t "Zone" %} {{ zone.number|bnnum }} · {{ zone.name }}</b>
+              <span>{{ zone.wards.all|length|bnnum }} {% t "wards" %}</span>
+            </div>
+            <div class="city-zone-wards">
+              {% for ward in zone.wards.all %}
+                <span class="ward-chip">{{ ward.label }}{% if ward.councillor_name %}<small>{{ ward.councillor_name }}</small>{% endif %}</span>
+              {% empty %}
+                <span class="text-muted small">{% t "No wards in this zone yet." %}</span>
+              {% endfor %}
+            </div>
+          </div>
+        {% empty %}
+          <p class="text-muted mb-0">{% t "No zones configured yet." %}</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

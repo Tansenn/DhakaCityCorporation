@@ -113,6 +113,8 @@ class Command(BaseCommand):
             self._post_seed_settings()
 
         call_command('seed_assets')
+        call_command('seed_services')
+        call_command('seed_organizations')
         self._create_backup()
         self._summarise()
 

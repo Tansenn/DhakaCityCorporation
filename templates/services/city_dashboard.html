@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="city-role-banner">
+  <img class="org-crest org-crest-lg" src="{% static 'img/dscc-crest.svg' %}" alt="{{ org.name }}">
+  <div class="rb-text">
+    <h1>{{ org.name }}</h1>
+    <p>{{ user.display_name }} · {{ user.role_name|tr:lang }} · {{ org.head_title }}{% if org.head_name %} {{ org.head_name }}{% endif %}</p>
+  </div>
+  <div class="rb-chips">
+    {% for stage in my_stages %}
+      <span class="rb-chip">{{ stage.label }}{% if stage.is_final %} · {% t "Final" %}{% endif %}</span>
+    {% empty %}
+      <span class="rb-chip">{% t "All desks" %}</span>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="city-dash-grid mt-3">
+  <div class="city-dash-wrap desk-drop">
+    <button type="button" class="city-dash-card desk-trigger{% if at_desk_count %} is-alert{% endif %}"
+            aria-haspopup="true" aria-expanded="false" aria-controls="deskPop">
+      <span class="dash-label">{% t "Waiting at your desk" %} <i class="bi bi-chevron-down desk-caret" aria-hidden="true"></i></span>
+      <div class="dash-value">{{ at_desk_count|bnnum }}</div>
+      <div class="dash-foot">{% if is_final_desk %}{% t "Final approval stage" %}{% else %}{% t "Verification stage" %}{% endif %} · {{ stage_count|bnnum }} {% t "stages in the route" %}</div>
+    </button>
+    <div class="desk-pop" id="deskPop">
+      <div class="desk-pop-head">{% t "Waiting at your desk" %}</div>
+      {% for row in pending|slice:":5" %}
+        <a class="desk-pop-row" href="/dscc/applications/{{ row.application.reference }}/">
+          <span class="ref">{{ row.application.reference }}</span>
+          <span class="t">{{ row.application.form.title }}</span>
+          <span class="who">{{ row.application.applicant.display_name }}{% if row.application.ward %} · {{ row.application.ward.label }}{% endif %}</span>
+        </a>
+      {% empty %}
+        <div class="desk-pop-empty"><i class="bi bi-check2-circle"></i> {% t "Nothing waiting at your stage" %}</div>
+      {% endfor %}
+      <a class="desk-pop-all" href="/app/city/queue/">
+        <span>{% t "Full queue" %} ({{ at_desk_count|bnnum }})</span>
+        <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+  </div>
+  <a class="city-dash-card" href="/app/city/queue/">
+    <span class="dash-label">{% t "Open applications" %}</span>
+    <div class="dash-value">{{ open_count|bnnum }}</div>
+    <div class="dash-foot">{% t "Open the queue" %} <i class="bi bi-arrow-right"></i></div>
+  </a>
+  <div class="city-dash-card">
+    <span class="dash-label">{% t "Approved" %}</span>
+    <div class="dash-value">{{ approved_count|bnnum }}</div>
+    <div class="dash-foot">{% t "Certificate issued to the applicant" %}</div>
+  </div>
+  <div class="city-dash-card">
+    <span class="dash-label">{% t "Returned for correction" %}</span>
+    <div class="dash-value">{{ returned_count|bnnum }}</div>
+    <div class="dash-foot">{% t "Waiting for the applicant to resubmit" %}</div>
+  </div>
+</div>
+
+<div class="results-heading mt-4">
+  <div>
+    <p class="section-eyebrow">{% t "YOUR NEXT DECISIONS" %}</p>
+    <h2>{% t "Files at your stage" %}</h2>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-primary" href="/app/city/queue/"><i class="bi bi-inbox"></i> {% t "Full queue" %}</a>
+    <a class="btn btn-outline-primary" href="/dscc/offices/"><i class="bi bi-building"></i> {% t "Offices" %}</a>
+    {% if "city.manage"|can:user %}<a class="btn btn-outline-primary" href="/app/city/setup/"><i class="bi bi-geo-alt"></i> {% t "Zones and wards" %}</a>{% endif %}
+  </div>
+</div>
+
+{% if pending %}
+  <div class="city-queue-wrap">
+    <table class="city-queue">
+      <thead>
+        <tr>
+          <th>{% t "Reference" %}</th><th>{% t "Form" %}</th><th>{% t "Applicant" %}</th>
+          <th>{% t "Ward" %}</th><th>{% t "Stage" %}</th><th>{% t "Submitted" %}</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in pending %}
+          <tr>
+            <td class="ref">{{ row.application.reference }}</td>
+            <td>{{ row.application.form.title }}</td>
+            <td>{{ row.application.applicant.display_name }}</td>
+            <td>{% if row.application.ward %}{{ row.application.ward.label }}{% else %}-{% endif %}</td>
+            <td>{% if row.can_act %}<span class="stage-tag you">{% t "Action required" %}</span>{% else %}<span class="stage-tag">{% if row.application.current_stage %}{{ row.application.current_stage.label }}{% else %}-{% endif %}</span>{% endif %}</td>
+            <td>
+              {{ row.application.created_at|dt }}
+              <div class="sla-bar" role="img"
+                   aria-label="{{ row.application.sla_pct|bnnum }}% {% t 'time left' %}"
+                   title="{{ row.application.sla_pct|bnnum }}% {% t 'time left' %}">
+                <div class="sla-bar-fill {% if row.application.sla_pct <= 25 %}red{% elif row.application.sla_pct <= 60 %}amber{% endif %}"
+                     style="width: {{ row.application.sla_pct }}%"></div>
+              </div>
+            </td>
+            <td><a class="btn btn-sm {% if row.can_act %}btn-primary{% else %}btn-outline-primary{% endif %}" href="/dscc/applications/{{ row.application.reference }}/">{% if row.can_act %}{% t "Review" %}{% else %}{% t "Open" %}{% endif %}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty-results">
+    <i class="bi bi-check2-circle"></i>
+    <h3>{% t "Nothing waiting at your stage" %}</h3>
+    <p>{% t "New applications appear here as soon as the previous desk verifies them." %}</p>
+  </div>
+{% endif %}
+
+<div class="results-heading mt-4">
+  <div>
+    <p class="section-eyebrow">{% t "RECENTLY DECIDED" %}</p>
+    <h2>{% t "Last decisions" %}</h2>
+  </div>
+</div>
+
+{% if decided %}
+  <div class="city-queue-wrap">
+    <table class="city-queue">
+      <thead><tr><th>{% t "Reference" %}</th><th>{% t "Form" %}</th><th>{% t "Status" %}</th><th>{% t "Decided" %}</th><th></th></tr></thead>
+      <tbody>
+        {% for application in decided %}
+          <tr>
+            <td class="ref">{{ application.reference }}</td>
+            <td>{{ application.form.title }}</td>
+            <td><span class="status-pill {{ application.status }}">{{ application.get_status_display|tr:lang }}</span></td>
+            <td>{{ application.updated_at|dt }}</td>
+            <td><a href="/dscc/applications/{{ application.reference }}/">{% t "Open" %}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-muted">{% t "No decided files yet." %}</p>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  document.querySelectorAll('.desk-drop').forEach(function (box) {
+    var trigger = box.querySelector('.desk-trigger');
+    var setOpen = function (open) {
+      box.classList.toggle('open', open);
+      trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    box.addEventListener('mouseenter', function () { setOpen(true); });
+    box.addEventListener('mouseleave', function () { setOpen(false); });
+    trigger.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setOpen(!box.classList.contains('open'));
+    });
+    box.querySelectorAll('.desk-pop-row').forEach(function (row) {
+      row.addEventListener('click', function () { setOpen(false); });
+    });
+    document.addEventListener('click', function (e) {
+      if (!box.contains(e.target)) setOpen(false);
+    });
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') { setOpen(false); trigger.focus(); }
+    });
+  });
+})();
+</script>
+{% endblock %}

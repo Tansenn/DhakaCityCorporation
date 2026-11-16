@@ -3,27 +3,38 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="{{ APP_NAME }} - Gazipur Zila Parishad booking and office platform.">
+  <meta name="description" content="{{ APP_NAME }} - Dhaka South City Corporation services and application tracking.">
   <title>{% block title %}{{ page_title|default:"Home"|tr:lang }} · {{ APP_NAME_MAIN }}{% endblock %}</title>
-  <link rel="icon" href="{% static 'img/zp_gazipur_logo.png' %}">
+  <link rel="icon" href="{% if ORG_IS_CITY %}{% static 'img/dscc-crest.svg' %}{% else %}{% static 'img/zp_gazipur_logo.png' %}{% endif %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
-  <link rel="stylesheet" href="{% static 'css/gzp.css' %}">
+  <link rel="stylesheet" href="{% static 'css/gzp.css' %}?v=8">
   <link rel="stylesheet" href="{% static 'css/gzp-theme.css' %}">
   <link rel="stylesheet" href="{% static 'css/catalogue.css' %}">
+  <link rel="stylesheet" href="{% static 'css/city.css' %}?v=13">
   {% block extra_css %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}{% if ORG_IS_CITY %} org-city{% endif %}">
 <a class="skip-link" href="#main">{% t "Skip to content" %}</a>
 
 {% if user.is_authenticated and user.is_staff_portal_user %}
   <aside class="sidebar" id="sidebar" aria-label="Main navigation">
     <div class="brand">
-      <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="Gazipur Zila Parishad">
-      <div>
-        <div class="brand-name">{{ APP_NAME_MAIN }}</div>
-        <div class="brand-sub">{{ APP_NAME_SUB|tr:lang }}</div>
-      </div>
+      <a class="brand-home" href="/app/" title="{% t 'Home' %}" aria-label="{% t 'Home' %}">
+        {% if ORG_IS_CITY %}
+          <img class="org-crest org-crest-sm" src="{% static 'img/dscc-crest.svg' %}" alt="{{ ORG_NAME }}">
+        {% else %}
+          <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="{{ ORG_NAME }}">
+        {% endif %}
+        <div>
+          <div class="brand-name">{{ APP_NAME_MAIN }}</div>
+          <div class="brand-sub">{{ APP_NAME_SUB|tr:lang }}</div>
+        </div>
+      </a>
+      <button class="icon-btn sidebar-close" type="button" onclick="document.body.classList.remove('sidebar-open')"
+              title="{% t 'Close' %}" aria-label="{% t 'Close navigation' %}">
+        <i class="bi bi-x-lg"></i>
+      </button>
     </div>
     <div class="sidebar-scroll">
       {% for group in nav_groups %}
@@ -35,15 +46,29 @@
             </a>
           {% endfor %}
         </div>
+      {% empty %}
+        <div class="sidebar-note">
+          <p>{% t "No modules are assigned to your role. Contact the administrator." %}</p>
+        </div>
       {% endfor %}
     </div>
   </aside>
+  <div class="sidebar-backdrop" onclick="document.body.classList.remove('sidebar-open')" aria-hidden="true"></div>
 
   <div class="app-shell">
     <header class="topbar">
       <button class="icon-btn mobile-topbar" type="button" onclick="document.body.classList.toggle('sidebar-open')" aria-label="Toggle navigation">
         <i class="bi bi-list"></i>
       </button>
+      <div class="board-tools">
+        <button class="icon-btn" type="button" onclick="history.back()" title="{% t 'Back' %}" aria-label="{% t 'Back' %}">
+          <i class="bi bi-arrow-left"></i>
+        </button>
+        <a class="icon-btn" href="{{ ORG_HOME|default:'/' }}" title="{% t 'Close and return to the public site' %}"
+           aria-label="{% t 'Close and return to the public site' %}">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
       <div>
         <div class="page-title">{% block topbar_title %}{{ page_title|default:"Dashboard"|tr:lang }}{% endblock %}</div>
         <div class="crumb">{{ APP_NAME_MAIN }} · {{ user.role_name|tr:lang }}</div>
@@ -87,19 +112,24 @@
 {% else %}
   <header class="public-header">
     <div class="public-inner">
-      <a class="public-brand" href="/">
-        <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="Gazipur Zila Parishad">
+      <a class="public-brand" href="{{ ORG_HOME|default:'/' }}">
+        {% if ORG_IS_CITY %}
+          <img class="org-crest org-crest-md" src="{% static 'img/dscc-crest.svg' %}" alt="{{ ORG_NAME }}">
+        {% else %}
+          <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="{{ ORG_NAME }}">
+        {% endif %}
         <span>
-          <span class="bn">{{ APP_NAME_MAIN }}</span><br>
-          <span class="bs">{{ APP_NAME_SUB|tr:lang }}</span>
+          <span class="bn">{{ ORG_NAME_LOCAL }}</span><br>
+          <span class="bs">{% t "Integrated Digital Service Platform" %}</span>
         </span>
       </a>
       <nav class="public-nav" aria-label="Public navigation">
-        <a href="/" class="{% if request.path == '/' %}on{% endif %}">{% t "Home" %}</a>
-        <a href="/user/" class="{% if request.path == '/user/' %}on{% endif %}">{% t "User panel" %}</a>
-        <a href="/track/">{% t "Track application" %}</a>
-        {% if user.is_authenticated and user.is_citizen %}
-          <a href="/citizen/" class="{% if request.path == '/citizen/' %}on{% endif %}">{% t "My applications" %}</a>
+        <a href="/dscc/" class="{% if request.path == '/dscc/' %}on{% endif %}">{% t "City services" %}</a>
+        <a href="/dscc/forms/" class="{% if '/dscc/forms/' in request.path or '/dscc/services/' in request.path %}on{% endif %}">{% t "Application forms" %}</a>
+        <a href="/dscc/offices/" class="{% if '/dscc/offices/' in request.path %}on{% endif %}">{% t "Offices" %}</a>
+        <a href="/dscc/acts/" class="{% if '/dscc/acts/' in request.path %}on{% endif %}">{% t "Act and rules" %}</a>
+        {% if user.is_authenticated %}
+          <a href="/dscc/applications/" class="{% if '/dscc/applications/' in request.path %}on{% endif %}">{% t "My city applications" %}</a>
         {% endif %}
       </nav>
       <div class="public-actions">
@@ -120,7 +150,7 @@
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow-sm">
               {% if user.is_citizen %}
-                <li><a class="dropdown-item" href="/citizen/"><i class="bi bi-journal-text me-2"></i>{% t "My applications" %}</a></li>
+                <li><a class="dropdown-item" href="/dscc/applications/"><i class="bi bi-journal-text me-2"></i>{% t "My applications" %}</a></li>
               {% endif %}
               <li><a class="dropdown-item" href="/profile/"><i class="bi bi-person me-2"></i>{% t "My profile" %}</a></li>
               <li><hr class="dropdown-divider"></li>
@@ -138,7 +168,7 @@
     <div class="public-wrap">
       {% include 'partials/messages.html' %}
 {% endif %}
-      {% if not is_catalogue and not user.is_staff_portal_user %}{% include 'partials/asset_ribbon.html' %}{% endif %}
+      {% if not is_catalogue and not user.is_staff_portal_user and not ORG_IS_CITY %}{% include 'partials/asset_ribbon.html' %}{% endif %}
       {% block content %}{% endblock %}
 {% if user.is_authenticated and user.is_staff_portal_user %}
     </main>
@@ -152,7 +182,8 @@
   <footer class="public-footer">
     <div class="inner">
       <div>
-        <strong>{{ APP_NAME_MAIN }}</strong> · {{ APP_NAME_SUB|tr:lang }}<br>
+        <span class="footer-partner"><img src="{% static 'img/adcelerete_logo.png' %}" alt="Adcelerete Technologies Limited"></span>
+        <strong>{{ ORG_NAME_LOCAL }}</strong> · {{ APP_NAME_SUB|tr:lang }}<br>
         {% t "Prepared by" %} {{ SUPPLIER }}.
       </div>
       <div class="sep"></div>

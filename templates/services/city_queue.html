@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="svc-band">
+  <div class="svc-band-text">
+    <p class="section-eyebrow">{{ org.emblem_text }} · {% t "OFFICIAL DESK" %}</p>
+    <h1>{% t "City verification queue" %}</h1>
+    <p>{% t "Applications waiting at your verification stage. Each decision notifies the applicant and forwards the file automatically." %}</p>
+  </div>
+  <div class="svc-band-count"><b>{{ pending|length|bnnum }}</b><span>{% t "waiting" %}</span></div>
+</section>
+
+<ol class="city-stage-strip">
+  {% for stage in stages %}
+    <li class="{% if stage.is_final %}final{% endif %}">
+      <span class="stage-no">{{ stage.order|bnnum }}</span>
+      {{ stage.label }} · {{ stage.role.name|tr:lang }}
+    </li>
+  {% endfor %}
+</ol>
+
+<div class="results-heading mt-4">
+  <div>
+    <p class="section-eyebrow">{% t "WAITING FOR A DECISION" %}</p>
+    <h2>{% t "Open applications" %}</h2>
+  </div>
+  <div class="d-flex gap-2">
+    {% if "city.manage"|can:user %}<a class="btn btn-outline-primary" href="/app/city/setup/"><i class="bi bi-geo-alt"></i> {% t "Zones and wards" %}</a>{% endif %}
+    <a class="btn btn-outline-primary" href="/dscc/"><i class="bi bi-building"></i> {% t "City services" %}</a>
+  </div>
+</div>
+
+{% if pending %}
+  <div class="city-queue-wrap">
+    <table class="city-queue">
+      <thead>
+        <tr>
+          <th>{% t "Reference" %}</th>
+          <th>{% t "Form" %}</th>
+          <th>{% t "Applicant" %}</th>
+          <th>{% t "Ward" %}</th>
+          <th>{% t "Stage" %}</th>
+          <th>{% t "Submitted" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in pending %}
+          <tr>
+            <td class="ref">{{ row.application.reference }}</td>
+            <td>{{ row.application.form.title }}</td>
+            <td>{{ row.application.applicant.display_name }}</td>
+            <td>{% if row.application.ward %}{{ row.application.ward.label }}{% else %}-{% endif %}</td>
+            <td>
+              {% if row.can_act %}
+                <span class="stage-tag you">{% t "Action required" %}</span>
+              {% else %}
+                <span class="stage-tag">{% if row.application.current_stage %}{{ row.application.current_stage.label }}{% else %}-{% endif %}</span>
+              {% endif %}
+            </td>
+            <td>
+              {{ row.application.created_at|dt }}
+              <div class="sla-bar" role="img"
+                   aria-label="{{ row.application.sla_pct|bnnum }}% {% t 'time left' %}"
+                   title="{{ row.application.sla_pct|bnnum }}% {% t 'time left' %}">
+                <div class="sla-bar-fill {% if row.application.sla_pct <= 25 %}red{% elif row.application.sla_pct <= 60 %}amber{% endif %}"
+                     style="width: {{ row.application.sla_pct }}%"></div>
+              </div>
+            </td>
+            <td><a class="btn btn-sm {% if row.can_act %}btn-primary{% else %}btn-outline-primary{% endif %}" href="/dscc/applications/{{ row.application.reference }}/">{% if row.can_act %}{% t "Review" %}{% else %}{% t "Open" %}{% endif %}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty-results">
+    <i class="bi bi-inbox"></i>
+    <h3>{% t "Nothing waiting at your stage" %}</h3>
+    <p>{% t "New applications appear here as soon as the previous stage verifies them." %}</p>
+  </div>
+{% endif %}
+
+<div class="results-heading mt-4">
+  <div>
+    <p class="section-eyebrow">{% t "RECENTLY DECIDED" %}</p>
+    <h2>{% t "Last decisions" %}</h2>
+  </div>
+</div>
+
+{% if decided %}
+  <div class="city-queue-wrap">
+    <table class="city-queue">
+      <thead>
+        <tr><th>{% t "Reference" %}</th><th>{% t "Form" %}</th><th>{% t "Status" %}</th><th>{% t "Decided" %}</th><th></th></tr>
+      </thead>
+      <tbody>
+        {% for application in decided %}
+          <tr>
+            <td class="ref">{{ application.reference }}</td>
+            <td>{{ application.form.title }}</td>
+            <td><span class="status-pill {{ application.status }}">{{ application.get_status_display|tr:lang }}</span></td>
+            <td>{{ application.updated_at|dt }}</td>
+            <td><a href="/dscc/applications/{{ application.reference }}/">{% t "Open" %}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="text-muted">{% t "No decided files yet." %}</p>
+{% endif %}
+{% endblock %}

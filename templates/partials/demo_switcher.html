@@ -1,7 +1,9 @@
 {% load gzp %}
 <div class="dropdown">
-  <button class="btn btn-sm btn-outline-primary dropdown-toggle d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Demo role switcher">
-    <i class="bi bi-person-badge"></i><span class="d-none d-xl-inline">{% t "Demo role switcher" %}</span>
+  <button class="btn btn-sm btn-outline-primary dropdown-toggle d-inline-flex align-items-center gap-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="{% t "Demo role switcher" %}" aria-label="{% t "Demo role switcher" %}">
+    <i class="bi bi-person-badge"></i>
+    <span class="d-none d-sm-inline d-xl-none">{% t "Demo" %}</span>
+    <span class="d-none d-xl-inline">{% t "Demo role switcher" %}</span>
   </button>
   <div class="dropdown-menu dropdown-menu-end shadow role-switch p-2" style="min-width: 280px">
     <div class="px-2 pb-1">
@@ -12,7 +14,7 @@
       <form method="post" action="/demo/switch/">
         {% csrf_token %}
         <input type="hidden" name="username" value="{{ account.username }}">
-        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <input type="hidden" name="switch" value="1">
         <button type="submit" {% if request.user.username == account.username %}class="is-current"{% endif %}>
           <span class="rs-user">{{ account.name }} <span class="badge-soft">{{ account.username }}</span></span>
           <span class="rs-role">{{ account.label|tr:lang }}</span>

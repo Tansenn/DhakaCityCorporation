@@ -294,6 +294,9 @@ def _role_focus(user, day, approvals, meetings):
 @staff_required
 def dashboard(request):
     user = request.user
+    org = getattr(user, 'organization', None)
+    if org is not None and org.is_city and user.can('city.view'):
+        return redirect('/app/city/')
     day = today()
     mail = _mail_summary(user, day)
     attendance = _attendance_summary(day)
@@ -341,6 +344,20 @@ def dashboard(request):
 @perm_required('accounts.manage_settings')
 def settings_page(request):
     defs = {d[0]: d for d in SETTING_DEFS}
+    if request.method == 'POST' and request.POST.get('form') == 'org':
+        from organizations.models import Organization
+        org = (Organization.objects.filter(
+            code=request.session.get('gzp_org', '')).first()
+            or getattr(request.user, 'organization', None)
+            or Organization.objects.filter(code='gzp').first())
+        if org:
+            org.head_title = (request.POST.get('head_title') or '').strip() or org.head_title
+            org.head_name = (request.POST.get('head_name') or '').strip()
+            org.save(update_fields=['head_title', 'head_name'])
+            log(request.user, 'settings', org,
+                f'{org.name}: head label set to {org.head_title}', module='organizations')
+            messages.success(request, f'{org.name}: organisation details saved.')
+        return redirect('settings')
     if request.method == 'POST':
         changed = []
         for key, (_, _default, _label, _group, _desc) in defs.items():

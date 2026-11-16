@@ -3,37 +3,53 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block title %}{{ page_title }}{% endblock %} · Gazipur Zila Parishad</title>
-  <link rel="icon" href="{% static 'img/zp_gazipur_logo.png' %}">
+  <title>{% block title %}{{ page_title }}{% endblock %} · {% t "Integrated Digital Service Platform" %}</title>
+  {% if ORG_IS_CITY %}<link rel="icon" href="{% static 'img/dscc-crest.svg' %}">{% else %}<link rel="icon" href="{% static 'img/zp_gazipur_logo.png' %}">{% endif %}
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
-  <link rel="stylesheet" href="{% static 'css/gzp.css' %}">
+  <link rel="stylesheet" href="{% static 'css/gzp.css' %}?v=8">
   <link rel="stylesheet" href="{% static 'css/gzp-theme.css' %}">
   <link rel="stylesheet" href="{% static 'css/catalogue.css' %}">
+  <link rel="stylesheet" href="{% static 'css/city.css' %}?v=10">
   <style>.auth-wrap { min-height: 100vh; }</style>
 </head>
-<body>
+<body class="{% if ORG_IS_CITY %}org-city{% endif %}">
 <div class="auth-wrap">
   <aside class="auth-side">
     <a class="brand" href="/">
-      <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="Gazipur Zila Parishad">
+      {% if ORG_IS_CITY %}
+        <img class="org-crest org-crest-sm" src="{% static 'img/dscc-crest.svg' %}" alt="{{ ORG_NAME }}">
+      {% else %}
+        <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="{{ ORG_NAME }}">
+      {% endif %}
       <span>
-        <span style="font-weight:700;color:#fff;display:block">Gazipur Zila Parishad</span>
-        <span style="font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:#a7acce">{% t "Integrated Digital Platform" %}</span>
+        <span style="font-weight:700;color:#fff;display:block">{{ ORG_NAME_LOCAL }}</span>
+        <span style="font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;color:#a7acce">{{ ORG_TITLE_LOCAL|tr:lang }}</span>
       </span>
     </a>
     <div>
-      <h1>{% t "Your next space. One simple place." %}</h1>
-      <p>{% t "Explore six kinds of Parishad assets, manage your applications and follow every approval." %}</p>
-      <ul class="bullets">
-        <li><i class="bi bi-check-circle-fill"></i> {% t "Seven modules sharing one identity, audit trail and workflow engine" %}</li>
-        <li><i class="bi bi-check-circle-fill"></i> {% t "Configurable approval routes and an editable authority matrix" %}</li>
-        <li><i class="bi bi-check-circle-fill"></i> {% t "Signed gateway callbacks, printable permits and QR verification" %}</li>
-        <li><i class="bi bi-check-circle-fill"></i> {% t "Role-based dashboards with least-privilege enforcement" %}</li>
-      </ul>
+      {% if ORG_IS_CITY %}
+        <h1>{% t "City services, verified step by step." %}</h1>
+        <p>{% t "Apply online, track your file and follow the ward councillor, department and final approval." %}</p>
+        <ul class="bullets">
+          <li><i class="bi bi-check-circle-fill"></i> {% t "Ward councillor, department and head of the corporation verification" %}</li>
+          <li><i class="bi bi-check-circle-fill"></i> {% t "Editable zones, wards and head title" %}</li>
+          <li><i class="bi bi-check-circle-fill"></i> {% t "Printable application and certificate PDFs" %}</li>
+          <li><i class="bi bi-check-circle-fill"></i> {% t "Role-based dashboards with server-side checks" %}</li>
+        </ul>
+      {% else %}
+        <h1>{% t "Your next space. One simple place." %}</h1>
+        <p>{% t "Explore six kinds of Parishad assets, manage your applications and follow every approval." %}</p>
+        <ul class="bullets">
+          <li><i class="bi bi-check-circle-fill"></i> {% t "Seven modules sharing one identity, audit trail and workflow engine" %}</li>
+          <li><i class="bi bi-check-circle-fill"></i> {% t "Configurable approval routes and an editable authority matrix" %}</li>
+          <li><i class="bi bi-check-circle-fill"></i> {% t "Signed gateway callbacks, printable permits and QR verification" %}</li>
+          <li><i class="bi bi-check-circle-fill"></i> {% t "Role-based dashboards with least-privilege enforcement" %}</li>
+        </ul>
+      {% endif %}
     </div>
     <div class="auth-logos">
-      <img src="{% static 'img/zp_gazipur_logo.png' %}" alt="Gazipur Zila Parishad">
+      {% if not ORG_IS_CITY %}<img src="{% static 'img/zp_gazipur_logo.png' %}" alt="Gazipur Zila Parishad">{% endif %}
       <img src="{% static 'img/bd_govt_seal.png' %}" alt="Government of Bangladesh">
       <span>{% t "Government of the People's Republic of Bangladesh" %}</span>
     </div>
@@ -42,9 +58,12 @@
     </div>
   </aside>
   <main class="auth-main">
-    <div class="lang-switch auth-lang" role="group" aria-label="Language">
-      <a class="{% if lang == 'en' %}on{% endif %}" href="/lang/en/?next={{ request.get_full_path|urlencode }}">EN</a>
-      <a class="{% if lang == 'bn' %}on{% endif %}" href="/lang/bn/?next={{ request.get_full_path|urlencode }}">বাংলা</a>
+    <div class="auth-top">
+      <a class="back-link" href="/dscc/"><i class="bi bi-arrow-left"></i> {% t "Home" %}</a>
+      <div class="lang-switch auth-lang" role="group" aria-label="Language">
+        <a class="{% if lang == 'en' %}on{% endif %}" href="/lang/en/?next={{ request.get_full_path|urlencode }}">EN</a>
+        <a class="{% if lang == 'bn' %}on{% endif %}" href="/lang/bn/?next={{ request.get_full_path|urlencode }}">বাংলা</a>
+      </div>
     </div>
     <div class="auth-form">
       {% include 'partials/messages.html' %}

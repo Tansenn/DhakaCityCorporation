@@ -3,48 +3,39 @@ from __future__ import annotations
 
 DEMO_PASSWORD = 'Demo@12345'
 
-DEMO_ACCOUNTS = [
-    ('citizen1', 'Citizen / Applicant'),
-    ('citizen2', 'Citizen / Applicant'),
-    ('bookingdesk', 'Booking Desk'),
-    ('engineer', 'Technical Reviewer'),
-    ('eo', 'Executive Officer'),
-    ('ceo', 'CEO / Chairman'),
-    ('reception', 'Reception / Facility Operator'),
-    ('finance', 'Finance / Accounts'),
-    ('hradmin', 'HR Admin'),
-    ('supervisor', 'Supervisor'),
-    ('employee1', 'Employee'),
-    ('depthead', 'Department Head'),
-    ('registry', 'Registry / Section Officer'),
-    ('projectofficer', 'Project Officer'),
-    ('inspector', 'Inspector'),
-    ('secretary', 'Meeting Secretary'),
-    ('management', 'Management / Auditor (read-only)'),
-    ('admin', 'System Administrator'),
+CITY_DEMO_ACCOUNTS = [
+    ('dscc_citizen', 'Citizen / Applicant'),
+    ('dscc_councillor', 'Ward Councillor'),
+    ('dscc_officer', 'Department Officer'),
+    ('dscc_mayor', 'Mayor / Administrator'),
 ]
 
 
-def demo_accounts():
+def _demo_rows(pairs, org_code):
     from accounts.models import User
 
     existing = {
         u.username: u for u in User.objects.filter(
-            username__in=[a[0] for a in DEMO_ACCOUNTS]
+            username__in=[a[0] for a in pairs]
         ).select_related('role')
     }
     out = []
-    for username, label in DEMO_ACCOUNTS:
+    for username, label in pairs:
         user = existing.get(username)
         out.append({
             'username': username,
             'label': user.role.name if user and user.role else label,
             'name': user.display_name if user else label,
             'role_code': user.role.code if user and user.role else '',
+            'org_code': org_code,
         })
     return out
 
 
+def city_demo_accounts():
+    return _demo_rows(CITY_DEMO_ACCOUNTS, 'dscc')
+
+
 def account_credentials():
     """Credentials used by the seed command and the login helper panel."""
-    return [(username, DEMO_PASSWORD, label) for username, label in DEMO_ACCOUNTS]
+    return [(username, DEMO_PASSWORD, label) for username, label in CITY_DEMO_ACCOUNTS]

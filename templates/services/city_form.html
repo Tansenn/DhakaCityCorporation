@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<nav class="svc-crumb" aria-label="Breadcrumb">
+  <a href="/dscc/">{% t "City services" %}</a><i class="bi bi-chevron-right"></i>
+  <a href="/dscc/forms/">{% t "Application forms" %}</a><i class="bi bi-chevron-right"></i>
+  <span>{% t "Form" %} {{ form.sl|bnnum }}</span>
+</nav>
+
+<section class="city-paper">
+  <div class="city-paper-band">
+    <span><b>FORM NO. {{ form.form_no }}</b></span>
+    <span>{{ org.name }} · {% t "City corporation" %}</span>
+    <span class="paper-rule">{% if form.has_sample %}{% t "SAMPLE AVAILABLE" %}{% else %}{% t "ONLINE FORM" %}{% endif %}</span>
+  </div>
+  <div class="city-paper-head">
+    <span class="paper-mark" aria-hidden="true"><img src="{% static 'img/dscc-crest.svg' %}" alt=""></span>
+    <div class="paper-titles">
+      <b>{% if lang == 'bn' and org.name_bn %}{{ org.name_bn }}{% else %}{{ org.name|upper }}{% endif %}</b>
+      <small>{{ org.address }}<br>{% t "Application form - service counter" %}</small>
+    </div>
+    <span class="paper-mark" aria-hidden="true">BD</span>
+  </div>
+  <div class="city-paper-meta">
+    <span>{% t "Service" %}: <b>{% if form.service %}{{ form.service.name }}{% else %}-{% endif %}</b></span>
+    <span>{% t "Type" %}: <b>{{ form.get_form_type_display|tr:lang }}</b></span>
+    <span>{% t "Fields" %}: <b>{{ field_count|bnnum }}</b></span>
+  </div>
+  <div class="city-paper-title">{{ form.title }}</div>
+  {% if form.title_bn %}<p class="city-paper-note text-center">{{ form.title_bn }}</p>{% endif %}
+  <p class="city-paper-note">{% t "Please write in block letters. Fields left blank are treated as incomplete. Attach copies of the documents listed for this service." %}</p>
+
+  <div class="city-fields">
+    {% for field in fields %}
+      {% if field.kind == 'section' %}
+        <div class="city-field-section" style="margin-left:0;margin-right:0">{{ field.label|tr:lang }}</div>
+      {% else %}
+        <div class="city-field">
+          <label for="preview-{{ field.key }}">
+            <span class="field-no">{{ field.index|bnnum }}</span>
+            <span>{{ field.label|tr:lang }}{% if field.show_optional %} <span class="field-optional">({% t "optional" %})</span>{% endif %}
+            </span>
+          </label>
+          <div class="field-input"><span class="field-static text-muted">{% if field.type == 'attach' %}{% t "Attach a copy" %}{% else %}—{% endif %}</span></div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="city-paper-declaration">
+    <b>{% t "Declaration" %}.</b> {% t "I declare that the information given above is true and correct. I understand that this is a demonstration form; no statutory application is created unless it is verified at every stage." %}
+  </div>
+
+  <div class="city-paper-foot">
+    <div class="city-sign">{% t "Signature of applicant" %}</div>
+    <div class="city-office-box">
+      <b>{% t "For office use only" %}</b>
+      <div>{% t "Received by" %}: ______________________</div>
+      <div>{% t "Date" %}: ___________ {% t "Reference" %}: ____________</div>
+    </div>
+  </div>
+</section>
+
+<div class="city-fill-actions">
+  <p class="hint"><i class="bi bi-shield-check"></i> {% t "Submitted forms enter the ward councillor queue first." %}</p>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="/dscc/forms/{{ form.pk }}/fill/"><i class="bi bi-pencil-square"></i> {% t "Fill this form online" %}</a>
+    <a class="btn btn-outline-primary" href="/services/forms/{{ form.pk }}/blank/"><i class="bi bi-file-earmark-pdf"></i> {% t "Blank PDF" %}</a>
+    {% if form.has_sample %}<a class="btn btn-outline-primary" href="/services/forms/{{ form.pk }}/sample/"><i class="bi bi-file-earmark-check"></i> {% t "Filled sample" %}</a>{% endif %}
+  </div>
+</div>
+
+{% if form.service and form.service.requirement_list %}
+<section class="city-section">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "ATTACHMENTS" %}</p>
+      <h2>{% t "Documents to attach" %}</h2>
+    </div>
+  </div>
+  <ul class="svc-requirements">
+    {% for item in form.service.requirement_list %}
+      <li><i class="bi bi-paperclip"></i><span>{{ item }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if my_applications %}
+<section class="city-section">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "YOUR FILES" %}</p>
+      <h2>{% t "Earlier applications with this form" %}</h2>
+    </div>
+  </div>
+  <div class="city-queue-wrap">
+    <table class="city-queue">
+      <thead><tr><th>{% t "Reference" %}</th><th>{% t "Status" %}</th><th>{% t "Submitted" %}</th><th></th></tr></thead>
+      <tbody>
+        {% for application in my_applications %}
+          <tr>
+            <td class="ref">{{ application.reference }}</td>
+            <td><span class="status-pill {{ application.status }}">{{ application.get_status_display|tr:lang }}</span></td>
+            <td>{{ application.created_at|d }}</td>
+            <td><a href="/dscc/applications/{{ application.reference }}/">{% t "Open" %}</a></td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

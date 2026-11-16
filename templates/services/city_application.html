@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<nav class="svc-crumb" aria-label="Breadcrumb">
+  <a href="/dscc/">{% t "City services" %}</a><i class="bi bi-chevron-right"></i>
+  {% if user.is_staff_portal_user %}
+    <a href="/app/city/queue/">{% t "Verification queue" %}</a>
+  {% else %}
+    <a href="/dscc/applications/">{% t "My city applications" %}</a>
+  {% endif %}
+  <i class="bi bi-chevron-right"></i>
+  <span>{{ application.reference }}</span>
+</nav>
+
+<div class="city-app-head">
+  <div>
+    <p class="section-eyebrow">{{ org.emblem_text }} · {% t "APPLICATION FILE" %}</p>
+    <h1 class="app-ref">{{ application.reference }}</h1>
+    <p class="app-sub">{{ application.form.title }} · {% if application.service %}{{ application.service.name }}{% else %}{% t "City service" %}{% endif %}</p>
+  </div>
+  <div class="d-flex flex-column align-items-lg-end gap-2">
+    <span class="status-pill {{ application.status }}">{{ application.get_status_display|tr:lang }}</span>
+    <div class="city-app-actions">
+      <a class="btn btn-sm btn-outline-primary" href="/dscc/applications/{{ application.reference }}/pdf/"><i class="bi bi-file-earmark-pdf"></i> {% t "Submitted PDF" %}</a>
+      {% if application.status == 'approved' %}
+        <a class="btn btn-sm btn-primary" href="/dscc/applications/{{ application.reference }}/certificate.pdf"><i class="bi bi-patch-check"></i> {% t "Certificate" %}</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="city-detail-grid">
+  <div>
+    <div class="city-card">
+      <div class="city-card-head"><h2>{% t "Verification timeline" %}</h2></div>
+      <div class="city-card-body">
+        <ol class="city-timeline">
+          <li class="done">
+            <span class="timeline-dot"><i class="bi bi-send"></i></span>
+            <div class="timeline-body">
+              <b>{% t "Application submitted" %}</b>
+              <div class="timeline-meta">
+                <span>{{ application.applicant.display_name }}</span>
+                <span>{{ application.created_at|dt }}</span>
+                {% if application.ward %}<span>{{ application.ward.label }}</span>{% endif %}
+              </div>
+            </div>
+          </li>
+          {% for stage in stages %}
+            <li class="{% if application.status == 'approved' %}done{% elif stage.order < application.current_order %}done{% elif stage.order == application.current_order %}{% if application.status == 'rejected' %}rejected{% else %}current{% endif %}{% endif %}">
+              <span class="timeline-dot">{% if application.status == 'approved' or stage.order < application.current_order %}<i class="bi bi-check-lg"></i>{% else %}{{ stage.order|bnnum }}{% endif %}</span>
+              <div class="timeline-body">
+                <b>{{ stage.label }}</b>
+                <div class="timeline-meta">
+                  <span>{{ stage.role.name|tr:lang }}</span>
+                  {% if stage.is_final %}<span>{% t "Final stage" %}</span>{% endif %}
+                  {% if stage.order == application.current_order and application.is_open %}<span><strong>{% t "Waiting here" %}</strong></span>{% endif %}
+                </div>
+                {% for action in actions %}
+                  {% if action.order == stage.order %}
+                    <p class="timeline-comment">
+                      <strong>{{ action.get_decision_display }}:</strong>
+                      {{ action.comments|default:"-" }}
+                      {% if action.actor %}<span class="text-muted"> · {{ action.actor.display_name }}, {{ action.created_at|dt }}</span>{% endif %}
+                    </p>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </li>
+          {% endfor %}
+        </ol>
+      </div>
+    </div>
+
+    {% if can_act and application.is_open %}
+      <form class="city-action-form" method="post" action="/app/city/applications/{{ application.reference }}/action/">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="/dscc/applications/{{ application.reference }}/">
+        <h2>{% if application.current_stage %}{{ application.current_stage.label }}{% else %}{% t "Verification" %}{% endif %}</h2>
+        <p>{% t "Record your decision. The applicant and the next desk are notified automatically." %}</p>
+        <label class="visually-hidden" for="action-comments">{% t "Comments" %}</label>
+        <textarea id="action-comments" name="comments" placeholder="{% t 'Comments for the applicant and the next desk' %}"></textarea>
+        <div class="city-decision-row">
+          {% if application.current_stage and application.current_stage.is_final %}
+            <button class="btn btn-decision-approve" type="submit" name="decision" value="approve"><i class="bi bi-patch-check"></i> {% t "Approve and issue certificate" %}</button>
+          {% else %}
+            <button class="btn btn-decision-approve" type="submit" name="decision" value="verify"><i class="bi bi-check2-circle"></i> {% t "Verify and forward" %}</button>
+          {% endif %}
+          <button class="btn btn-decision-return" type="submit" name="decision" value="return"><i class="bi bi-arrow-counterclockwise"></i> {% t "Return for correction" %}</button>
+          <button class="btn btn-decision-reject" type="submit" name="decision" value="reject"><i class="bi bi-x-octagon"></i> {% t "Reject" %}</button>
+        </div>
+      </form>
+    {% endif %}
+
+    {% if application.can_resubmit and application.applicant_id == user.id %}
+      <form class="city-action-form" method="post" action="/dscc/applications/{{ application.reference }}/resubmit/">
+        {% csrf_token %}
+        <h2>{% t "Resubmit this application" %}</h2>
+        <p>{% t "The file returns to the first verification stage. Add a note on what you corrected." %}</p>
+        <textarea name="comments" placeholder="{% t 'What did you correct?' %}"></textarea>
+        <div class="city-decision-row">
+          <button class="btn btn-decision-approve" type="submit"><i class="bi bi-arrow-repeat"></i> {% t "Resubmit" %}</button>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+
+  <div>
+    <div class="city-card">
+      <div class="city-card-head"><h2>{% t "File details" %}</h2></div>
+      <div class="city-card-body">
+        <dl class="city-kv">
+          <dt>{% t "Reference" %}</dt><dd>{{ application.reference }}</dd>
+          <dt>{% t "Applicant" %}</dt><dd>{{ application.applicant.display_name }}</dd>
+          <dt>{% t "Form" %}</dt><dd>{{ application.form.title }}</dd>
+          <dt>{% t "Form no." %}</dt><dd>{{ application.form.form_no|default:"-" }}</dd>
+          <dt>{% t "Ward" %}</dt><dd>{% if application.ward %}{{ application.ward.label }} - {{ application.ward.name }}{% else %}-{% endif %}</dd>
+          <dt>{% t "Submitted" %}</dt><dd>{{ application.created_at|dt }}</dd>
+          <dt>{% t "Last update" %}</dt><dd>{{ application.updated_at|dt }}</dd>
+          {% if application.decided_at %}<dt>{% t "Decided" %}</dt><dd>{{ application.decided_at|dt }}</dd>{% endif %}
+          {% if application.note %}<dt>{% t "Latest note" %}</dt><dd>{{ application.note }}</dd>{% endif %}
+        </dl>
+      </div>
+    </div>
+
+    {% if application.attachments.all %}
+      <div class="city-card mt-3">
+        <div class="city-card-head"><h2>{% t "Attached documents" %}</h2></div>
+        <div class="city-card-body">
+          <ul class="city-files">
+            {% for doc in application.attachments.all %}
+              <li>
+                <span class="file-badge">{% if doc.is_image %}<i class="bi bi-file-earmark-image"></i>{% else %}<i class="bi bi-file-earmark-pdf"></i>{% endif %}</span>
+                <span class="file-meta">
+                  <b>{{ doc.original_name }}</b>
+                  <small>{{ doc.field_label|tr:lang }} · {{ doc.size_kb }} KB</small>
+                </span>
+                <a href="/dscc/applications/{{ application.reference }}/attachments/{{ doc.pk }}/"
+                   title="{% t 'Download' %}" aria-label="{% t 'Download' %} {{ doc.original_name }}">
+                  <i class="bi bi-download"></i>
+                </a>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    {% endif %}
+
+    {% if application.fee_amount %}
+      <div class="city-card mt-3">
+        <div class="city-card-head"><h2>{% t "Fee payment" %}</h2></div>
+        <div class="city-card-body">
+          <div class="pay-summary">
+            <div>
+              <span>{% t "Payable amount" %}</span>
+              <b>BDT {{ application.fee_amount|money }}</b>
+            </div>
+            {% if application.payment %}
+              <span class="status-pill approved">{% t "Paid" %}</span>
+            {% else %}
+              <span class="status-pill submitted">{% t "Unpaid" %}</span>
+            {% endif %}
+          </div>
+          {% if application.payment %}
+            <dl class="city-kv mt-2">
+              <dt>{% t "Method" %}</dt><dd>{{ application.payment.get_method_display|tr:lang }}</dd>
+              <dt>{% t "Transaction ID" %}</dt><dd class="mono">{{ application.payment.transaction_id }}</dd>
+              {% if application.payment.payer_ref %}<dt>{% t "Account" %}</dt><dd class="mono">••••{{ application.payment.payer_ref }}</dd>{% endif %}
+              <dt>{% t "Paid on" %}</dt><dd>{{ application.payment.created_at|dt }}</dd>
+            </dl>
+          {% elif application.applicant_id == user.id %}
+            {% if application.status == 'approved' %}
+              <p class="hint">{% t "Pay the fee online with bKash, Nagad, bank transfer or SSLCommerz." %}</p>
+              <a class="btn btn-primary w-100" href="/dscc/applications/{{ application.reference }}/pay/"><i class="bi bi-credit-card"></i> {% t "Pay fee" %}</a>
+            {% else %}
+              <p class="hint">{% t "Payment opens after final approval." %}</p>
+              {% if DEMO_MODE %}
+                <a class="btn btn-outline-primary w-100" href="/dscc/applications/{{ application.reference }}/pay/?demo=1"><i class="bi bi-lightning-charge"></i> {% t "Pay now, skip verification" %}</a>
+                <p class="hint mt-2">{% t "Walkthrough: pay immediately without the approval chain. The live flow collects the fee after final approval." %}</p>
+              {% endif %}
+            {% endif %}
+          {% else %}
+            {% if application.status == 'approved' %}
+              <p class="hint">{% t "The applicant has not paid the fee yet." %}</p>
+            {% else %}
+              <p class="hint">{% t "Payment opens after final approval." %}</p>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div class="city-card mt-3">
+      <div class="city-card-head"><h2>{% t "Submitted information" %}</h2></div>
+      <div class="city-card-body">
+        <ul class="city-data-list">
+          {% for label, value in field_values %}
+            <li><span>{{ label|tr:lang }}</span><b>{% if value %}{{ value|tr:lang }}{% else %}-{% endif %}</b></li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

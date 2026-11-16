@@ -1,0 +1,181 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<nav class="svc-crumb" aria-label="Breadcrumb">
+  <a href="/dscc/">{% t "City services" %}</a><i class="bi bi-chevron-right"></i>
+  <a href="/dscc/forms/">{% t "Application forms" %}</a><i class="bi bi-chevron-right"></i>
+  <span>{% t "Fill online" %}</span>
+</nav>
+
+<div class="city-ward-row">
+  <i class="bi bi-geo-alt text-success"></i>
+  <div>
+    <label for="ward-select">{% t "Your ward" %}</label>
+    <div class="hint">{% t "The ward councillor verifies applications from their ward first." %}</div>
+  </div>
+  <select class="form-select" id="ward-select" name="ward" form="city-fill-form">
+    <option value="">{% t "Select a ward (optional)" %}</option>
+    {% for ward in wards %}
+      <option value="{{ ward.pk }}" {% if selected_ward == ward.pk|stringformat:'s' %}selected{% endif %}>
+        {{ ward.label }}{% if ward.zone %} · {{ ward.zone.name }}{% endif %}
+      </option>
+    {% endfor %}
+  </select>
+</div>
+
+<form method="post" id="city-fill-form" action="/dscc/forms/{{ form.pk }}/fill/" enctype="multipart/form-data">
+  {% csrf_token %}
+  <section class="city-paper">
+    <div class="city-paper-band">
+      <span><b>FORM NO. {{ form.form_no }}</b></span>
+      <span>{{ org.name }} · {% t "Online submission" %}</span>
+      <span class="paper-rule">{% t "EDITABLE" %}</span>
+    </div>
+    <div class="city-paper-head">
+      <span class="paper-mark" aria-hidden="true"><img src="{% static 'img/dscc-crest.svg' %}" alt=""></span>
+      <div class="paper-titles">
+        <b>{% if lang == 'bn' and org.name_bn %}{{ org.name_bn }}{% else %}{{ org.name|upper }}{% endif %}</b>
+        <small>{{ org.address }}<br>{% t "Application form - service counter" %}</small>
+      </div>
+      <span class="paper-mark" aria-hidden="true">BD</span>
+    </div>
+    <div class="city-paper-meta">
+      <span>{% t "Service" %}: <b>{% if form.service %}{{ form.service.name }}{% else %}-{% endif %}</b></span>
+      <span>{% t "Applicant" %}: <b>{{ user.display_name }}</b></span>
+      <span>{% t "Type" %}: <b>{{ form.get_form_type_display|tr:lang }}</b></span>
+    </div>
+    <div class="city-paper-title">{{ form.title }}</div>
+    {% if form.title_bn %}<p class="city-paper-note text-center">{{ form.title_bn }}</p>{% endif %}
+    <p class="city-paper-note">{% t "Complete each field. Fields marked optional may be left blank; all other fields are required before submission." %}</p>
+
+    <div class="city-fields">
+      {% for field in fields %}
+        {% if field.kind == 'section' %}
+          <div class="city-field-section" style="margin-left:0;margin-right:0">{{ field.label|tr:lang }}</div>
+        {% else %}
+        <div class="city-field">
+          <label for="{{ field.key }}">
+            <span class="field-no">{{ field.index|bnnum }}</span>
+            <span>{{ field.label|tr:lang }}{% if field.show_optional %} <span class="field-optional">({% t "optional" %})</span>{% endif %}
+            </span>
+          </label>
+          <div class="field-input">
+            {% if field.type == 'textarea' %}
+              <textarea id="{{ field.key }}" name="{{ field.key }}" rows="3" placeholder="{% t 'Write here' %}" {% if not field.optional %}required{% endif %}>{{ field.value }}</textarea>
+            {% elif field.type == 'select' %}
+              <select id="{{ field.key }}" name="{{ field.key }}" {% if not field.optional %}required{% endif %}>
+                <option value="">{% t "Select" %}</option>
+                {% for option in field.options %}<option value="{{ option }}" {% if field.value == option %}selected{% endif %}>{{ option|tr:lang }}</option>{% endfor %}
+              </select>
+            {% elif field.type == 'radio' %}
+              <div class="field-options" role="radiogroup" aria-label="{{ field.label|tr:lang }}">
+                {% for option in field.options %}
+                  <label><input type="radio" name="{{ field.key }}" value="{{ option }}" {% if field.value == option %}checked{% endif %} {% if not field.optional %}required{% endif %}> {{ option|tr:lang }}</label>
+                {% endfor %}
+              </div>
+            {% elif field.type == 'attach' %}
+              <div class="field-upload">
+                <input id="{{ field.key }}" name="{{ field.key }}" type="file" class="field-file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp">
+                <i class="bi bi-cloud-arrow-up"></i>
+                <b>{% t "Choose files" %}</b>
+                <small>{% t "PDF or photo, up to 5 MB each" %}</small>
+              </div>
+              <div class="field-files" data-for="{{ field.key }}"></div>
+            {% elif field.type == 'date' %}
+              <input id="{{ field.key }}" name="{{ field.key }}" type="date" value="{{ field.value }}" {% if not field.optional %}required{% endif %}>
+            {% elif field.type == 'number' %}
+              <input id="{{ field.key }}" name="{{ field.key }}" type="number" step="any" value="{{ field.value }}" placeholder="{% t 'Write here' %}" {% if not field.optional %}required{% endif %}>
+            {% elif field.type == 'nid' %}
+              <input id="{{ field.key }}" name="{{ field.key }}" type="text" inputmode="numeric" pattern="[0-9]{10,17}" maxlength="17" value="{{ field.value }}" placeholder="10, 13 or 17 digits" {% if not field.optional %}required{% endif %}>
+            {% elif field.type == 'mobile' %}
+              <input id="{{ field.key }}" name="{{ field.key }}" type="tel" inputmode="tel" pattern="[0-9+ -]{11,17}" maxlength="17" value="{{ field.value }}" placeholder="01XXXXXXXXX" {% if not field.optional %}required{% endif %}>
+            {% elif field.type == 'email' %}
+              <input id="{{ field.key }}" name="{{ field.key }}" type="email" value="{{ field.value }}" placeholder="name@example.com" {% if not field.optional %}required{% endif %}>
+            {% else %}
+              <input id="{{ field.key }}" name="{{ field.key }}" type="text" value="{{ field.value }}" placeholder="{% t 'Write here' %}" {% if not field.optional %}required{% endif %}>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      {% endfor %}
+      {% if not has_attach %}
+        <div class="city-field">
+          <label for="extra_files">
+            <span class="field-no"><i class="bi bi-paperclip"></i></span>
+            <span>{% t "Supporting documents" %} <span class="field-optional">({% t "optional" %})</span></span>
+          </label>
+          <div class="field-input">
+            <div class="field-upload">
+              <input id="extra_files" name="extra_files" type="file" class="field-file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp">
+              <i class="bi bi-cloud-arrow-up"></i>
+              <b>{% t "Choose files" %}</b>
+              <small>{% t "PDF or photo, up to 5 MB each" %}</small>
+            </div>
+            <div class="field-files" data-for="extra_files"></div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="city-paper-declaration">
+      <b>{% t "Declaration" %}.</b> {% t "I declare that the information given above is true and correct. I understand that the file moves to the ward councillor, then the department, then final approval, and that a certificate is issued only after every stage verifies it." %}
+    </div>
+
+    <div class="city-paper-foot">
+      <div class="city-sign">{% t "Signature of applicant" %} - {{ user.display_name }}</div>
+      <div class="city-office-box">
+        <b>{% t "For office use only" %}</b>
+        <div>{% t "Received by" %}: ______________________</div>
+        <div>{% t "Date" %}: {% now "d M Y" %} · {% t "Fee" %}: {% if form.service and form.service.fee %}BDT {{ form.service.fee|money }}{% else %}{% t "No fee" %}{% endif %}</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="city-fill-actions">
+    <p class="hint"><i class="bi bi-send-check"></i> {% t "On submit the form is locked as a submitted PDF and routed to the councillor." %}</p>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-outline-primary" href="/dscc/forms/{{ form.pk }}/">{% t "Back to form" %}</a>
+      <button class="btn btn-primary" type="submit"><i class="bi bi-send"></i> {% t "Submit application" %}</button>
+    </div>
+  </div>
+</form>
+
+<script>
+  document.querySelectorAll('.field-file').forEach(function (input) {
+    input.addEventListener('change', function () {
+      var box = document.querySelector('.field-files[data-for="' + input.id + '"]');
+      if (!box) { return; }
+      box.textContent = '';
+      Array.prototype.forEach.call(input.files, function (file) {
+        var chip = document.createElement('span');
+        chip.className = 'file-chip';
+        var name = document.createElement('b');
+        name.textContent = file.name;
+        var meta = document.createElement('small');
+        meta.textContent = Math.max(1, Math.round(file.size / 1024)) + ' KB';
+        chip.appendChild(name);
+        chip.appendChild(meta);
+        box.appendChild(chip);
+      });
+    });
+  });
+</script>
+
+{% if requirements %}
+<section class="city-section">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "BEFORE YOU SUBMIT" %}</p>
+      <h2>{% t "Keep these documents ready" %}</h2>
+    </div>
+  </div>
+  <ul class="svc-requirements">
+    {% for item in requirements %}
+      <li><i class="bi bi-paperclip"></i><span>{{ item }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

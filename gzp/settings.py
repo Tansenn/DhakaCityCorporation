@@ -1,8 +1,8 @@
 """
-Django settings for the Gazipur Zila Parishad integrated platform demo.
+Django settings for the Dhaka South City Corporation service platform demo.
 
 The demo is fully self-contained: SQLite, local static assets, simulated
-payment gateway and notification outbox. No API keys or external services.
+notification outbox. No API keys or external services.
 """
 import os
 from pathlib import Path
@@ -17,8 +17,8 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 DEMO_MODE = True
-APP_NAME = 'Gazipur Zila Parishad: Integrated Digital Platform'
-ORGANISATION = 'Gazipur Zila Parishad'
+APP_NAME = 'Dhaka South City Corporation: Integrated Digital Service Platform'
+ORGANISATION = 'Dhaka South City Corporation'
 SUPPLIER = 'Adcelerete Technologies Limited'
 PAYMENT_GATEWAY_SECRET = os.environ.get(
     'GZP_GATEWAY_SECRET', 'demo-gateway-secret-gzp-2026'
@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
+    'organizations',
     'accounts',
     'workflow',
     'audit',
@@ -45,6 +46,7 @@ INSTALLED_APPS = [
     'meetings',
     'mis',
     'support',
+    'services',
 ]
 
 MIDDLEWARE = [

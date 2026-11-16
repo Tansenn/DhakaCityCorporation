@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<nav class="svc-crumb" aria-label="Breadcrumb">
+  <a href="/dscc/">{% t "City services" %}</a><i class="bi bi-chevron-right"></i>
+  <a href="/dscc/applications/">{% t "My city applications" %}</a><i class="bi bi-chevron-right"></i>
+  <a href="/dscc/applications/{{ application.reference }}/">{{ application.reference }}</a><i class="bi bi-chevron-right"></i>
+  <span>{% t "Pay fee" %}</span>
+</nav>
+
+<div class="city-app-head">
+  <div>
+    <p class="section-eyebrow">{% t "SECURE PAYMENT" %}</p>
+    <h1 class="app-ref">{% t "Pay the service fee" %}</h1>
+    <p class="app-sub">{{ application.form.title }} · {{ application.reference }}</p>
+  </div>
+  <div class="pay-amount-card">
+    <span>{% t "Payable amount" %}</span>
+    <b>BDT {{ amount|money }}</b>
+    {% if application.service %}<small>{{ application.service.name }}</small>{% endif %}
+  </div>
+</div>
+
+{% if direct %}
+  <div class="pay-walkthrough">
+    <i class="bi bi-lightning-charge"></i>
+    <span>{% t "Direct payment: verification is skipped for this walkthrough. In the live flow the fee is collected after final approval." %}</span>
+  </div>
+{% endif %}
+
+<form method="post" class="pay-sheet" action="/dscc/applications/{{ application.reference }}/pay/{% if direct %}?demo=1{% endif %}">
+  {% csrf_token %}
+  {% if direct %}<input type="hidden" name="demo" value="1">{% endif %}
+  <h2>{% t "Choose a payment method" %}</h2>
+  <p class="hint">{% t "Select the account the fee will be paid from." %}</p>
+  <div class="pay-methods">
+    {% for option in payment_options %}
+      <div class="pay-method">
+        <label class="pay-method-top" for="method-{{ option.code }}">
+          <input id="method-{{ option.code }}" type="radio" name="method" value="{{ option.code }}" {% if option.code == selected_method %}checked{% endif %}>
+          <img src="{% static option.logo %}" alt="{{ option.label }}">
+          <span class="pay-method-name">
+            <b>{{ option.label }}</b>
+            <small>{{ option.hint|tr:lang }}</small>
+          </span>
+          <i class="bi bi-check-circle-fill"></i>
+        </label>
+        <div class="pay-method-field">
+          <label for="payer-{{ option.code }}">{{ option.field_label|tr:lang }}</label>
+          <input id="payer-{{ option.code }}" name="payer_ref_{{ option.code }}"
+                 inputmode="numeric" pattern="{{ option.pattern }}"
+                 maxlength="{{ option.maxlength }}" placeholder="{{ option.placeholder }}"
+                 autocomplete="off">
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="pay-total">
+    <span>{% t "Total" %}</span>
+    <b>BDT {{ amount|money }}</b>
+  </div>
+  <button class="btn btn-primary w-100" type="submit">
+    <i class="bi bi-shield-lock"></i> {% t "Pay" %} BDT {{ amount|money }}
+  </button>
+  <p class="pay-note"><i class="bi bi-info-circle"></i> {% t "This is a simulated payment for the demonstration; no money is transferred." %}</p>
+</form>
+
+<a class="btn btn-outline-primary mt-3" href="/dscc/applications/{{ application.reference }}/"><i class="bi bi-arrow-left"></i> {% t "Back to application" %}</a>
+
+<script>
+  var payCards = document.querySelectorAll('.pay-method');
+  function syncPayCards() {
+    payCards.forEach(function (card) {
+      card.classList.toggle('is-active', card.querySelector('input[type="radio"]').checked);
+    });
+  }
+  payCards.forEach(function (card) {
+    card.querySelector('input[type="radio"]').addEventListener('change', syncPayCards);
+  });
+  syncPayCards();
+</script>
+{% endblock %}

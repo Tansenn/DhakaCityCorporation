@@ -16,7 +16,7 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 
 from accounts.decorators import perm_required
-from accounts.demo import demo_accounts
+from accounts.demo import city_demo_accounts
 from accounts.forms import StaffUserForm
 from accounts.models import LoginAttempt, Permission, Role, User
 from accounts.permissions import ROLE_PERMISSIONS
@@ -28,8 +28,11 @@ from core.utils import get_client_ip, paginate
 def landing_for(user):
     if not user or not user.is_authenticated:
         return '/'
+    org = getattr(user, 'organization', None)
     if user.is_citizen:
-        return '/citizen/'
+        return '/dscc/applications/'
+    if org is not None and org.is_city and user.can('city.view'):
+        return '/app/city/'
     return '/app/'
 
 
@@ -69,12 +72,10 @@ def _login_locked(username, ip):
 def login_view(request):
     next_url = request.GET.get('next') or request.POST.get('next') or ''
     portal = request.GET.get('portal') or request.POST.get('portal') or ''
-    if portal not in ('user', 'citizen', 'official'):
+    if portal not in ('citizen', 'official'):
         portal = ''
-    if not next_url and portal == 'user':
-        next_url = '/user/'
     if request.user.is_authenticated:
-        matching = (portal == 'official' and request.user.is_staff_portal_user) or (portal in ('user', 'citizen') and request.user.is_citizen)
+        matching = (portal == 'official' and request.user.is_staff_portal_user) or (portal == 'citizen' and request.user.is_citizen)
         if matching or not portal:
             return redirect(_post_login_target(request, request.user, next_url))
     username = ''
@@ -102,6 +103,8 @@ def login_view(request):
                 lang = request.session.get('gzp_lang', 'en')
                 login(request, user)
                 request.session['gzp_lang'] = lang
+                if user.organization_id:
+                    request.session['gzp_org'] = user.organization.code
                 log(user, 'login', request=request, module='accounts')
                 if not user.email_verified:
                     request.session['verification_next'] = _post_login_target(request, user, next_url)
@@ -112,14 +115,20 @@ def login_view(request):
                     )
                     return redirect('verify_email')
                 return redirect(_post_login_target(request, user, next_url))
-    accounts = demo_accounts()
-    if portal in ('user', 'citizen'):
+    accounts = city_demo_accounts()
+    if portal == 'citizen':
         accounts = [a for a in accounts if a['role_code'] == 'citizen']
     elif portal == 'official':
         accounts = [a for a in accounts if a['role_code'] and a['role_code'] != 'citizen']
+    demo_groups = []
+    rows = [a for a in accounts if a['org_code'] == 'dscc']
+    if rows:
+        demo_groups.append({
+            'code': 'dscc', 'label': 'Dhaka South City Corporation', 'accounts': rows,
+        })
     return render(request, 'accounts/login.html', {
         'next': next_url, 'username': username, 'page_title': 'Sign in',
-        'portal': portal, 'demo_accounts': accounts,
+        'portal': portal, 'demo_accounts': accounts, 'demo_groups': demo_groups,
     })
 
 
@@ -130,13 +139,13 @@ def logout_view(request):
         log(request.user, 'logout', request=request, module='accounts')
         logout(request)
     messages.success(request, 'You have signed out.')
-    return redirect('/')
+    return redirect('/dscc/')
 
 
 def register_view(request):
     if request.user.is_authenticated:
         return redirect(landing_for(request.user))
-    next_url = _safe_next(request, request.POST.get('next') or request.GET.get('next'), '/user/')
+    next_url = _safe_next(request, request.POST.get('next') or request.GET.get('next'), '/dscc/applications/')
     values = {
         'first_name': '', 'last_name': '', 'username': '', 'email': '', 'phone': '',
     }
@@ -170,6 +179,8 @@ def register_view(request):
             for error in errors:
                 messages.error(request, error)
         else:
+            from organizations.models import Organization
+
             role = Role.objects.filter(code='citizen').first()
             user = User.objects.create_user(
                 username=values['username'],
@@ -179,6 +190,7 @@ def register_view(request):
                 last_name=values['last_name'],
                 phone=values['phone'],
                 role=role,
+                organization=Organization.objects.filter(code='dscc').first(),
                 email_verified=False,
             )
             issue_otp(user)
@@ -243,12 +255,16 @@ def demo_switch(request):
     lang = request.session.get('gzp_lang', 'en')
     login(request, user)
     request.session['gzp_lang'] = lang
+    if user.organization_id:
+        request.session['gzp_org'] = user.organization.code
     log(user, 'login', request=request, module='accounts')
     messages.success(
         request,
         f'You are now signed in as {user.display_name} ({user.role.name}).',
     )
-    target = request.POST.get('next')
+    # A role switch starts the new persona at its dashboard; only the login
+    # quick panel may carry a deeper `next` link.
+    target = '' if request.POST.get('switch') == '1' else request.POST.get('next')
     return redirect(_safe_next(request, _portal_target(user, target), landing_for(user)))
 
 

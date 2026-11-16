@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-labelledby="crestTitle">
+  <title id="crestTitle">Dhaka South City Corporation crest</title>
+  <defs>
+    <path id="crestTop" d="M 30 100 A 70 70 0 0 1 170 100" fill="none"/>
+    <path id="crestBottom" d="M 170 100 A 70 70 0 0 1 30 100" fill="none"/>
+  </defs>
+
+  <circle cx="100" cy="100" r="98" fill="#006a4e"/>
+  <circle cx="100" cy="100" r="98" fill="none" stroke="#043b2d" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#ffffff" stroke-width="1.4" opacity=".85"/>
+  <circle cx="100" cy="100" r="54" fill="none" stroke="#ffffff" stroke-width="1" opacity=".45"/>
+
+  <text font-family="'Noto Sans Bengali','Nirmala UI','SolaimanLipi',sans-serif" font-size="10.6" font-weight="700" fill="#ffffff" letter-spacing=".4">
+    <textPath href="#crestTop" startOffset="50%" text-anchor="middle">ঢাকা দক্ষিণ সিটি কর্পোরেশন</textPath>
+  </text>
+  <text font-family="Arial, Helvetica, sans-serif" font-size="7.4" font-weight="700" fill="#eafaf2" letter-spacing="1.1">
+    <textPath href="#crestBottom" startOffset="50%" text-anchor="middle">DHAKA SOUTH CITY CORPORATION</textPath>
+  </text>
+
+  <g fill="#ffffff" opacity=".95">
+    <path d="M62 150 l1.7 5.1 5.3 1.7 -5.3 1.7 -1.7 5.1 -1.7 -5.1 -5.3 -1.7 5.3 -1.7 Z"/>
+    <path d="M138 150 l1.7 5.1 5.3 1.7 -5.3 1.7 -1.7 5.1 -1.7 -5.1 -5.3 -1.7 5.3 -1.7 Z"/>
+  </g>
+
+  <circle cx="100" cy="100" r="64" fill="#f42a41"/>
+  <circle cx="100" cy="100" r="64" fill="none" stroke="#ffd400" stroke-width="2.4"/>
+
+  <g stroke="#ffd400" stroke-width="1.7" stroke-linecap="round" opacity=".95">
+    <line x1="100" y1="46" x2="100" y2="54"/>
+    <line x1="100" y1="146" x2="100" y2="138"/>
+    <line x1="46" y1="100" x2="54" y2="100"/>
+    <line x1="146" y1="100" x2="138" y2="100"/>
+    <line x1="62" y1="62" x2="67.5" y2="67.5"/>
+    <line x1="132.5" y1="132.5" x2="138" y2="138"/>
+    <line x1="138" y1="62" x2="132.5" y2="67.5"/>
+    <line x1="67.5" y1="132.5" x2="62" y2="138"/>
+  </g>
+  <circle cx="100" cy="82" r="25" fill="#ffd400"/>
+
+  <g fill="#ffffff">
+    <path d="M100 63 C93.5 73 93.5 82 100 88 C106.5 82 106.5 73 100 63 Z"/>
+    <path d="M88 69 C83.5 78 85.5 85 93.5 88 C94 80 92 73 88 69 Z"/>
+    <path d="M112 69 C116.5 78 114.5 85 106.5 88 C106 80 108 73 112 69 Z"/>
+  </g>
+  <g stroke="#ffd400" stroke-width="2.2" fill="none" stroke-linecap="round">
+    <line x1="100" y1="88" x2="100" y2="112"/>
+    <path d="M84 94 Q 100 103 116 94"/>
+    <path d="M81 94 q 3.5 6 7 0"/>
+    <path d="M112 94 q 3.5 6 7 0"/>
+  </g>
+
+  <path d="M50 112 Q 100 133 150 112 L 147 128 Q 100 150 53 128 Z" fill="#ffffff"/>
+  <text x="100" y="127.5" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="12.5" font-weight="700" fill="#006a4e" letter-spacing="2.2">DHAKA</text>
+  <g fill="#f42a41">
+    <path d="M65 116 l1.2 3.4 3.5 1.2 -3.5 1.2 -1.2 3.4 -1.2 -3.4 -3.5 -1.2 3.5 -1.2 Z"/>
+    <path d="M135 116 l1.2 3.4 3.5 1.2 -3.5 1.2 -1.2 3.4 -1.2 -3.4 -3.5 -1.2 3.5 -1.2 Z"/>
+  </g>
+</svg>

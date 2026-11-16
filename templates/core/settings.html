@@ -12,6 +12,35 @@
   <a class="btn btn-sm btn-outline-primary" href="/app/audit/?module=core"><i class="bi bi-shield-lock me-1"></i>Audit log</a>
 </div>
 
+{% if ORG %}
+<div class="card mb-3">
+  <div class="card-header">
+    <strong>{% t "Organisation identity" %}</strong>
+    <span class="note-inline">{% t "Shown in the header, PDF letterhead and certificates" %}</span>
+  </div>
+  <div class="card-body">
+    <form method="post" class="row g-3">
+      {% csrf_token %}
+      <input type="hidden" name="form" value="org">
+      <div class="col-md-6">
+        <label class="form-label" for="org-head-title">{% t "Head title" %}</label>
+        <input class="form-control" id="org-head-title" name="head_title" value="{{ ORG_HEAD_TITLE }}" placeholder="Mayor / Administrator">
+        <div class="form-text">{% t "A corporation can be run by an elected mayor or by an appointed administrator." %}</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="org-head-name">{% t "Head name" %}</label>
+        <input class="form-control" id="org-head-name" name="head_name" value="{{ ORG_HEAD_NAME }}">
+      </div>
+      <div class="col-12 d-flex flex-wrap align-items-center gap-2">
+        <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>{% t "Save organisation" %}</button>
+        {% if ORG_IS_CITY %}<a class="btn btn-outline-primary" href="/app/city/setup/"><i class="bi bi-geo-alt me-1"></i>{% t "Zones and wards" %}</a>{% endif %}
+        <span class="text-muted small">{{ ORG_NAME }}</span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 <form method="post">
   {% csrf_token %}
   <div class="two-col">

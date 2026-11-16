@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="svc-band">
+  <div class="svc-band-text">
+    <p class="section-eyebrow"><a href="/dscc/" class="svc-band-link">{% t "City services" %}</a></p>
+    <h1>{% t "Offices and departments" %}</h1>
+    <p>{% t "The corporation works through these offices. Each department verifies the applications that belong to it before final approval." %}</p>
+  </div>
+  <div class="svc-band-count"><b>{{ office_count|bnnum }}</b><span>{% t "offices" %}</span></div>
+</section>
+
+{% for group in groups %}
+<section class="city-office-group">
+  <div class="city-office-group-head">
+    <h2>{{ group.label|tr:lang }}</h2>
+    <span>{{ group.rows|length|bnnum }} {% t "offices" %}</span>
+  </div>
+  <div class="city-office-grid">
+    {% for office in group.rows %}
+      <article class="city-office-card">
+        <span class="office-no">DSCC {{ office.number }}</span>
+        <b>{{ office.name }}</b>
+        <p>{{ office.summary }}</p>
+        {% if office.services %}
+          <span class="office-meta"><i class="bi bi-file-earmark-text"></i> {{ office.services|bnnum }} {% t "online services" %}</span>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</section>
+{% endfor %}
+
+<section class="city-section">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "VERIFICATION DESKS" %}</p>
+      <h2>{% t "How an application moves" %}</h2>
+      <p>{% t "Every online application starts at the ward councillor, moves to the department that owns the service, and ends with final approval." %}</p>
+    </div>
+    <a class="btn btn-outline-primary" href="/dscc/forms/">{% t "Application forms" %} <i class="bi bi-arrow-right"></i></a>
+  </div>
+</section>
+{% endblock %}

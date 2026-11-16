@@ -3,7 +3,6 @@
 {% block title %}{% t "Sign in" %}{% endblock %}
 {% block auth_content %}
   <nav class="portal-tabs" aria-label="{% t 'Choose your portal' %}">
-    <a class="{% if portal == 'user' %}on{% endif %}" href="/login/?portal=user&amp;next=/user/"><i class="bi bi-compass"></i> {% t "User" %}</a>
     <a class="{% if portal == 'citizen' %}on{% endif %}" href="/login/?portal=citizen{% if next %}&next={{ next|urlencode }}{% endif %}">
       <i class="bi bi-person-fill"></i> {% t "Citizen" %}
     </a>
@@ -12,13 +11,13 @@
     </a>
   </nav>
 
-  <h2>{% if portal == 'official' %}{% t "Officials sign-in" %}{% elif portal == 'citizen' %}{% t "Citizen sign-in" %}{% elif portal == 'user' %}{% t "Welcome to your next booking" %}{% else %}{% t "Sign in" %}{% endif %}</h2>
-  <div class="sub">{% if portal == 'official' %}{% t "Booking desk, reviewers, approvers, finance, HR and administration." %}{% elif portal == 'citizen' %}{% t "Citizens and applicants using Parishad services." %}{% else %}{% t "Citizen and staff access to the integrated platform." %}{% endif %}</div>
+  <h2>{% if portal == 'official' %}{% t "Officials sign-in" %}{% elif portal == 'citizen' %}{% t "Citizen sign-in" %}{% else %}{% t "Sign in" %}{% endif %}</h2>
+  <div class="sub">{% if portal == 'official' %}{% t "Ward councillor, department officer and mayor accounts." %}{% elif portal == 'citizen' %}{% t "Citizens applying for city corporation services." %}{% else %}{% t "Citizen and staff access to the Dhaka South City Corporation platform." %}{% endif %}</div>
 
   {% if portal == 'citizen' %}
     <div class="portal-hint">
       <i class="bi bi-person-vcard"></i>
-      <span>{% t "Citizen applicants need a National ID (NID) when submitting a booking. Sample numbers only in this demo." %}</span>
+      <span>{% t "Citizen applicants need a National ID (NID) when submitting an application. Sample numbers only in this demo." %}</span>
     </div>
   {% elif portal == 'official' %}
     <div class="portal-hint">
@@ -55,14 +54,19 @@
   {% if DEMO_MODE %}
     <div class="demo-panel">
       <div class="dp-title">{% t "Demo quick sign-in - password" %} <span class="demo-pass">Demo@12345</span></div>
-      <div class="demo-accounts">
-        {% for account in demo_accounts %}
-          <form method="post" action="/demo/switch/">
-            {% csrf_token %}
-            <input type="hidden" name="username" value="{{ account.username }}">
-            <input type="hidden" name="next" value="{{ next }}">
-            <button type="submit" title="{{ account.label }}">{{ account.username }}</button>
-          </form>
+      <div class="demo-accounts-wrap">
+        {% for group in demo_groups %}
+          <div class="demo-org-label">{{ group.label }}</div>
+          <div class="demo-accounts">
+            {% for account in group.accounts %}
+              <form method="post" action="/demo/switch/">
+                {% csrf_token %}
+                <input type="hidden" name="username" value="{{ account.username }}">
+                <input type="hidden" name="next" value="{{ next }}">
+                <button type="submit" title="{{ account.label }}">{{ account.username }}</button>
+              </form>
+            {% endfor %}
+          </div>
         {% endfor %}
       </div>
       <div class="note-inline mt-2">{% t "All demo accounts share the same password. Roles are enforced on the server, not only in the menu." %}</div>

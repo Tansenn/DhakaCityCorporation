@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="svc-band">
+  <div class="svc-band-text">
+    <p class="section-eyebrow"><a href="/dscc/" class="svc-band-link">{% t "City services" %}</a></p>
+    <h1>{% t "Acts, rules and gazettes" %}</h1>
+    <p>{% t "The laws, rules and gazette notifications that the corporation applies when it processes an application." %}</p>
+  </div>
+  <div class="svc-band-count"><b>{{ total|bnnum }}</b><span>{% t "documents" %}</span></div>
+</section>
+
+<nav class="city-act-tabs" aria-label="{% t 'Document type' %}">
+  <a class="{% if not active %}on{% endif %}" href="/dscc/acts/">{% t "All" %} ({{ total|bnnum }})</a>
+  {% for tab in tabs %}
+    <a class="{% if active == tab.code %}on{% endif %}" href="/dscc/acts/?type={{ tab.code }}">{{ tab.label|tr:lang }} ({{ tab.count|bnnum }})</a>
+  {% endfor %}
+</nav>
+
+<div class="city-act-list">
+  {% for doc in documents %}
+    <article class="city-act-row">
+      <span class="act-year">{{ doc.year|bnnum }}</span>
+      <div class="act-body">
+        <b>{{ doc.title }}</b>
+        <p class="act-sub">{{ doc.summary }}</p>
+        <span class="act-ref">{{ doc.reference }}</span>
+      </div>
+      <a class="act-ext" href="/dscc/forms/"><i class="bi bi-file-earmark-text"></i> {% t "Related forms" %}</a>
+    </article>
+  {% empty %}
+    <div class="empty-results"><i class="bi bi-journal-bookmark"></i><h3>{% t "No documents in this category" %}</h3><p>{% t "Choose another category to see the listed acts and rules." %}</p></div>
+  {% endfor %}
+</div>
+
+<section class="service-note">
+  <img class="org-crest" src="{% static 'img/dscc-crest.svg' %}" alt="">
+  <div>
+    <h2>{% t "Law Department" %}</h2>
+    <p>{% t "The Law Department issues legal opinions, defends corporation cases and confirms that every service follows the acts and rules listed here." %}</p>
+  </div>
+  <a href="/dscc/offices/" class="btn btn-outline-primary">{% t "Offices" %}</a>
+</section>
+{% endblock %}

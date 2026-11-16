@@ -71,10 +71,16 @@ PERMISSIONS = [
     # audit
     ('audit.view', 'View the audit log', 'audit'),
     ('audit.export', 'Export the audit log', 'audit'),
+    # city corporation services
+    ('city.view', 'View city service applications', 'city'),
+    ('city.apply', 'Submit city service applications', 'city'),
+    ('city.verify', 'Verify and forward city applications', 'city'),
+    ('city.approve', 'Give final approval to city applications', 'city'),
+    ('city.manage', 'Manage zones, wards and city service setup', 'city'),
 ]
 
 ROLE_PERMISSIONS = {
-    'citizen': ['bookings.apply', 'notifications.view'],
+    'citizen': ['bookings.apply', 'notifications.view', 'city.apply', 'city.view'],
     'reception': ['bookings.view', 'bookings.reception', 'facilities.view',
                   'notifications.view'],
     'bookingdesk': ['bookings.view', 'bookings.review', 'workflow.view',
@@ -100,7 +106,8 @@ ROLE_PERMISSIONS = {
               'documents.view', 'support.manage', 'support.view',
               'support.uat', 'mis.reports', 'mis.export', 'mis.audit',
               'mis.view_exec', 'mis.view_dept',
-              'bookings.view', 'payments.view', 'projects.view', 'meetings.view'],
+              'bookings.view', 'payments.view', 'projects.view', 'meetings.view',
+              'city.view', 'city.verify', 'city.approve', 'city.manage'],
     'management': ['bookings.view', 'facilities.view', 'workflow.view',
                    'workflow.audit', 'payments.view', 'payments.reconcile',
                    'hr.view', 'documents.view', 'documents.audit',
@@ -126,6 +133,12 @@ ROLE_PERMISSIONS = {
     'inspector': ['projects.view', 'projects.inspect', 'notifications.view'],
     'secretary': ['meetings.view', 'meetings.manage', 'meetings.minutes',
                   'meetings.action', 'workflow.view', 'notifications.view'],
+    'dscc_councillor': ['city.view', 'city.verify', 'workflow.view',
+                        'notifications.view'],
+    'dscc_officer': ['city.view', 'city.verify', 'workflow.view',
+                     'documents.view', 'notifications.view'],
+    'dscc_mayor': ['city.view', 'city.verify', 'city.approve', 'workflow.view',
+                   'notifications.view', 'mis.view_exec', 'mis.reports'],
 }
 
 ROLE_DEFINITIONS = [
@@ -154,4 +167,10 @@ ROLE_DEFINITIONS = [
      'Read-only dashboards, histories and reports.', 160, True),
     ('admin', 'System Administrator',
      'Roles, master data, settings and audit. No implicit approval power.', 170, False),
+    ('dscc_councillor', 'Ward Councillor',
+     'Verifies city applications for the ward and forwards them.', 180, False),
+    ('dscc_officer', 'Department Officer',
+     'Department verification for city service applications.', 190, False),
+    ('dscc_mayor', 'Mayor / Administrator',
+     'Final approval for city service applications.', 200, False),
 ]

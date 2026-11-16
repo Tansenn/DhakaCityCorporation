@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="city-hero">
+  <div class="city-hero-grid">
+    <div class="city-hero-text">
+      <p class="section-eyebrow">{{ org.emblem_text }} · {% t "CITY CORPORATION" %}</p>
+      <h1>{% if lang == 'bn' and org.name_bn %}{{ org.name_bn }}{% else %}{{ org.name }}{% endif %}</h1>
+      {% if lang == 'bn' and org.title_bn %}
+        <p class="city-hero-bn">{{ org.title_bn }}</p>
+      {% else %}
+        <p class="city-hero-bn">{% t "Integrated Digital Service Platform" %}</p>
+      {% endif %}
+      <p>{% t "Apply online, track your file and watch each desk verify it. City services follow a ward councillor, department and final approval chain." %}</p>
+      <div class="hero-actions">
+        <a class="btn-hero" href="#city-services"><i class="bi bi-grid"></i> {% t "Browse services" %}</a>
+        <a class="btn-hero btn-hero-ghost" href="/dscc/forms/"><i class="bi bi-file-earmark-text"></i> {% t "Application forms" %}</a>
+        <a class="btn-hero btn-hero-ghost" href="/dscc/offices/"><i class="bi bi-building"></i> {% t "Offices" %}</a>
+        <a class="btn-hero btn-hero-ghost" href="/dscc/acts/"><i class="bi bi-journal-bookmark"></i> {% t "Act and rules" %}</a>
+        {% if user.is_authenticated %}
+          <a class="btn-hero btn-hero-ghost" href="/dscc/applications/"><i class="bi bi-folder2-open"></i> {% t "My city applications" %}</a>
+        {% endif %}
+      </div>
+    </div>
+    <figure class="city-hero-media">
+      <img src="{% static 'img/dscc-nagar-bhaban.png' %}" alt="{% t 'Nagar Bhaban, head office of Dhaka South City Corporation' %}">
+      <figcaption>{% t "Nagar Bhaban · Head office" %}</figcaption>
+    </figure>
+  </div>
+  <div class="city-head-bar">
+    <span>{% t "Head of the corporation" %}</span>
+    <b>{{ head_title|default:"Mayor / Administrator" }}</b>
+    {% if head_name %}<b>{{ head_name }}</b>{% endif %}
+    <span class="head-office">{{ org.address }}{% if org.phone %} · {{ org.phone }}{% endif %}</span>
+  </div>
+</section>
+
+<div class="city-stats">
+  <div class="city-stat"><span>{% t "Online services" %}</span><b>{{ services|length|bnnum }}</b></div>
+  <div class="city-stat"><span>{% t "Application forms" %}</span><b>{{ form_count|bnnum }}</b></div>
+  <div class="city-stat"><span>{% t "Zones" %}</span><b>{{ zones|length|bnnum }}</b></div>
+  <div class="city-stat"><span>{% t "Wards" %}</span><b>{{ ward_count|bnnum }}</b></div>
+</div>
+
+<section class="city-section" id="city-services">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "SERVICE DIRECTORY" %}</p>
+      <h2>{% t "City corporation services" %}</h2>
+      <p>{% t "Pick a service to see its requirements, fees and the forms you can fill in online." %}</p>
+    </div>
+    <a class="btn btn-outline-primary" href="/dscc/forms/"><i class="bi bi-file-earmark-text"></i> {% t "All forms" %} ({{ form_count|bnnum }})</a>
+  </div>
+  <div class="city-service-list">
+    {% for service in services %}
+      <a class="city-service-card" href="/dscc/services/{{ service.code }}/">
+        <span class="city-service-icon has-photo">
+          <img src="{% static 'img/services/' %}{{ service.code }}.jpg" alt="" loading="lazy" width="64" height="64" onerror="this.remove()">
+          <i class="bi bi-{{ service.icon }}"></i>
+        </span>
+        <b>{% if lang == 'bn' and service.name_bn %}{{ service.name_bn }}{% else %}{{ service.name }}{% endif %}</b>
+        <small>{{ service.department_short|tr:lang }}</small>
+      </a>
+    {% empty %}
+      <div class="empty-results"><i class="bi bi-building"></i><h3>{% t "No services yet" %}</h3><p>{% t "City services appear here once they are configured." %}</p></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="city-section">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "ONLINE FORMS" %}</p>
+      <h2>{% t "Fill a form on the website" %}</h2>
+      <p>{% t "Open a form, complete it online and submit it to the ward councillor for verification." %}</p>
+    </div>
+    <a class="btn btn-outline-primary" href="/dscc/forms/">{% t "View all" %} <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="svc-form-list">
+    {% for form in sample_forms %}
+      <div class="svc-form-row">
+        <span class="svc-form-sl">{{ form.sl|bnnum }}</span>
+        <div class="svc-form-title">
+          <b>{{ form.title }}</b>
+          {% if form.title_bn %}<small>{{ form.title_bn }}</small>{% endif %}
+        </div>
+        <div class="svc-form-files">
+          <a class="file-chip" href="/dscc/forms/{{ form.pk }}/fill/"><i class="bi bi-pencil-square"></i> {% t "Fill online" %}</a>
+          <a class="file-chip sample" href="/services/forms/{{ form.pk }}/blank/"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+        </div>
+      </div>
+    {% empty %}
+      <div class="empty-results"><i class="bi bi-file-earmark-text"></i><h3>{% t "No forms yet" %}</h3></div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="city-section">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "HOW IT WORKS" %}</p>
+      <h2>{% t "Three-step verification" %}</h2>
+    </div>
+  </div>
+  <ol class="city-stage-strip">
+    <li><span class="stage-no">১</span> {% t "Ward councillor verification" %}</li>
+    <li><span class="stage-no">২</span> {% t "Department verification" %}</li>
+    <li class="final"><span class="stage-no">৩</span> {% t "Final approval" %} · {{ head_title }}</li>
+  </ol>
+</section>
+{% endblock %}

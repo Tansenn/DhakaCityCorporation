@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="svc-band">
+  <div class="svc-band-text">
+    <p class="section-eyebrow"><a href="/dscc/" class="svc-band-link">{% t "City services" %}</a></p>
+    <h1>{% t "Application forms" %}</h1>
+    <p>{% t "Corporation forms can be filled in online. On submission they are routed to the ward councillor, the department and final approval." %}</p>
+  </div>
+  <div class="svc-band-count"><b>{{ form_count|bnnum }}</b><span>{% t "forms" %}</span></div>
+</section>
+
+<form class="svc-filters" method="get" action="/dscc/forms/">
+  <label>
+    <span>{% t "Search" %}</span>
+    <input class="form-control" name="q" value="{{ q }}" placeholder="{% t 'Form title' %}">
+  </label>
+  <label>
+    <span>{% t "Service" %}</span>
+    <select class="form-select" name="service">
+      <option value="">{% t "All services" %}</option>
+      {% for service in services %}<option value="{{ service.code }}" {% if service_code == service.code %}selected{% endif %}>{{ service.name }}</option>{% endfor %}
+    </select>
+  </label>
+  <button class="btn btn-primary" type="submit"><i class="bi bi-funnel"></i> {% t "Filter" %}</button>
+  {% if q or service_code %}<a class="btn btn-outline-primary" href="/dscc/forms/">{% t "Clear" %}</a>{% endif %}
+</form>
+
+<div class="svc-table-wrap">
+  <table class="svc-table">
+    <thead>
+      <tr>
+        <th>{% t "SL" %}</th>
+        <th>{% t "Title" %}</th>
+        <th>{% t "Service name" %}</th>
+        <th>{% t "Files" %}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for form in forms %}
+        <tr>
+          <td class="form-sl">{{ form.sl|bnnum }}</td>
+          <td class="form-title">
+            <b>{{ form.title }}</b>
+            {% if form.title_bn %}<small>{{ form.title_bn }}</small>{% endif %}
+          </td>
+          <td>{% if form.service %}{{ form.service.name }}{% else %}-{% endif %}</td>
+          <td>
+            <div class="svc-form-files">
+              <a class="file-chip sample" href="/services/forms/{{ form.pk }}/blank/"><i class="bi bi-file-earmark-pdf"></i> PDF</a>
+              {% if form.has_sample %}<a class="file-chip" href="/services/forms/{{ form.pk }}/sample/"><i class="bi bi-file-earmark-check"></i> {% t "Sample" %}</a>{% endif %}
+            </div>
+          </td>
+          <td>
+            <a class="file-chip" href="/dscc/forms/{{ form.pk }}/fill/"><i class="bi bi-pencil-square"></i> {% t "Fill online" %}</a>
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not forms %}
+    <div class="empty-results"><i class="bi bi-file-earmark-text"></i><h3>{% t "No forms match this filter" %}</h3><p>{% t "Try another word or clear the filters." %}</p><a class="btn btn-primary" href="/dscc/forms/">{% t "Clear filters" %}</a></div>
+  {% endif %}
+</div>
+
+<section class="service-note">
+  <img class="org-crest" src="{% static 'img/dscc-crest.svg' %}" alt="">
+  <div>
+    <h2>{% t "Fill online, verify in three steps" %}</h2>
+    <p>{% t "The online form mirrors the printed PDF. After submission the ward councillor verifies the ward details, the department verifies the service information and the final stage approves the file." %}</p>
+  </div>
+  <a href="/dscc/" class="btn btn-outline-primary">{% t "Back to services" %}</a>
+</section>
+{% endblock %}

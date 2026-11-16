@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block content %}
+<section class="svc-band">
+  <div class="svc-band-text">
+    <p class="section-eyebrow">{{ org.emblem_text }} · {% t "APPLICANT DESK" %}</p>
+    <h1>{% t "My city applications" %}</h1>
+    <p>{% t "Every online file you submitted to the corporation, with its current verification stage." %}</p>
+  </div>
+  <div class="svc-band-count"><b>{{ applications|length|bnnum }}</b><span>{% t "files" %}</span></div>
+</section>
+
+<div class="results-heading mt-4">
+  <div>
+    <p class="section-eyebrow">{% t "ALL FILES" %}</p>
+    <h2>{% t "Application history" %}</h2>
+  </div>
+  <a class="btn btn-primary" href="/dscc/forms/"><i class="bi bi-plus-lg"></i> {% t "Start a new application" %}</a>
+</div>
+
+<nav class="app-filter-bar" aria-label="{% t 'Application status' %}">
+  <a class="{% if active_status == 'all' %}is-active{% endif %}" href="/dscc/applications/">{% t "All" %} <b>{{ status_counts.all|bnnum }}</b></a>
+  <a class="{% if active_status == 'pending' %}is-active{% endif %}" href="/dscc/applications/?status=pending">{% t "Pending" %} <b>{{ status_counts.pending|bnnum }}</b></a>
+  <a class="{% if active_status == 'approved' %}is-active{% endif %}" href="/dscc/applications/?status=approved">{% t "Approved" %} <b>{{ status_counts.approved|bnnum }}</b></a>
+  <a class="{% if active_status == 'returned' %}is-active{% endif %}" href="/dscc/applications/?status=returned">{% t "Returned" %} <b>{{ status_counts.returned|bnnum }}</b></a>
+  <a class="{% if active_status == 'rejected' %}is-active{% endif %}" href="/dscc/applications/?status=rejected">{% t "Rejected" %} <b>{{ status_counts.rejected|bnnum }}</b></a>
+</nav>
+
+{% if applications %}
+  <div class="city-queue-wrap">
+    <table class="city-queue">
+      <thead>
+        <tr>
+          <th>{% t "Reference" %}</th>
+          <th>{% t "Form" %}</th>
+          <th>{% t "Ward" %}</th>
+          <th>{% t "Status" %}</th>
+          <th>{% t "Submitted" %}</th>
+          <th>{% t "Last update" %}</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for application in applications %}
+          <tr>
+            <td class="ref">{{ application.reference }}</td>
+            <td>{{ application.form.title }}</td>
+            <td>{% if application.ward %}{{ application.ward.label }}{% else %}-{% endif %}</td>
+            <td><span class="status-pill {{ application.status }}">{{ application.get_status_display|tr:lang }}</span></td>
+            <td>{{ application.created_at|d }}</td>
+            <td>{{ application.updated_at|d }}</td>
+            <td class="text-nowrap">
+              <a href="/dscc/applications/{{ application.reference }}/">{% t "Open" %}</a>
+              <span class="text-muted">·</span>
+              <a href="/dscc/applications/{{ application.reference }}/pdf/">PDF</a>
+              {% if application.status == 'approved' %}
+                <span class="text-muted">·</span>
+                <a href="/dscc/applications/{{ application.reference }}/certificate.pdf">{% t "Certificate" %}</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="empty-results">
+    <i class="bi bi-folder2-open"></i>
+    {% if active_status == 'all' %}
+      <h3>{% t "No applications yet" %}</h3>
+      <p>{% t "Choose a corporation form, fill it online and submit it to start the verification chain." %}</p>
+      <a class="btn btn-primary" href="/dscc/forms/">{% t "Browse forms" %}</a>
+    {% else %}
+      <h3>{% t "No applications match this filter." %}</h3>
+      <p>{% t "Try another status or view every file." %}</p>
+      <a class="btn btn-outline-primary" href="/dscc/applications/">{% t "Clear filter" %}</a>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

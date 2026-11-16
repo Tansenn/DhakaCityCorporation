@@ -1,22 +1,12 @@
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib import admin
 from django.urls import include, path
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('', include('organizations.urls')),
     path('', include('core.urls')),
+    path('', include('services.urls')),
     path('', include('accounts.urls')),
-    path('', include('bookings.urls')),
-    path('', include('payments.urls')),
-    path('app/', include('workflow.urls')),
-    path('app/', include('facilities.urls')),
-    path('app/', include('hr.urls')),
-    path('app/', include('documents.urls')),
-    path('app/', include('projects.urls')),
-    path('app/', include('meetings.urls')),
-    path('app/', include('mis.urls')),
-    path('app/', include('support.urls')),
     path('app/', include('notifications.urls')),
     path('app/', include('audit.urls')),
 ]

@@ -20,6 +20,11 @@ class Role(models.Model):
     code = models.SlugField(max_length=40, unique=True)
     name = models.CharField(max_length=120)
     description = models.TextField(blank=True)
+    organization = models.ForeignKey(
+        'organizations.Organization', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='roles',
+        help_text='Leave blank for roles shared by every organisation.',
+    )
     permissions = models.ManyToManyField(Permission, blank=True, related_name='roles')
     is_read_only = models.BooleanField(
         default=False,
@@ -37,6 +42,10 @@ class Role(models.Model):
 class User(AbstractUser):
     role = models.ForeignKey(Role, null=True, blank=True, on_delete=models.SET_NULL,
                              related_name='users')
+    organization = models.ForeignKey(
+        'organizations.Organization', null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='users',
+    )
     phone = models.CharField(max_length=30, blank=True)
     department = models.ForeignKey('hr.Department', null=True, blank=True,
                                    on_delete=models.SET_NULL, related_name='users')
