@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static gzp %}
 {% block body_class %}services-page city-page{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=6">{% endblock %}
 {% block content %}
 <section class="svc-band">
   <div class="svc-band-text">
@@ -9,11 +9,22 @@
     <h1>{% t "Offices and departments" %}</h1>
     <p>{% t "The corporation works through these offices. Each department verifies the applications that belong to it before final approval." %}</p>
   </div>
-  <div class="svc-band-count"><b>{{ office_count|bnnum }}</b><span>{% t "offices" %}</span></div>
+  <div class="svc-band-count">
+    <b>{{ office_count|bnnum }}</b><span>{% t "offices" %}</span>
+    <small class="svc-band-sub">{{ service_total|bnnum }} {% t "online services" %}</small>
+  </div>
 </section>
 
+<nav class="office-jump" aria-label="{% t 'Office groups' %}">
+  {% for group in groups %}
+    <a href="#office-group-{{ forloop.counter }}">
+      {{ group.label|tr:lang }} <span>{{ group.rows|length|bnnum }}</span>
+    </a>
+  {% endfor %}
+</nav>
+
 {% for group in groups %}
-<section class="city-office-group">
+<section class="city-office-group" id="office-group-{{ forloop.counter }}">
   <div class="city-office-group-head">
     <h2>{{ group.label|tr:lang }}</h2>
     <span>{{ group.rows|length|bnnum }} {% t "offices" %}</span>
@@ -21,12 +32,33 @@
   <div class="city-office-grid">
     {% for office in group.rows %}
       <article class="city-office-card">
-        <span class="office-no">DSCC {{ office.number }}</span>
-        <b>{{ office.name }}</b>
-        <p>{{ office.summary }}</p>
+        <div class="office-top">
+          <span class="office-no">DSCC {{ office.number }}</span>
+          {% if office.services %}
+            <span class="office-count">{{ office.services|length|bnnum }} {% if office.services|length == 1 %}{% t "service" %}{% else %}{% t "services" %}{% endif %}</span>
+          {% endif %}
+        </div>
+        <b class="office-name"><a href="/dscc/offices/{{ office.code }}/">{% if lang == 'bn' and office.name_bn %}{{ office.name_bn }}{% else %}{{ office.name }}{% endif %}</a></b>
+        <div class="office-facts">
+          <span class="office-fact"><i class="bi bi-person-badge"></i> {% t "Head" %}: {% if lang == 'bn' and office.head_bn %}{{ office.head_bn }}{% else %}{{ office.head }}{% endif %}</span>
+          <span class="office-fact"><i class="bi bi-geo-alt"></i> {% if lang == 'bn' and office.location_bn %}{{ office.location_bn }}{% else %}{{ office.location }}{% endif %}</span>
+        </div>
+        <p class="office-summary">{% if lang == 'bn' and office.summary_bn %}{{ office.summary_bn }}{% else %}{{ office.summary }}{% endif %}</p>
         {% if office.services %}
-          <span class="office-meta"><i class="bi bi-file-earmark-text"></i> {{ office.services|bnnum }} {% t "online services" %}</span>
+          <div class="office-services">
+            <span class="office-services-label">{% t "ONLINE SERVICES" %}</span>
+            {% for svc in office.services %}
+              <a class="office-service" href="{{ svc.url }}">
+                <span>{% if lang == 'bn' and svc.name_bn %}{{ svc.name_bn }}{% else %}{{ svc.name }}{% endif %}</span>
+                {% if svc.forms %}<small>{{ svc.forms|bnnum }} {% if svc.forms == 1 %}{% t "form" %}{% else %}{% t "forms" %}{% endif %}</small>{% endif %}
+                <i class="bi bi-arrow-right"></i>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="office-empty"><i class="bi bi-file-earmark-text"></i> {% t "No online services in this office yet" %}</p>
         {% endif %}
+        <span class="office-more">{% t "View office" %} <i class="bi bi-arrow-right"></i></span>
       </article>
     {% endfor %}
   </div>

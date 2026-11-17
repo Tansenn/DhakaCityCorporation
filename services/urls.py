@@ -7,6 +7,7 @@ urlpatterns = [
     path('dscc/services/<slug:code>/', views.city_service, name='city_service'),
     path('dscc/forms/', views.city_forms, name='city_forms'),
     path('dscc/offices/', views.city_offices, name='city_offices'),
+    path('dscc/offices/<slug:code>/', views.city_office_detail, name='city_office_detail'),
     path('dscc/acts/', views.city_acts, name='city_acts'),
     path('dscc/forms/<int:pk>/', views.city_form, name='city_form'),
     path('dscc/forms/<int:pk>/fill/', views.city_form_fill, name='city_form_fill'),

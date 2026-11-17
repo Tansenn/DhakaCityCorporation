@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+{% load static gzp %}
+{% block body_class %}services-page city-page{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=6">{% endblock %}
+{% block content %}
+<nav class="svc-crumb" aria-label="Breadcrumb">
+  <a href="/dscc/">{% t "City services" %}</a><i class="bi bi-chevron-right"></i>
+  <a href="/dscc/offices/">{% t "Offices" %}</a><i class="bi bi-chevron-right"></i>
+  <span>{% if lang == 'bn' and office.name_bn %}{{ office.name_bn }}{% else %}{{ office.name }}{% endif %}</span>
+</nav>
+
+<section class="svc-band svc-band-detail">
+  <div class="svc-band-text">
+    <p class="section-eyebrow">{{ group|tr:lang }} · DSCC {{ office.number }}</p>
+    <h1>{% if lang == 'bn' and office.name_bn %}{{ office.name_bn }}{% else %}{{ office.name }}{% endif %}</h1>
+    {% if office.name_bn %}<p class="mb-2">{{ office.name_bn }}</p>{% endif %}
+    <p>{% if lang == 'bn' and office.summary_bn %}{{ office.summary_bn }}{% else %}{{ office.summary }}{% endif %}</p>
+  </div>
+  <div class="svc-band-count">
+    <b>{{ services|length|bnnum }}</b><span>{% t "online services" %}</span>
+    <small class="svc-band-sub">{{ form_total|bnnum }} {% t "forms" %}</small>
+  </div>
+</section>
+
+<div class="svc-stats">
+  <div class="svc-stat"><span>{% t "Head of office" %}</span><b>{% if lang == 'bn' and office.head_bn %}{{ office.head_bn }}{% else %}{{ office.head }}{% endif %}</b></div>
+  <div class="svc-stat"><span>{% t "Office address" %}</span><b>{% if lang == 'bn' and office.location_bn %}{{ office.location_bn }}{% else %}{{ office.location }}{% endif %}</b></div>
+  <div class="svc-stat"><span>{% t "Forms in this office" %}</span><b>{{ form_total|bnnum }}</b></div>
+</div>
+
+<div class="svc-two-col">
+  <div class="svc-col">
+    <div class="results-heading">
+      <div>
+        <p class="section-eyebrow">{% t "OFFICE PROFILE" %}</p>
+        <h2>{% t "Head of office" %}</h2>
+      </div>
+    </div>
+    <div class="office-profile">
+      <div class="op-head">
+        <span class="office-avatar"><i class="bi bi-person-badge"></i></span>
+        <span>
+          <span class="op-name">{% if lang == 'bn' and office.head_bn %}{{ office.head_bn }}{% else %}{{ office.head }}{% endif %}</span>
+          <span class="op-role">{% if head_user %}{{ head_user.display_name }}{% if head_user.role_name %} · {{ head_user.role_name|tr:lang }}{% endif %}{% else %}{% t "Office head" %}{% endif %}</span>
+        </span>
+      </div>
+      <dl>
+        <dt>{% t "Office address" %}</dt>
+        <dd>{% if lang == 'bn' and office.location_bn %}{{ office.location_bn }}{% else %}{{ office.location }}{% endif %}</dd>
+        <dt>{% t "Department" %}</dt>
+        <dd>{% if lang == 'bn' and office.name_bn %}{{ office.name_bn }}{% else %}{{ office.name }}{% endif %}</dd>
+        <dt>{% t "Office group" %}</dt>
+        <dd>{{ group|tr:lang }}</dd>
+        {% if org.phone %}
+        <dt>{% t "Contact" %}</dt>
+        <dd>{{ org.phone }}</dd>
+        {% endif %}
+      </dl>
+    </div>
+  </div>
+  <div class="svc-col">
+    <div class="results-heading">
+      <div>
+        <p class="section-eyebrow">{% t "ONLINE SERVICES" %}</p>
+        <h2>{% t "What this office handles" %}</h2>
+        <p>{% t "This desk checks each application against the service requirements before it moves to final approval." %}</p>
+      </div>
+    </div>
+    <div class="svc-form-list">
+      {% for svc in services %}
+        <div class="svc-form-row">
+          <span class="svc-form-sl">{{ forloop.counter|bnnum }}</span>
+          <div class="svc-form-title">
+            <b><a href="/dscc/services/{{ svc.code }}/">{% if lang == 'bn' and svc.name_bn %}{{ svc.name_bn }}{% else %}{{ svc.name }}{% endif %}</a></b>
+            <small>{{ svc.summary|tr:lang }}</small>
+          </div>
+          <div class="svc-form-files">
+            <span class="office-fee">{% if svc.fee %}৳ {{ svc.fee|money }}{% else %}{% t "Free" %}{% endif %}</span>
+            <a class="file-chip" href="/dscc/services/{{ svc.code }}/"><i class="bi bi-arrow-right"></i> {% t "Open" %}</a>
+          </div>
+        </div>
+      {% empty %}
+        <div class="empty-results"><i class="bi bi-grid"></i><h3>{% t "No online services in this office yet" %}</h3></div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if forms %}
+<section class="city-section">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "FORMS FROM THIS OFFICE" %}</p>
+      <h2>{% t "Fill online or download" %}</h2>
+      <p>{% t "Submitted forms come to this desk for department verification, then move to final approval." %}</p>
+    </div>
+    <a class="btn btn-outline-primary" href="/dscc/forms/">{% t "All forms" %} <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="svc-form-list">
+    {% for form in forms %}
+      <div class="svc-form-row">
+        <span class="svc-form-sl">{{ forloop.counter|bnnum }}</span>
+        <div class="svc-form-title">
+          <b>{{ form.title }}</b>
+          {% if form.title_bn %}<small>{{ form.title_bn }}</small>{% endif %}
+        </div>
+        <div class="svc-form-files">
+          <a class="file-chip" href="/dscc/forms/{{ form.pk }}/fill/"><i class="bi bi-pencil-square"></i> {% t "Fill online" %}</a>
+          {% if form.has_sample %}<a class="file-chip sample" href="/services/forms/{{ form.pk }}/blank/"><i class="bi bi-file-earmark-pdf"></i> PDF</a>{% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="city-section">
+  <div class="results-heading">
+    <div>
+      <p class="section-eyebrow">{% t "VERIFICATION ROUTE" %}</p>
+      <h2>{% t "How this office fits the route" %}</h2>
+      <p>{% t "This department is the second checkpoint: it verifies the service details after the ward councillor and before final approval." %}</p>
+    </div>
+  </div>
+  <ol class="city-stage-strip">
+    <li><span class="stage-no">১</span> {% t "Ward councillor verification" %}</li>
+    <li class="is-current"><span class="stage-no">২</span> {% t "Department verification" %} · {% if lang == 'bn' and office.name_bn %}{{ office.name_bn }}{% else %}{{ office.name }}{% endif %}</li>
+    <li class="final"><span class="stage-no">৩</span> {% t "Final approval" %} · {{ head_title|tr:lang }}</li>
+  </ol>
+  <div class="office-back">
+    <a class="btn btn-outline-primary" href="/dscc/offices/"><i class="bi bi-arrow-left"></i> {% t "Back to all offices" %}</a>
+  </div>
+</section>
+{% endblock %}

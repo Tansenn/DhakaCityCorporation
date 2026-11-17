@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 {% load static gzp %}
 {% block body_class %}city-page{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=6">{% endblock %}
 {% block content %}
 <section class="city-role-banner">
   <img class="org-crest org-crest-lg" src="{% static 'img/dscc-crest.svg' %}" alt="{{ org.name }}">
   <div class="rb-text">
     <h1>{{ org.name }}</h1>
-    <p>{{ user.display_name }} · {{ user.role_name|tr:lang }} · {{ org.head_title }}{% if org.head_name %} {{ org.head_name }}{% endif %}</p>
+    <p>{{ user.display_name }} · {{ user.role_name|tr:lang }} · {{ org.head_title|tr:lang }}{% if org.head_name %} {{ org.head_name }}{% endif %}</p>
   </div>
   <div class="rb-chips">
     {% for stage in my_stages %}

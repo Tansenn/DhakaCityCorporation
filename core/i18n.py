@@ -875,6 +875,65 @@ BN_EXTRA = {
     'Switch organisation': 'প্রতিষ্ঠান পরিবর্তন',
     'Offices': 'অফিস',
     'Offices and departments': 'অফিস ও বিভাগ',
+    'Office groups': 'অফিস গ্রুপ',
+    'Head': 'প্রধান',
+    'services': 'সেবা',
+    'service': 'সেবা',
+    'forms': 'ফর্ম',
+    'form': 'ফর্ম',
+    'ONLINE SERVICES': 'অনলাইন সেবা',
+    'No online services in this office yet': 'এই অফিসে এখনো কোনো অনলাইন সেবা নেই',
+    'View office': 'অফিস দেখুন',
+    'Office head': 'অফিস প্রধান',
+    'Office profile': 'অফিস প্রোফাইল',
+    'OFFICE PROFILE': 'অফিস প্রোফাইল',
+    'Head of office': 'অফিসের প্রধান',
+    'Office address': 'অফিসের ঠিকানা',
+    'Office group': 'অফিস গ্রুপ',
+    'Contact': 'যোগাযোগ',
+    'What this office handles': 'এই অফিস যে সেবা দেখে',
+    'This desk checks each application against the service requirements before it moves to final approval.':
+        'এই ডেস্ক চূড়ান্ত অনুমোদনে যাওয়ার আগে প্রতিটি আবেদন সেবার শর্তাবলির সঙ্গে মিলিয়ে যাচাই করে।',
+    'Open': 'খুলুন',
+    'FORMS FROM THIS OFFICE': 'এই অফিসের ফর্ম',
+    'Forms in this office': 'এই অফিসের ফর্ম',
+    'Submitted forms come to this desk for department verification, then move to final approval.':
+        'জমা দেওয়া ফর্ম বিভাগীয় যাচাইয়ের জন্য এই ডেস্কে আসে, এরপর চূড়ান্ত অনুমোদনে যায়।',
+    'How this office fits the route': 'এই অফিস রুটে কোথায় আছে',
+    'This department is the second checkpoint: it verifies the service details after the ward councillor and before final approval.':
+        'এই বিভাগ দ্বিতীয় চেকপয়েন্ট: ওয়ার্ড কাউন্সিলরের পর এবং চূড়ান্ত অনুমোদনের আগে সেবার তথ্য যাচাই করে।',
+    'Back to all offices': 'সব অফিসে ফিরে যান',
+    'New trade licence, renewal, amendment and food business licence for shops and businesses inside the corporation area.':
+        'কর্পোরেশন এলাকার দোকান ও ব্যবসার নতুন ট্রেড লাইসেন্স, নবায়ন, সংশোধন ও খাদ্য ব্যবসা লাইসেন্স।',
+    'Register a birth and collect the birth registration certificate.':
+        'জন্ম নিবন্ধন করুন এবং জন্ম নিবন্ধন সনদ সংগ্রহ করুন।',
+    'Register a death and collect the death registration certificate.':
+        'মৃত্যু নিবন্ধন করুন এবং মৃত্যু নিবন্ধন সনদ সংগ্রহ করুন।',
+    'Holding tax assessment, name mutation and tax clearance for a holding.':
+        'হোল্ডিং কর নির্ধারণ, নামজারি ও হোল্ডিংয়ের কর ছাড়পত্র।',
+    'Approval of a new building plan, revision and completion certificate.':
+        'নতুন বিল্ডিং প্ল্যানের অনুমোদন, সংশোধন ও সমাপ্তি সনদ।',
+    'Permission for a signboard or advertisement and the annual advertisement tax return.':
+        'সাইনবোর্ড বা বিজ্ঞাপনের অনুমতি এবং বার্ষিক বিজ্ঞাপন কর রিটার্ন।',
+    'Apply for a shop or stall in a corporation market and pay the allotment fee.':
+        'কর্পোরেশন বাজারে দোকান বা স্টলের আবেদন করুন এবং বরাদ্দ ফি পরিশোধ করুন।',
+    'Permission to cut a corporation road, footpath or drain for utility work.':
+        'ইউটিলিটি কাজের জন্য কর্পোরেশনের রাস্তা, ফুটপাত বা ড্রেন কাটার অনুমতি।',
+    'Permission for a public event, rally, fair or stage programme in the corporation area.':
+        'কর্পোরেশন এলাকায় জনসমাবেশ, র‍্যালি, মেলা বা মঞ্চ অনুষ্ঠানের অনুমতি।',
+    'Conservancy service, waste collection arrangement and exemption requests.':
+        'পরিচ্ছন্নতা সেবা, বর্জ্য সংগ্রহ ব্যবস্থা ও মাশুল মওকুফের আবেদন।',
+    'Residence, citizenship and ward councillor recommendation certificates.':
+        'বাসস্থান, নাগরিকত্ব ও ওয়ার্ড কাউন্সিলরের সুপারিশ সনদ।',
+    'Report a civic problem, submit a grievance and track the corporation reply.':
+        'নাগরিক সমস্যা জানান, অভিযোগ জমা দিন এবং কর্পোরেশনের উত্তর ট্র্যাক করুন।',
+    'Register a marriage and collect the marriage certificate.':
+        'বিবাহ নিবন্ধন করুন এবং বিবাহ সনদ সংগ্রহ করুন।',
+    'Financial assistance for people affected by a natural disaster, disability, incurable disease or an accident, and for the family of a deceased employee.':
+        'প্রাকৃতিক দুর্যোগ, প্রতিবন্ধিতা, দুরারোগ্য রোগ বা দুর্ঘটনায় ক্ষতিগ্রস্ত মানুষ এবং মৃত কর্মচারীর পরিবারের জন্য আর্থিক সহায়তা।',
+    'Mayor / Administrator': 'মেয়র / প্রশাসক',
+    'Ward Councillor': 'ওয়ার্ড কাউন্সিলর',
+    'Department Officer': 'বিভাগীয় কর্মকর্তা',
     'Executive offices': 'নির্বাহী কার্যালয়',
     'Engineering and planning': 'প্রকৌশল ও পরিকল্পনা',
     'Civic services': 'নাগরিক সেবা',

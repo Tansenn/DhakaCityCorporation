@@ -366,7 +366,43 @@ class CityOfficesAndActsTests(TestCase):
         revenue = next(
             row for group in response.context['groups'] for row in group['rows']
             if row['name'] == 'Revenue Department')
-        self.assertEqual(revenue['services'], 4)
+        self.assertEqual(len(revenue['services']), 4)
+        self.assertTrue(all(
+            service['url'].startswith('/dscc/services/') for service in revenue['services']))
+
+    def test_offices_page_in_bangla_translates_departments_and_contacts(self):
+        session = self.client.session
+        session['gzp_lang'] = 'bn'
+        session.save()
+        response = self.client.get('/dscc/offices/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'প্রকৌশল বিভাগ')
+        self.assertContains(response, 'প্রধান প্রকৌশলী')
+        self.assertContains(response, 'নগর ভবন · ৪র্থ তলা · কক্ষ ৪০২')
+        self.assertNotContains(response, 'Engineering Department')
+
+    def test_office_detail_page_shows_the_head_address_and_services(self):
+        response = self.client.get('/dscc/offices/dscc-dept-04/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Engineering Department')
+        self.assertContains(response, 'Chief Engineer')
+        self.assertContains(response, 'Nagar Bhaban · 4th floor · Room 402')
+        self.assertTrue(response.context['services'])
+
+    def test_office_detail_page_returns_404_for_unknown_code(self):
+        response = self.client.get('/dscc/offices/dscc-dept-99/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_office_detail_page_in_bangla_translates_profile(self):
+        session = self.client.session
+        session['gzp_lang'] = 'bn'
+        session.save()
+        response = self.client.get('/dscc/offices/dscc-dept-04/')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'প্রকৌশল বিভাগ')
+        self.assertContains(response, 'প্রধান প্রকৌশলী')
+        self.assertContains(response, 'নগর ভবন · ৪র্থ তলা · কক্ষ ৪০২')
+        self.assertNotContains(response, 'Engineering Department')
 
     def test_acts_page_filters_gazette_law_and_rules(self):
         response = self.client.get('/dscc/acts/')

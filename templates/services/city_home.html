@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static gzp %}
 {% block body_class %}services-page city-page{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=2">{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/services.css' %}?v=6">{% endblock %}
 {% block content %}
 <section class="city-hero">
   <div class="city-hero-grid">
@@ -31,7 +31,7 @@
   </div>
   <div class="city-head-bar">
     <span>{% t "Head of the corporation" %}</span>
-    <b>{{ head_title|default:"Mayor / Administrator" }}</b>
+    <b>{{ head_title|default:"Mayor / Administrator"|tr:lang }}</b>
     {% if head_name %}<b>{{ head_name }}</b>{% endif %}
     <span class="head-office">{{ org.address }}{% if org.phone %} · {{ org.phone }}{% endif %}</span>
   </div>
@@ -107,7 +107,7 @@
   <ol class="city-stage-strip">
     <li><span class="stage-no">১</span> {% t "Ward councillor verification" %}</li>
     <li><span class="stage-no">২</span> {% t "Department verification" %}</li>
-    <li class="final"><span class="stage-no">৩</span> {% t "Final approval" %} · {{ head_title }}</li>
+    <li class="final"><span class="stage-no">৩</span> {% t "Final approval" %} · {{ head_title|tr:lang }}</li>
   </ol>
 </section>
 {% endblock %}

@@ -228,14 +228,26 @@ def city_forms(request):
 
 
 def city_offices(request):
+    from django.db.models import Count
+
     from organizations.data import CITY_DEPARTMENTS, CITY_OFFICE_GROUPS
 
     org = _city()
     request.session['gzp_org'] = org.code
     known = {department.name: department for department in org.departments.all()}
-    service_counts = {}
-    for service in Service.objects.filter(organization=org, is_active=True):
-        service_counts[service.department] = service_counts.get(service.department, 0) + 1
+    by_department = {}
+    service_total = 0
+    active_services = (Service.objects.filter(organization=org, is_active=True)
+                       .annotate(form_total=Count('forms')))
+    for service in active_services:
+        service_total += 1
+        by_department.setdefault(service.department, []).append({
+            'name': service.name,
+            'name_bn': service.name_bn,
+            'code': service.code,
+            'url': f'/dscc/services/{service.code}/',
+            'forms': service.form_total,
+        })
     groups = []
     for group in CITY_OFFICE_GROUPS:
         rows = []
@@ -244,11 +256,10 @@ def city_offices(request):
                 continue
             department = known.get(row['name'])
             rows.append({
+                **row,
                 'number': f'{number:02d}',
-                'name': row['name'],
-                'summary': row['summary'],
                 'code': department.code if department else '',
-                'services': service_counts.get(row['name'], 0),
+                'services': by_department.get(row['name'], []),
             })
         groups.append({'label': group, 'rows': rows})
     return render(request, 'services/city_offices.html', {
@@ -256,6 +267,44 @@ def city_offices(request):
         'org': org,
         'groups': groups,
         'office_count': len(CITY_DEPARTMENTS),
+        'service_total': service_total,
+    })
+
+
+def city_office_detail(request, code):
+    from django.db.models import Count
+
+    from hr.models import Department
+    from organizations.data import CITY_DEPARTMENTS
+
+    org = _city()
+    request.session['gzp_org'] = org.code
+    department = get_object_or_404(Department, organization=org, code=code)
+    position = next(
+        (index for index, row in enumerate(CITY_DEPARTMENTS, start=1)
+         if row['name'] == department.name),
+        None)
+    if position is None:
+        raise Http404
+    row = CITY_DEPARTMENTS[position - 1]
+    services = list(
+        Service.objects.filter(organization=org, is_active=True,
+                               department=department.name)
+        .annotate(form_total=Count('forms')))
+    forms = list(
+        ServiceForm.objects.filter(organization=org,
+                                   service__department=department.name)
+        .select_related('service').order_by('sort', 'sl'))
+    return render(request, 'services/city_office_detail.html', {
+        'page_title': row['name'],
+        'org': org,
+        'office': {**row, 'number': f'{position:02d}', 'code': department.code},
+        'group': row['group'],
+        'services': services,
+        'forms': forms,
+        'form_total': len(forms),
+        'head_user': department.head,
+        'head_title': org.head_title,
     })
 
 
